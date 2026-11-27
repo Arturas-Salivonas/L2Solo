@@ -22,6 +22,8 @@ const TABS = Object.freeze([
     { id: 'buff', label: 'Buffer' },
     { id: 'adena', label: 'Adena', enabled: () => config().adena },
     { id: 'class', label: 'Class', enabled: () => config().classChange },
+    // Only when the Last Hero event (branch feat/last-hero) is installed: its own window, as a tab.
+    { id: 'hero', label: 'Last Hero', enabled: () => !!lastHero() },
     { id: 'market', label: 'Market Board' }
 ]);
 // The board's own top buttons (home, favorite, region, clan, memo, mail, friends,
@@ -34,6 +36,18 @@ const TOP_BYPASSES = Object.freeze([
 const buffer = () => require('./SoloBuffer');
 const adena = () => require('./SoloAdena');
 const classes = () => require('./SoloClass');
+let heroWindow;
+// The Last Hero window (Events/LastHero/LastHeroWindow.js), or null on a server without it.
+function lastHero() {
+    if (heroWindow !== undefined) return heroWindow;
+    try {
+        heroWindow = invoke('GameServer/Events/LastHero/LastHeroWindow');
+    } catch (error) {
+        if (error?.code !== 'MODULE_NOT_FOUND') utils.infoWarn('SoloHelper', 'Last Hero tab off: %s', error.message);
+        heroWindow = null;
+    }
+    return heroWindow;
+}
 const tabs = () => TABS.filter((tab) => !tab.enabled || tab.enabled());
 const market = (session) => invoke('GameServer/AfkTrade/PlayerBoardWindow').open(session);
 
@@ -75,6 +89,10 @@ function showClass(session, state = {}) {
     return sendBoard(session, chrome('class', classes().boardBody(session, state)));
 }
 
+function showHero(session, state = {}) {
+    return sendBoard(session, chrome('hero', lastHero().boardBody(session, state)));
+}
+
 // Opens the helper in the configured window: the board, or the chat window.
 function open(session) {
     if (config().window === 'chat') return buffer().chatHandle(session, []);
@@ -96,6 +114,10 @@ function handleBoard(session, args = []) {
         const actor = session.actor;
         return classes().act(session, action, arg).then((state) => (session.actor === actor ? showClass(session, state) : null));
     }
+    if (tab === 'hero' && lastHero()) {
+        const actor = session.actor;
+        return lastHero().act(session, action).then((state) => (session.actor === actor ? showHero(session, state) : null));
+    }
     if (tab !== 'buff') return showBuffer(session);
     return showBuffer(session, buffer().act(session, action, arg));
 }
@@ -113,6 +135,7 @@ function command(session, text) {
     if (!config().enabled || !session?.actor) return false;
     if (line === '.buffer') { open(session); return true; }
     if (line === '.class' && config().classChange) { showClass(session); return true; }
+    if (line === '.lasthero' && lastHero()) { showHero(session); return true; }
     if (!config().adena) return false;
     const handled = adena().command(session, line);
     if (handled === 'open') { showAdena(session); return true; }

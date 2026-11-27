@@ -172,6 +172,19 @@ const boardPackets = (session) => session.packets.filter((packet) => packet[0] =
         }
     }
 
+    // ---------- the Last Hero tab: only with the event installed (branch feat/last-hero) ----------
+    {
+        const installed = require('fs').existsSync(require('path').join(__dirname, '../src/GameServer/Events/LastHero/LastHeroWindow.js'));
+        const session = createSession({ level: 20, classId: 0 });
+        const html = await SoloHelper.handleBoard(session, ['class']);
+        assert.strictEqual(html.includes('value="Last Hero"'), installed, installed ? 'Last Hero is a tab' : 'no Last Hero tab without the event');
+        assert.strictEqual(SoloHelper.command(session, '.lasthero'), installed, '.lasthero opens the tab only with the event');
+        if (installed) {
+            const tab = await SoloHelper.handleBoard(session, ['hero']);
+            assert.ok(tab.includes('How it works') && tab.length < ShowBoard.MAX_LENGTH, 'the Last Hero tab fits one board page');
+        }
+    }
+
     console.log('solo class: ok');
 })().catch((error) => {
     console.error(error);
