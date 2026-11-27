@@ -7,6 +7,8 @@ const setsDir = fs.mkdtempSync(nodePath.join(os.tmpdir(), 'solo-buffer-'));
 process.env.L2SOLO_BUFFER_SETS_FILE = nodePath.join(setsDir, 'buff-sets.json');
 
 require('../src/Global');
+// The checks run on the defaults: a player's own config/local.ini (buffSlots = 28, say) must not move them.
+global.options.default.SoloHelper = {};
 
 // Buffs schedule 60-minute expiry timers; collect them so the file can exit.
 const originalSetTimeout = global.setTimeout;
