@@ -1,14 +1,17 @@
 # L2Solo - solo fork
 
-A personal fork of **[pmbstyle/L2Solo](https://github.com/pmbstyle/L2Solo)**, the Lineage II C4 (Scions of Destiny) local server with a living bot world.
+A personal fork of **[pmbstyle/L2Solo](https://github.com/pmbstyle/L2Solo)**, the Lineage II C4 (Scions of Destiny) local server with a living bot world. This fork is played solo, and its changes make the bots more human and solo play smoother. Everything stays in Chronicle 4: nothing from C5 or Interlude.
 
-- `solo` (this branch): upstream `develop` plus our bug fixes and bot AI work
+- `solo` (this branch): upstream `develop` plus every change listed below
 - `main` and `develop`: untouched mirrors of upstream
-- `fix/...`, `feat/...`: single changes. The good ones go back upstream as PRs.
+- `fix/...` and `feat/...`: one change each, written so it can go back upstream as a PR
+- `mine/...`: personal changes for solo play
 
-## Living bots: what this fork adds
+Every setting below is optional. They go in `config/local.ini`, which git ignores; create the file if you don't have it.
 
-The title above every bot shows its level and one word about you, live. Every shot below is from real play.
+## Living bots in game
+
+The title above every bot shows its level and one word about you, live. Every shot is from real play.
 
 **Out hunting.** A stranger shows what it's doing. When you take a bot's mob, it tells you so.
 
@@ -22,15 +25,106 @@ The title above every bot shows its level and one word about you, live. Every sh
 
 ![Three bots that Fight you](../solo/showcase/mood-fights-you.png)
 
-**The bot features** (each its own branch, details in [solo/README.md](../solo/README.md)):
-- **Mood titles:** Fights you, Hunting you, Angry, Grudge, Friend, Hunting, Resting, Looting and more (`feat/bot-mood-titles`)
-- **Revenge, PK bots and manhunts:** bots act on grudges, a few turn PK, and a bot you kill may come back for you (`feat/bot-vendettas`)
-- **Free loot:** bots pick up items nobody owns (`feat/free-loot`)
-- **Town attention:** "gz" when you level up, bystanders calling out PKs, crowds watching fights (`feat/town-attention`)
-- **Word of mouth:** friends share their best hunting spots (`feat/word-of-mouth`)
-- **Your WTB lines are market demand** that crafters stock for (`feat/player-trade-shouts`)
-- **World legacy:** after a wipe the same bots come back with their personalities and know-how (`feat/world-legacy`)
-- **Starter villages sell the C4 robe set** (`fix/starter-village-robes`)
+## All modifications
+
+### 1. Solo Helper on Alt+B (`mine/solo-buffer`)
+A full-width Community Board window for solo play. [Install guide for other servers](../solo/guides/SOLO_HELPER.md).
+- **Buffer tab:**
+  - 85 C4 buffs at max level plus the 4 summoner servitor buffs (Blessing and Gift of Queen, Blessing and Gift of Seraphim), in 7 tabs with skill icons.
+  - Presets: Tank, Fighter, Mage, Support, My class and My set.
+  - Every buff lasts 60 minutes and survives a relog.
+- **Buff slots:** 20 as in C4, or up to 28 for you. Bots keep 20.
+- **Adena tab:** quick buttons from +10k to +1kkk, any typed amount (`250k`, `5kk`, `1b`), or `.adena 5kk` in chat.
+- **Market Board** is one tab away. `.buffer` in chat opens the window too.
+- **Settings** (`[SoloHelper]`): `enabled`, `altB`, `buffMinutes`, `window`, `adena`, `buffSlots`.
+
+### 2. Bot mood titles (`feat/bot-mood-titles`)
+Every bot's title shows its level and one word, the liveliest first:
+- **What it does to you now:** Fights you, Hunting you, Revenge, War, Angry, Party.
+- **What it thinks of you:** Hates you, Grudge, Afraid, Friend, Friendly, Wary.
+- **Otherwise, what it's doing:** Looting, Watching, Hurt, Selling, Hunting, Resting, Shopping, Fleeing.
+- **Updates:** within about 2.5 s of a change.
+- **Setting** (`[BotPopulation]`): `botMoodTitles`.
+
+### 3. Revenge that actually happens (`feat/bot-vendettas`)
+A bug fix. A bot decides at first sight whether to settle a grudge, but you were usually still too far away, so the decision was thrown away. Now it waits until you come within reach, with the same odds as before.
+
+### 4. PK bots from the population (`feat/bot-vendettas`)
+No scripted PKers: ordinary bots whose personality leans to PvP.
+- **Who:** both of you at level 20 or more, the victim at most 8 levels below the bot and 2 above, and alone. A brawler means it on about 1 hunting stay in 5, a justice keeper almost never.
+- **When:** it waits until you're busy fighting, sitting or under 60% HP, walks up and attacks if it thinks it can win.
+- **After a kill** it turns red and washes its karma before it tries again.
+- **Settings** (`[BotPopulation]`): `pkBotsEnabled`, `pkRate`, `pkMinLevel`.
+
+### 5. Personal manhunts (`feat/bot-vendettas`)
+A bot you kill may swear revenge out loud, go back to where it died for 2 hours, walk up when it sees you and attack. Brawlers do it about half the time, an average bot about 1 in 20, and every further kill makes it likelier.
+- **Settings:** `manhuntEnabled`, `manhuntRate`, `manhuntMinutes`.
+
+### 6. Free loot (`feat/free-loot`)
+Bots pick up items nobody owns: your drops, PK drops, and monster drops left by their owners for 15 seconds. Greedy personalities do it more, and only one bot goes for each item.
+- **Setting:** `freeLootEnabled`.
+
+### 7. Town attention (`feat/town-attention`)
+- **Level-ups:** up to 3 bots say "gz" when you level up.
+- **PKs:** bystanders call out a PK by name.
+- **Fights:** a fight draws up to 3 watchers who walk over, and sometimes one says "gg".
+- **Fix:** the bots' "restless" mood never fired before; now it does.
+- **Setting:** `townAttentionEnabled`.
+
+### 8. Your WTB lines are market demand (`feat/player-trade-shouts`)
+"WTB Cotton Tunic x10" in local, shout or trade chat counts as demand in the nearest town, so crafters stock and bid for it. Each item counts once every 10 minutes per player.
+- **Setting:** `playerTradeShoutsEnabled`.
+
+### 9. Word of mouth (`feat/word-of-mouth`)
+Two bots that trust each other (clan, party or friends) share their best hunting spot out loud when they meet in town near you. The one doing worse goes to try it once.
+- **Setting:** `wordOfMouthEnabled`.
+
+### 10. World legacy: bots remember across a wipe (`feat/world-legacy`)
+- **Saved automatically:** every bot wipe first saves `tmp/legacy/world-legacy.json`.
+- **The same people come back:** the new world's bots are the old ones, with the same names and personalities and their know-how, at level 1 with starter gear.
+- **Spot lessons:** what bots really earned on each spot corrects the spot table's guesses.
+- **Feelings toward you** are saved, ready for a later step.
+- **By hand:** `node scripts/world-legacy.js save` or `show`.
+- **Setting:** `worldLegacyEnabled`.
+
+### 11. Starter villages sell the C4 robe set (`fix/starter-village-robes`)
+Jackson (Talking Island), Payne (Elven Village) and Ariel (Dark Elven Village) now sell the ten No-Grade robe pieces at C4 prices, as the Orc and Dwarven villages already did. Checked against two C4 server datapacks, Lisvus and L2J Mobius.
+
+### 12. Closing the server window saves the world (`fix/console-close-drain`)
+A bug fix. Closing the console window used to kill the server before it saved, losing recent progress. Now closing the window saves first, like Stop and Ctrl+C.
+
+### 13. One-click Play (`solo/Play L2Solo.cmd`)
+Double-click it to open the browser launcher and start the server at your last rate. `npm run start` still works the same.
+
+### 14. Fork tools (`solo/fork.js`)
+`status`, `sync`, `new`, `land`, `pr`, `backup` and `restore` keep upstream updates and these changes apart, and never lose work. See [solo/README.md](../solo/README.md).
+
+## Changelog
+
+### 2026-11-27
+- **Mood titles** show live state and activity (Fights you, Angry, Hunting, Looting) instead of mostly Neutral.
+- **Mood titles:** level and opinion above every bot.
+- **Solo Helper:** buff slots fall back safely to 20 on hand installs.
+- **Solo Helper:** the 4 summoner servitor buffs in a new Special tab, plus buff slots up to 28.
+- **World legacy:** bots remember across a wipe.
+- **Starter villages** sell the C4 robe set.
+- **Word of mouth:** bots share hunting spots.
+- **WTB lines** count as market demand.
+- **Town attention:** gz, PK calls, fight watchers, and the restless-mood fix.
+- **Free loot:** bots pick up ownerless items.
+- **Solo Helper:** board buttons at the width the C4 client draws.
+- **Bot vendettas:** the revenge fix, PK bots, personal manhunts and the walk-up.
+- **Solo Helper:** Adena tab.
+- **Fix:** closing the server window saves the world.
+- **One-click Play** launcher.
+- **Solo Helper:** full-width Community Board with skill icons.
+- **Solo Helper:** first version (Alt+B buffer).
+- **Fork workflow:** solo branch, fork tool, C4 reference and bot AI docs.
+
+## Upstream
+
+- **The good changes go back upstream as PRs.** Their PR texts are ready in [solo/prs/](../solo/prs/).
+- **Blocked for now:** pmbstyle/L2Solo currently accepts PRs only from prior contributors, so they wait for the maintainer to open that up.
 
 **Guides**
 - [Solo Helper: 1-hour buffs and Adena on Alt+B](../solo/guides/SOLO_HELPER.md). A buffer and Adena window for solo play, with install steps for any L2Solo copy.
