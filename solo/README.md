@@ -159,8 +159,13 @@ pvpAggression = 0.5   ; upstream's: scales every attack chance, these included
   - **Trust:** same clan, same party, or friends.
   - **After a tip:** the listener goes to try that spot once, then its own results decide.
 
+- **Mood titles** (`feat/bot-mood-titles`). The title above every bot's name shows its level and what it thinks of you: "Lv20 Friendly", "Lv31 Grudge", "Lv18 Hunting you", "Lv40 Friend", "Lv25 Party".
+  - **Where it comes from:** each bot's own memory of you (or its manhunt, or your party).
+  - **Updates:** when its opinion or level changes.
+
 Each one can be switched off in `config/local.ini` under `[BotPopulation]`:
 ```
+botMoodTitles = true
 freeLootEnabled = true
 townAttentionEnabled = true
 playerTradeShoutsEnabled = true
