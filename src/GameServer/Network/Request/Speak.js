@@ -129,6 +129,7 @@ function dispatchLocalCommand(session, data) {
         invoke('GameServer/World/Generics/NpcBypasses/NativeMenu').open(session);
         return true;
     }
+    if (invoke('GameServer/Solo/SoloBuffer').command(session, data.text)) return true;
     const ArenaDuelService = invoke('GameServer/World/ArenaDuelService');
     if (String(data.text || '').trim().toLowerCase() === '.go') {
         ArenaDuelService.handleGo(session, data.text);
