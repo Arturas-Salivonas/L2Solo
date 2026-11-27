@@ -24,8 +24,10 @@ try {
         'the route now excludes that ground');
     assert.strictEqual(round(bot(19), '-8_-19:f2').spotMarks?.[0]?.spotId, '-8_-19:f2', 'a sub-spot reads its field\'s level');
     assert.strictEqual(round(bot(19), '-4_7').spotMarks, undefined, 'a fitting spot is not marked');
-    assert.strictEqual(round(bot(9), '-9_-20').spotMarks, undefined, `${Risk.OUTLEVELED_GAP} levels or fewer below is fine`);
-    assert.strictEqual(round(bot(10), '-9_-20').spotMarks?.length, 1, 'more than that is not');
+    assert.strictEqual(Risk.OUTLEVELED_GAP, 5, 'the leveling window: 5 levels below');
+    assert.strictEqual(round(bot(7), '-9_-20').spotMarks, undefined, `${Risk.OUTLEVELED_GAP} levels or fewer below is fine`);
+    assert.strictEqual(round(bot(8), '-9_-20').spotMarks?.length, 1, 'more than that is not');
+    assert.strictEqual(round({ ...bot(19), classId: 54 }, '-9_-20').spotMarks, undefined, 'a spoiler farms lower mobs for their spoil');
     // Item hunts keep their ground.
     assert.strictEqual(round(bot(19), '-9_-20', { itemHunt: true }).spotMarks, undefined, 'a material hunt there');
     const plan = { equipmentPlan: { status: 'active', next: { spotId: '-9_-20' } } };

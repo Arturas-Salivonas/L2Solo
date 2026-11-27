@@ -22,7 +22,8 @@ try {
     const fit = { id: 'fit', minLevel: 13, maxLevel: 16, avgLevel: 14 };
     assert.strictEqual(Hunting.greyGround(session(), bot(19), keltir), true, 'a level 2-5 field for a level-19 bot');
     assert.strictEqual(Hunting.greyGround(session(), bot(19), fit), false, 'a level 13-16 spot is fine');
-    assert.strictEqual(Hunting.greyGround(session(), bot(12), keltir), false, 'a level-12 bot may hunt it (its strongest mobs are 7 below)');
+    assert.strictEqual(Hunting.greyGround(session(), bot(10), keltir), false, 'a level-10 bot may hunt it (its strongest mobs are 5 below)');
+    assert.strictEqual(Hunting.greyGround(session(), bot(11), keltir), true, 'a level-11 bot may not');
     assert.strictEqual(Hunting.greyGround(session(), bot(19), { id: 'keltir' }), true, 'a spot without levels reads the table');
     assert.strictEqual(Hunting.greyGround(session(), bot(19), null), false, 'stranded (no spot): its recovery fights stay, as before');
     const farming = session({ coldLifeState: { stats: { equipmentPlan: { status: 'active', next: { spotId: 'keltir' } } } } });

@@ -860,9 +860,9 @@ function partySpotAnswer(party, answer, at, { deaths = 0, leaderLevel = 1 } = {}
 let SpotTable = null;
 const outleveledSpot = (spotId, level) => (SpotTable ||= invoke('GameServer/Bot/AI/SpotValueTable')).outleveled(spotId, level) ? 1 : 0;
 // Living Bots: a party whose leader stands more than PARTY_UNFIT_GAP levels above its held spot
-// (the floor of the leveling band, SpotService's -7) re-decides it once, long before the
+// (the floor of the leveling window, SpotRiskPolicy.OUTLEVELED_GAP) re-decides it once, long before the
 // deep-blue gap would: 1 or 0, 0 for no spot or one the table lacks.
-const PARTY_UNFIT_GAP = 7;
+const PARTY_UNFIT_GAP = 5;
 function unfitSpot(spotId, level) {
     if (spotId == null) return 0;
     const spotLevel = (SpotTable ||= invoke('GameServer/Bot/AI/SpotValueTable')).spotLevel(spotId);

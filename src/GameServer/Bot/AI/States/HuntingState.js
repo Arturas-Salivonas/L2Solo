@@ -713,6 +713,7 @@ function greyGround(session, bot, spot = session.currentSpot || spotUnder(bot)) 
     const Risk = invoke('GameServer/Bot/Population/SpotRiskPolicy');
     const plan = session.coldLifeState?.stats?.equipmentPlan;
     if (plan?.status === 'active' && String(plan.next?.spotId || '') === String(spot.id)) return false;
+    try { if (invoke('GameServer/Bot/AI/BotRoles').isSpoiler(bot)) return false; } catch { /* not a spoiler */ }
     const level = Number(bot.fetchLevel?.() || session.coldLifeState?.level || 1);
     const top = Number(spot.maxLevel ?? spot.avgLevel);
     if (Number.isFinite(top) && top > 0) return level - top > Risk.OUTLEVELED_GAP;
