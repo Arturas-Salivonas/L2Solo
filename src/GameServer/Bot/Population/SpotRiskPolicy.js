@@ -23,6 +23,27 @@ const FAILED_HUNT_RECOVERY_WINS = 3;
 // it until his next trip from town, his death or new gear; a ground too dangerous alone
 // also when he leaves his party. A mark saved with another reason lasts the outing.
 const MAX_SPOT_MARKS = 8;
+// Living Bots: ground more than OUTLEVELED_GAP levels below a solo bot (the floor of the leveling
+// band, SpotService's -7) holds no hunt for it. A round there marks it (reason outleveled, an
+// outing's lifetime), so the bot leaves for the spot it chose and no search keeps it there.
+// Before this, a level-19 bot that came out of a starter town hunted the level-2 field beside
+// it for hours, losing money, while its own choice named a fitting spot elsewhere.
+// An item hunt there (a material, its gear plan's drop) is the exception.
+const OUTLEVELED_GAP = 7;
+let SpotTable = null;
+function spotLevelOf(spotId) {
+    SpotTable ||= invoke('GameServer/Bot/AI/SpotValueTable');
+    const id = String(spotId);
+    return SpotTable.spotLevel(id) ?? SpotTable.spotLevel(id.split(':')[0]);
+}
+function outleveledGround(state, spotId, itemHunt = false) {
+    if (!spotId || itemHunt) return false;
+    const plan = state.stats?.equipmentPlan;
+    if (plan?.status === 'active' && String(plan.next?.spotId || '') === String(spotId)) return false;
+    let spotLevel = null;
+    try { spotLevel = spotLevelOf(spotId); } catch { spotLevel = null; }
+    return spotLevel != null && (Number(state.level) || 1) - Number(spotLevel) > OUTLEVELED_GAP;
+}
 const OUTING = Object.freeze(['arrived_town', 'arrived_town:own', 'died', 'gear_changed', 'grade_changed']);
 const LIFETIME = Object.freeze({ contest_lost: OUTING, spot_unreachable: OUTING,
     spot_dangerous: Object.freeze([...OUTING, 'party_left']) });
@@ -202,7 +223,10 @@ function recordHunt(state = {}, sample = {}) {
     const pressure = deathPressure(after);
     const marked = pressure && !activeBackoffs(state).some(entry => entry.spotId === spotId)
         ? withBackoff(after, backoffForStates([after], spotId, timestamp), timestamp).stats.spotBackoffs : null;
+    const outleveled = outleveledGround(state, spotId, sample.itemHunt === true) && !isMarked(stats, spotId);
+    if (outleveled) Situations.note('spot:outleveled_mark');
     return { spotRisk, ...(marked ? { spotBackoffs: marked } : {}),
+        ...(outleveled ? { spotMarks: withSpotMark(stats, spotId, 'outleveled') } : {}),
         huntingRecovery: recordRecovery(state, { deaths, wins, exp: sample.exp, expBeforeDeath: sample.expBeforeDeath,
             pressure: !!pressure }) };
 }
@@ -396,6 +420,8 @@ module.exports = {
     MAX_BACKOFFS,
     MAX_SPOT_MARKS,
     LIFETIME,
+    OUTLEVELED_GAP,
+    outleveledGround,
     spotMarks,
     forget,
     withSpotMark,
