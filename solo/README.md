@@ -95,7 +95,10 @@ A GitHub Actions trick from upstream: pushing a branch named `tests/<name>/<a,b,
 ## Fork features (in `solo`)
 
 ### Solo Helper (Alt+B) - branch `mine/solo-buffer`
-- **Open it** with **Alt+B** or by typing `.buffer` in chat. It opens the full-width Community Board with tabs: **Buffer** and **Market Board** (the board Alt+B used to open).
+- **Open it** with **Alt+B** or by typing `.buffer` in chat. It opens the full-width Community Board with tabs: **Buffer**, **Adena** and **Market Board** (the board Alt+B used to open).
+- **Adena tab:** quick buttons from +10,000 to +1,000,000,000, or type any amount (`250000`, `1,000,000`, `250k`, `5kk`, `1b`) and press Add.
+  - In chat, `.adena 5kk` does the same, and `.adena` alone opens the tab.
+  - One stack holds at most 2,147,483,647, the C4 cap.
 - **Buffer tab:**
   - **Status:** your buff count (x/20), and an Active strip with the icons of your current buffs.
   - **Presets** as skill-icon tiles: Tank, Fighter, Mage, Support, My class (picked for your class) and My set.
@@ -111,6 +114,29 @@ enabled = true        ; false turns the helper off (Alt+B = Market Board)
 altB = true           ; false = Alt+B opens the Market Board again (.buffer still works)
 buffMinutes = 60      ; 1-1440
 window = board        ; chat = the old small chat window instead of the Community Board
+adena = true          ; false hides the Adena tab and turns off .adena
+```
+
+### Bot vendettas: revenge, PK bots, manhunts - branch `feat/bot-vendettas` (upstream PR candidate)
+- **Revenge that happens.** A grudge rolled when a bot first sees you is kept until you come within 900 units. Before, it was spent the moment you appeared on screen, up to 6,000 units away. Upstream's odds are unchanged.
+- **PK bots.** No scripted PKers: ordinary bots whose persona leans to PvP. A brawler means it on about 1 stay in 5, a justice keeper almost never.
+  - **Who:** both you and the bot must be level 20 or more, you at most 8 levels below it and 2 above, alone and white.
+  - **How:** it waits until you're busy fighting, sitting or under 60% HP, walks up and attacks if it thinks it can win.
+  - **After a kill** it goes red and washes its karma before it tries again.
+- **Manhunts.** A bot you kill may swear revenge out loud ("I'll be back for you").
+  - **What it does:** it goes back to where it died for 2 hours, walks up when it sees you and attacks once it likes its odds.
+  - **Odds:** a brawler does it about half the time, an average bot about 1 in 20. Every further kill makes it likelier.
+- **Where to look:** in `tmp/logs`, the `situations=` line counts `enemy_met:watching`, `pk:intent`, `pk:started`, `manhunt:opened` and `manhunt:found`.
+
+Settings go in `config/local.ini` under `[BotPopulation]` (defaults shown):
+```
+pkBotsEnabled = true
+pkRate = 1            ; 0 = no PK bots, up to 5
+pkMinLevel = 20
+manhuntEnabled = true
+manhuntRate = 1       ; 0 = no manhunts, up to 5
+manhuntMinutes = 120
+pvpAggression = 0.5   ; upstream's: scales every attack chance, these included
 ```
 
 ## Docs

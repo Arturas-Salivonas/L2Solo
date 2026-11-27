@@ -62,6 +62,14 @@ Before starting anything, check upstream's open PRs so we don't duplicate them:
 
 ## Small upstream-friendly PR candidates
 
+- **`feat/bot-vendettas`** - `in solo` 2026-11-27, PR after the owner has tried it in game: `node solo/fork.js pr feat/bot-vendettas`. Four commits, each one PR-shaped:
+  - the revenge watch (a bug fix, the 6000 vs 900 gap)
+  - PK bots from the population
+  - the walk-up
+  - personal manhunts
+
+  New files are `BotPvpWatch`, `BotPk`, `BotManhunt` and `Social/ManhuntPolicy`; the hooks are single lines in `BotRevenge`, `BotPvpDefense`, `BotRoute` and `Die`. Tests: `test_bot_pvp_watch`, `test_bot_manhunt`. Not yet: far bots PK each other, and a manhunt that follows a clanmate's sighting.
+
 - **Warn on unknown config keys.** `PopulationConfig` silently ignores typos in `[BotPopulation]` (and likely in other sections). One warning line at boot would save people hours.
 - **Move the inline PK alarm lines** from `HuntingState` into `AI/BotSpeechTemplates.js`, where the other speech lines already are.
 

@@ -4,6 +4,8 @@ Read from upstream `develop` @ 27040e379 on 2026-11-27. Nothing was run in game.
 The three most surprising points (PK bots off, the revenge distance gap, clan auto-accept) were re-checked by hand.
 Paths are relative to `src/GameServer/` unless they start with `src/` or `config/`.
 
+**Update 2026-11-27:** our branch `feat/bot-vendettas` (in `solo`) fixes gaps 1, 2 and 4 in section 5: revenge on sight, PK bots and personal manhunts. This page still describes upstream `develop`; see "Bot vendettas" in [../README.md](../README.md) for what changed.
+
 ## 1. Do bots adapt? Yes, quietly
 
 **Learning from experience** (`Bot/AI/KnowledgeLearning.js`, `[BotPopulation] knowledgeErrorsEnabled`)
@@ -123,10 +125,10 @@ Feeling changes are listed as affinity / trust / hostility.
 
 ## 5. Gaps worth fixing (by hook point)
 
-1. **No PKers.** Hook: `Bot/AI/BotPersonaTypes.js` inclinations into `RevengePolicy`, a PK chance in `EnemyMet` / `BotRevenge`, or bringing back `PkProfiles`.
-2. **Revenge on sight mostly misses** (the 6000 vs 900 gap). Hook: `BotRevenge.playerSeen` / `meet`. Keep a watch list until you're within 900, and re-check in `BotPvpDefense.tick`.
+1. **No PKers.** (Done in `feat/bot-vendettas`: `Bot/AI/BotPk.js`.) Hook: `Bot/AI/BotPersonaTypes.js` inclinations into `RevengePolicy`, a PK chance in `EnemyMet` / `BotRevenge`, or bringing back `PkProfiles`.
+2. **Revenge on sight mostly misses** (the 6000 vs 900 gap). (Done in `feat/bot-vendettas`: `Bot/AI/BotPvpWatch.js`.) Hook: `BotRevenge.playerSeen` / `meet`. Keep a watch list until you're within 900, and re-check in `BotPvpDefense.tick`.
 3. **Revenge chances are tiny and fear cancels them.** Hook: the weights in `RevengePolicy.evaluate`.
-4. **No personal manhunt.** "Settle scores" has no executor. Hook: `WishProviders.js` plus a cold step reusing `Clan/ClanWarDirector.js` sighting and travel.
+4. **No personal manhunt.** (Done in `feat/bot-vendettas`: `Bot/AI/BotManhunt.js`, `Social/ManhuntPolicy.js`; it goes to where it died, not to where you are now.) "Settle scores" has no executor. Hook: `WishProviders.js` plus a cold step reusing `Clan/ClanWarDirector.js` sighting and travel.
 5. **Bots killed by you don't avoid that spot.** PvP deaths are left out of spot risk. Hook: `Bot/Population/BotLifeState.js` `recordNearFight`.
 6. **Etiquette is one-sided.** Your target is never "claimed", so bots can take your mobs without a word. Hook: `HuntingState.claimedTargetIds`, `BotMobCompetition`.
 7. **You don't occupy a spot.** You're absent from `SpotOccupancyIndex` / `SpotRecords`.
