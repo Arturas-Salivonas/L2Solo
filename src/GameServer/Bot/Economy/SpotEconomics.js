@@ -75,6 +75,16 @@ function create(state, { timestamp = Date.now(), mode, persona, deathHours, mone
     const moneyHour = hour?.adena > 0 ? hour.adena : hourAdena;
     const rewardOptions = { spoilSkillLevel: (SpotRewardExpectation ||= require('./SpotRewardExpectation')).spoilSkillLevel(state) };
     const own = Hunt.sampledRows(state, timestamp, mode);
+    // What the last world's bots measured on a spot this bot has no samples of (Bot/Legacy/SpotLessons).
+    const Lessons = require('../Legacy/SpotLessons');
+    const lessonOf = Lessons.forBot(state, tableRole, spotId => Table.value(spotId, tableRole, state.level, charged, rewardOptions));
+    const lessoned = (spot, row) => {
+        const factor = row && !own.some(sample => sample.spotId === spot.id) ? lessonOf(spot.id) : 1;
+        if (factor === 1) return row;
+        const out = { ...row };
+        for (const field of ['exp', 'adena', 'loot', 'kills', 'shots', 'potions']) if (Number.isFinite(row[field])) out[field] = row[field] * factor;
+        return out;
+    };
     const calibrations = own.flatMap(row => {
         const base = Table.value(row.spotId, tableRole, state.level, charged, rewardOptions);
         return base?.exp > 0 ? [Math.max(0, row.exp) / row.cycleMs * 3600000 / base.exp] : [];
@@ -114,7 +124,7 @@ function create(state, { timestamp = Date.now(), mode, persona, deathHours, mone
         const observed = !given && shots ? own.find(row => row.spotId === spot.id) : null;
         const rate = observed ? 3600000 / observed.cycleMs : 0;
         const measured = given?.measured ? given : null;
-        const table = given ? null : calibrated(Table.value(spot.id, tableRole, state.level, shots, rewardOptions));
+        const table = given ? null : calibrated(lessoned(spot, Table.value(spot.id, tableRole, state.level, shots, rewardOptions)));
         const theoretical = table && crowded(spot, table);
         const base = given ? measured || calibrated(given) : observed ? {
             exp: observed.exp * rate, adena: observed.adena * rate, loot: observed.loot * rate,
@@ -162,7 +172,7 @@ function create(state, { timestamp = Date.now(), mode, persona, deathHours, mone
         ['moneyHour', moneyHour], ['deathHours', deathHours], ['riskWeight', riskWeight],
         ['prices', [costs.shots, costs.potions]], ['spoilSkill', rewardOptions.spoilSkillLevel],
         ['samples', own.map(row => [row.spotId, row.exp, row.adena, row.loot, row.kills, row.costs, row.cycleMs])],
-        ['calibration', calibration], ['incomeError', incomeError], ['owner', state.characterId],
+        ['calibration', calibration], ['incomeError', incomeError], ['owner', state.characterId], ['lessons', Lessons.revision()],
         ['spotRisk', [state.stats?.spotRisk?.spotId, state.stats?.spotRisk?.windowFights, state.stats?.spotRisk?.windowDeaths]]];
     // The hunters a row of a spot shares it with: the bot and its party, the same on every spot.
     reader.hunters = () => 1 + others.length;

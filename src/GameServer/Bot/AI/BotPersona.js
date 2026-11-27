@@ -335,6 +335,29 @@ const BotPersona = {
         return work;
     },
 
+    // A returning bot's persona from a world legacy (Bot/Legacy/ReturningBots): its type,
+    // traits and inclinations as they were, under its new character id. A saved persona
+    // that no longer names a known type is generated anew, as ensure would.
+    restore(subject, saved, { archetype = null } = {}) {
+        const id = idOf(subject);
+        const type = Types.TYPES[saved?.archetype];
+        if (!id || !type) return this.ensure(subject, { archetype });
+        const cached = cache.get(id);
+        if (cached) return Promise.resolve(cached);
+        const timestamp = now();
+        const persona = withDerived({ characterId: id, version: VERSION, seed: text(String(saved.seed ?? '')) || seedFor(subject),
+            primaryDrive: type.drive, archetype: saved.archetype,
+            traits: numbers(saved.traits, TRAITS, type.traits), inclinations: numbers(saved.inclinations, INCLINATIONS, type.inclinations),
+            textCard: text(saved.textCard), createdAt: timestamp, updatedAt: timestamp });
+        return save(persona).then(() => {
+            remember(persona);
+            return persona;
+        }).catch((err) => {
+            utils.infoWarn('BotPersona', 'failed to restore persona for %d: %s', id, err.message);
+            return this.ensure(subject, { archetype });
+        });
+    },
+
     // Generated cold bots are the only population currently eligible here.
     // Static merchant/craft services have different account prefixes and do
     // not receive a simulated player persona.

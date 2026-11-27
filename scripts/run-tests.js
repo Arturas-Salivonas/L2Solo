@@ -934,6 +934,7 @@ const tests = [
     'tests/test_launcher_progression_memory.js',
     'tests/test_multi_launcher_isolation.js',
     'tests/test_world_wipe.js',
+    'tests/test_world_legacy.js',
     'tests/test_macros.js',
     'tests/test_henna.js',
     'tests/test_npc_combat_range.js',
