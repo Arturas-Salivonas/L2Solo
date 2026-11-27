@@ -82,6 +82,12 @@ Each mod's guide lives in its own branch, with screenshots, a copy-paste prompt 
 - **Install:** `git cherry-pick 27040e379..l2mods/feat/living-bots`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/living-bots.diff>
 
+### Last Hero: a 100-fighter free-for-all at the Coliseum
+- **What:** an automatic PvP event every 2 hours (or Start now): you and up to 99 bot fighters on the C4 Coliseum floor, everyone for themselves, no parties. The last one standing wins 10kk Adena and the C4 Hero aura. No EXP loss, drops or karma. Alt+B > Last Hero with the Solo Helper, or `.lasthero`.
+- **Guide:** [LAST_HERO.md](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/last-hero/solo/guides/LAST_HERO.md)
+- **Install:** `git cherry-pick 27040e379..l2mods/feat/last-hero`
+- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/last-hero.diff>
+
 ### Same-kind buffs replace each other
 - **What:** a bug fix. Focus and Chant of Predator, Death Whisper and Chant of Rage, Vampiric Rage and Chant of Vampire and 18 more kinds no longer stack: the new one replaces the old unless the old is stronger, as in C4.
 - **Guide:** [BUFF_STACKING.md](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/buff-stack-groups/solo/guides/BUFF_STACKING.md)

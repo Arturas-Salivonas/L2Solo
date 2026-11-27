@@ -70,27 +70,35 @@ Bots that feel like people: [guide, screenshots and one install](https://github.
 - **World legacy:** a bot wipe saves what the world learned; the same bots come back and remember players by name.
 - **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces`, `botMoments`, `allyDefenseEnabled`, `allyDefenseRate`, `gossipEnabled`, `nerveEnabled`, `rivalriesEnabled`, `spotDangerEnabled`, `legacyFeelingsEnabled`, `pkBotsEnabled`, `pkRate`, `pkMinLevel`, `manhuntEnabled`, `manhuntRate`, `manhuntMinutes`, `freeLootEnabled`, `townAttentionEnabled`, `wordOfMouthEnabled`, `worldLegacyEnabled`.
 
-### 3. Starter villages sell the C4 robe set (`fix/starter-village-robes`)
+### 3. Last Hero: a 100-fighter free-for-all at the Coliseum (`feat/last-hero`)
+An automatic PvP event. [Guide and install](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/last-hero/solo/guides/LAST_HERO.md).
+- **Every 2 hours** (or Start now): you and bot fighters, up to 100, land on random spots of the C4 Coliseum floor. No parties.
+- **30 seconds to buff,** then everyone fights for themselves. Bots are copies of real bots near your level, with their gear and skills.
+- **The last one standing** wins 10kk Adena and the C4 Hero aura, announced server-wide. No EXP loss, drops or karma; everyone goes back after.
+- **Alt+B > Last Hero** (with the Solo Helper) or `.lasthero` in chat. Settings in `[LastHero]`.
+
+### 4. Starter villages sell the C4 robe set (`fix/starter-village-robes`)
 Jackson (Talking Island), Payne (Elven Village) and Ariel (Dark Elven Village) now sell the ten No-Grade robe pieces at C4 prices, as the Orc and Dwarven villages already did. Checked against two C4 server datapacks, Lisvus and L2J Mobius. [Guide](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/starter-village-robes/solo/guides/STARTER_ROBES.md).
 
-### 4. Closing the server window saves the world (`fix/console-close-drain`)
+### 5. Closing the server window saves the world (`fix/console-close-drain`)
 A bug fix. Closing the console window used to kill the server before it saved, losing recent progress. Now closing the window saves first, like Stop and Ctrl+C. [Guide](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/console-close-drain/solo/guides/CONSOLE_CLOSE.md).
 
-### 5. Buffs survive a server restart (`fix/shutdown-saves-player-status`)
+### 6. Buffs survive a server restart (`fix/shutdown-saves-player-status`)
 A bug fix. A server stop never saved the players still online, so after a restart you logged in with no buffs and your HP and MP from your last logout. Now the stop saves every online player first, and a saved buff keeps the time it had left: as in C4, the clock doesn't run while you're offline. [Guide](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/shutdown-saves-player-status/solo/guides/RESTART_BUFFS.md).
 
-### 6. Same-kind buffs replace each other (`fix/buff-stack-groups`)
+### 7. Same-kind buffs replace each other (`fix/buff-stack-groups`)
 A bug fix. In C4 two buffs of one kind can't be on you at once, but this server left 21 kinds without that rule: Focus stacked with Chant of Predator, Death Whisper with Chant of Rage, Vampiric Rage with Chant of Vampire, and more. Now the new one replaces the old unless the old is stronger, by C4's own levels (from the L2J Mobius C4 datapack). [Guide](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/buff-stack-groups/solo/guides/BUFF_STACKING.md).
 
-### 7. One-click Play (`solo/Play L2Solo.cmd`)
+### 8. One-click Play (`solo/Play L2Solo.cmd`)
 Double-click it to open the browser launcher and start the server at your last rate. `npm run start` still works the same.
 
-### 8. Fork tools (`solo/fork.js`)
+### 9. Fork tools (`solo/fork.js`)
 `status`, `sync`, `new`, `land`, `pr`, `backup` and `restore` keep upstream updates and these changes apart, and never lose work. See [solo/README.md](../solo/README.md).
 
 ## Changelog
 
 ### 2026-11-27
+- **Last Hero:** a 100-fighter free-for-all at the Coliseum every 2 hours, with the Hero aura and 10kk for the winner; a Last Hero tab in Alt+B.
 - **Solo Helper:** Class tab - change class at 20, 40 and 76 from the C4 class tree, or `.class` in chat.
 - **Fix:** same-kind buffs (Focus and Chant of Predator, Death Whisper and Chant of Rage, Vampiric Rage and Chant of Vampire...) replace each other, as in C4.
 - **Living Bots:** bots hunt within 5 levels below them (parties up to 5 above), leave grey ground, and take no spot or easy fights on it; WTB/WTS demand removed; all the bot mods in one place, guides in each mod's branch.
@@ -124,6 +132,7 @@ Double-click it to open the browser launcher and start the server at your last r
 
 **Guides**
 - [Living Bots: bots that feel like people](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/living-bots/solo/guides/LIVING_BOTS.md). The bot AI mods together: what they do, screenshots, one install block and the plans.
+- [Last Hero: a 100-fighter free-for-all at the Coliseum](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/last-hero/solo/guides/LAST_HERO.md). How the event works, settings and install.
 - [L2Solo mods: take only what you want](../solo/guides/MODS.md). Every modification with its own install line and patch link.
 - [Solo Helper: 1-hour buffs, Adena and class change on Alt+B](https://github.com/Arturas-Salivonas/L2Solo/blob/mine/solo-buffer/solo/guides/SOLO_HELPER.md). A buffer, Adena and class change window for solo play, with install steps for any L2Solo copy.
 
