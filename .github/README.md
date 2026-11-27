@@ -11,7 +11,7 @@ Every setting below is optional. They go in `config/local.ini`, which git ignore
 
 ## Living bots in game
 
-The title above every bot shows its level and one word about you, live. Every shot is from real play.
+The title above every bot shows its level and what it thinks of you or is doing, live. Every shot is from real play.
 
 **Out hunting.** A stranger shows what it's doing. When you take a bot's mob, it tells you so.
 
@@ -33,20 +33,23 @@ The title above every bot shows its level and one word about you, live. Every sh
 A full-width Community Board window for solo play. [Install guide for other servers](../solo/guides/SOLO_HELPER.md).
 - **Buffer tab:**
   - 85 C4 buffs at max level plus the 4 summoner servitor buffs (Blessing and Gift of Queen, Blessing and Gift of Seraphim), in 7 tabs with skill icons.
-  - Presets: Tank, Fighter, Mage, Support, My class and My set.
-  - Every buff lasts 60 minutes and survives a relog.
+  - Presets: Tank, Fighter, Mage, Support and My set.
+  - Every buff lasts 60 minutes and survives a relog. Each active buff has a remove link.
+  - Full HP/MP/CP in one click, your servitor's HP and MP too.
 - **Buff slots:** 20 as in C4, or up to 28 for you. Bots keep 20.
 - **Adena tab:** quick buttons from +10k to +1kkk, any typed amount (`250k`, `5kk`, `1b`), or `.adena 5kk` in chat.
 - **Market Board** is one tab away. `.buffer` in chat opens the window too.
 - **Settings** (`[SoloHelper]`): `enabled`, `altB`, `buffMinutes`, `window`, `adena`, `buffSlots`.
 
-### 2. Bot mood titles (`feat/bot-mood-titles`)
-Every bot's title shows its level and one word, the liveliest first:
-- **What it does to you now:** Fights you, Hunting you, Revenge, War, Angry, Party.
-- **What it thinks of you:** Hates you, Grudge, Afraid, Friend, Friendly, Wary.
-- **Otherwise, what it's doing:** Looting, Watching, Hurt, Selling, Hunting, Resting, Shopping, Fleeing.
+### 2. Bot mood titles and moments (`feat/bot-mood-titles`)
+Every bot's title shows its level, a face for what it thinks of you, and one word for what it needs or does: `Lv20 :) Hunting`, `Lv31 >:( Attacks`, `Lv14 o_O LFP`.
+- **Faces:** `>:(` fights you or hates you, `>:|` grudge, `o_O` afraid, `-_-` wary, `:)` friendly, `^_^` friend, `:D` party. No face for a stranger.
+- **What it needs:** Res pls (dead), Heal me, Selling, No MP, Heavy (full bag), LFP.
+- **What it does, where it really is:** Fights (a monster), To spot, Roaming, No mobs, Stuck, Chats, Looting, Watches, To town, Resting, Buying, Fleeing.
+- **Standing about:** its gear goal (Saving, Farming, Gathers) or its own mood (Tired, Bored, Chill), else AFK.
+- **Moments in chat:** bots near you say thanks for a heal, buff or res, "ding" on a level-up, and "nice drop!" for a graded or valuable item. At most one line a minute per bot.
 - **Updates:** within about 2.5 s of a change.
-- **Setting** (`[BotPopulation]`): `botMoodTitles`.
+- **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces` (false = one word, like `Lv20 Fights you`), `botMoments`.
 
 ### 3. Revenge that actually happens (`feat/bot-vendettas`)
 A bug fix. A bot decides at first sight whether to settle a grudge, but you were usually still too far away, so the decision was thrown away. Now it waits until you come within reach, with the same odds as before.
@@ -104,6 +107,8 @@ Double-click it to open the browser launcher and start the server at your last r
 ## Changelog
 
 ### 2026-11-27
+- **Solo Helper:** Full HP/MP/CP button, a remove link on each active buff, the Active row and My class preset gone, the Dominator and Doomcryer buffs in their class tabs.
+- **Mood titles:** faces, what a bot needs, where it really is (no more "Hunting" while standing in town), and moments in chat.
 - **Mood titles** show live state and activity (Fights you, Angry, Hunting, Looting) instead of mostly Neutral.
 - **Mood titles:** level and opinion above every bot.
 - **Solo Helper:** buff slots fall back safely to 20 on hand installs.

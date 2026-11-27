@@ -8,7 +8,8 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
 
 **Buffer tab**
 - **89 buffs at their max level**, in 7 tabs: Prophet, Resists, Chants, Overlord, Dances, Songs and Special. Click the icon or the name.
-- **Special tab:** the 3rd-class buffs, plus the four summoner servitor buffs with their C4 values:
+- **Each class line with its 3rd class:** Chants has the Doomcryer's Chant of Spirit and Chant of Victory, and Overlord has the Dominator's Eye and Soul of Paagrio.
+- **Special tab:** the Prophecies and Protections, plus the four summoner servitor buffs with their C4 values:
 
   ![The Special tab](solo-helper-special.png)
 
@@ -18,9 +19,9 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
   - Gift of Seraphim: magic skill reuse x0.65
 
   As in C4, the two Queen buffs replace each other, and so do the two Seraphim buffs.
-- **One-click presets:** Tank, Fighter, Mage, Support, My class (picked for your class) and My set (your own saved list).
-- **Every buff lasts 60 minutes** and survives a relog. Active buffs show in green with the minutes left.
-- **Buttons:** Save my set, Buff servitor (when your summon is out) and Clear buffs (debuffs stay).
+- **One-click presets:** Tank, Fighter, Mage, Support and My set (your own saved list).
+- **Every buff lasts 60 minutes** and survives a relog. Active buffs show in green with the minutes left and a **remove** link.
+- **Buttons:** Full HP/MP/CP (your servitor's HP and MP too), Save my set, Buff servitor (when your summon is out) and Clear buffs (debuffs stay).
 - **Buff slots:** 20 as in C4, or up to 28 with the `buffSlots` setting. Bots keep 20. When you're full, a new buff replaces your oldest.
 
 **Adena tab**
@@ -132,4 +133,6 @@ Your world and characters are never touched either way.
 - Made for solo play on your own server. Free buffs and Adena make the game much easier, which is the point when you play alone.
 - Tested against L2Solo `main` and `develop` from late November 2026 with the C4 client. All three install routes were re-checked after every update.
 - Chant of Magnus isn't included: it's an Interlude skill, not C4.
+- Not in the Overlord tab: Honor of Paagrio and Ritual of Life heal CP at once, and Heart of Paagrio heals over 15 seconds. They're heals, not buffs; Full HP/MP/CP does their job.
+- Why not Alt+click on the buff bar? The C4 client sends nothing to the server when you click its buff icons (that came in a later chronicle), so buffs come off with the remove link.
 - Bugs or ideas: open an issue on <https://github.com/Arturas-Salivonas/L2Solo>.

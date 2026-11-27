@@ -36,11 +36,12 @@ Restart the server after installing.
 
 ### Solo Helper: 1-hour buffs and Adena on Alt+B
 - **What:** Alt+B opens a buffer with 85 C4 buffs, the 4 summoner servitor buffs and presets; every buff lasts 60 minutes.
-- **Also:** an Adena tab, and up to 28 buff slots for you (bots keep 20).
+- **Also:** Full HP/MP/CP in one click, a remove link on each active buff, an Adena tab, and up to 28 buff slots for you (bots keep 20).
 - **Branch:** [`mine/solo-buffer`](https://github.com/Arturas-Salivonas/L2Solo/tree/mine/solo-buffer). Full guide with screenshots: [SOLO_HELPER.md](SOLO_HELPER.md).
 - **Install:** `git cherry-pick 27040e379..l2mods/mine/solo-buffer`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...mine/solo-buffer.diff>
 - **Settings** (`[SoloHelper]`): `enabled`, `altB`, `buffMinutes`, `window`, `adena`, `buffSlots`.
+- **Heads-up:** your server may warn at start that the bot tables are stale, because the buff-slots change touches `EffectStore.js`. It still plays fine.
 
 ### Starter village shops sell the C4 robe set
 - **What:** the armor dealers in Talking Island, the Elven Village and the Dark Elven Village sell the ten No-Grade robe pieces (tunics and stockings) at C4 prices. Before, only the Orc and Dwarven villages had them.
@@ -51,13 +52,14 @@ Restart the server after installing.
 - **Install with the rebuilt bot tables too** (matches L2Solo `develop` of late November 2026): `git cherry-pick 27040e379..l2mods/fix/starter-village-robes`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...ed0f165d5.diff>
 
-### Mood titles above bots
-- **What:** every bot's title shows its level and one word about you, live: Fights you, Hunting you, Angry, Grudge, Friend, Hunting, Resting, Looting and more.
+### Mood titles above bots, and moments in chat
+- **What:** every bot's title shows its level, a face for what it thinks of you and a word for what it needs or does, live: `Lv20 :) Hunting`, `Lv31 >:( Attacks`, `Lv14 o_O LFP`, `Lv18 Res pls`, `Lv22 To spot`.
+- **Moments:** bots near you say thanks for a heal, buff or res, "ding" on a level-up and "nice drop!" in local chat.
 - **Branch:** [`feat/bot-mood-titles`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/bot-mood-titles)
 - **Install:** `git cherry-pick 27040e379..l2mods/feat/bot-mood-titles`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/bot-mood-titles.diff>
-- **Setting** (`[BotPopulation]`): `botMoodTitles`.
-- **Works better with** the vendettas mod: "Hunting you" shows for a bot's manhunt.
+- **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces` (false = one word, like `Lv20 Fights you`), `botMoments`.
+- **Works better with** the vendettas mod: a manhunt shows as `>:( Revenge`.
 
 ### Bot vendettas: revenge, PK bots, manhunts
 - **Revenge that happens:** a bug fix; bots act on grudges once you come close.
