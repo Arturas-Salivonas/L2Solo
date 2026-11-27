@@ -146,6 +146,17 @@ withOptions({ buffSlots: '12' }, () => assert.strictEqual(config().buffSlots, 20
     assert.strictEqual(EffectStore.limitFor(withSession(false).actor), 20, 'by default a player has the C4 20');
 }
 
+// A server where the Solo Helper was copied in by hand without the EffectStore edit: the board
+// still works, with C4's 20 slots.
+{
+    const limitFor = EffectStore.limitFor;
+    delete EffectStore.limitFor;
+    try {
+        const page = SoloHelper.handleBoard(player('Copied'), ['buff']);
+        assert.ok(page.includes('0/20'), 'without limitFor the board counts 20 slots');
+    } finally { EffectStore.limitFor = limitFor; }
+}
+
 // ---------- one buff: 60 minutes, level from the catalog only ----------
 {
     const session = player();
