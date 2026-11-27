@@ -5,8 +5,9 @@
 //   altB        = true    false keeps Alt+B on the Market Board; .buffer still opens the helper
 //   buffMinutes = 60      length of every buff from the helper, 1-1440
 //   window      = board   board = full-width Community Board, chat = the small chat window
+//   adena       = true    false hides the Adena tab and turns off .adena
 
-const DEFAULTS = Object.freeze({ enabled: true, altB: true, buffMinutes: 60, window: 'board' });
+const DEFAULTS = Object.freeze({ enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true });
 
 function flag(value, fallback) {
     if (value === undefined || value === null || value === '') return fallback;
@@ -20,7 +21,8 @@ function config() {
         enabled: flag(raw.enabled, DEFAULTS.enabled),
         altB: flag(raw.altB, DEFAULTS.altB),
         buffMinutes: Number.isFinite(minutes) && minutes >= 1 ? Math.min(minutes, 24 * 60) : DEFAULTS.buffMinutes,
-        window: String(raw.window || '').trim().toLowerCase() === 'chat' ? 'chat' : 'board'
+        window: String(raw.window || '').trim().toLowerCase() === 'chat' ? 'chat' : 'board',
+        adena: flag(raw.adena, DEFAULTS.adena)
     };
 }
 

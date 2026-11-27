@@ -91,11 +91,11 @@ assert.strictEqual(SoloBuffer.presetEntries({ profile: null }, player('Tank', { 
     'the My class preset should follow the class profile');
 
 // ---------- config ----------
-assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board' }, 'defaults: on, Alt+B, 60 minutes, board');
+assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true }, 'defaults: on, Alt+B, 60 minutes, board');
 withOptions({ buffMinutes: '30', altB: 'false', window: 'CHAT' }, () => assert.deepStrictEqual(config(),
-    { enabled: true, altB: false, buffMinutes: 30, window: 'chat' }, 'local.ini values override the defaults'));
+    { enabled: true, altB: false, buffMinutes: 30, window: 'chat', adena: true }, 'local.ini values override the defaults'));
 withOptions({ buffMinutes: 'nonsense', enabled: false, window: 'weird' }, () => assert.deepStrictEqual(config(),
-    { enabled: false, altB: true, buffMinutes: 60, window: 'board' }, 'bad values fall back to the defaults'));
+    { enabled: false, altB: true, buffMinutes: 60, window: 'board', adena: true }, 'bad values fall back to the defaults'));
 
 // ---------- one buff: 60 minutes, level from the catalog only ----------
 {
