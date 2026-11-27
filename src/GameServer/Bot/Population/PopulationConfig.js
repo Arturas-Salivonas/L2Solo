@@ -18,6 +18,9 @@ const DEFAULTS = {
     opportunisticRaidAliveFraction: 0.5,
     opportunisticRaidMaxFightSeconds: 720,
     opportunisticRaidShotReserve: 1.3,
+    // Free loot (Bot/AI/BotFreeLoot): bots near the player take items that are nobody's
+    // (a discard, a PK's drop, a party drop past its 15 s protection).
+    freeLootEnabled: true,
     opportunisticRaidExpeditionMs: 45 * 60000,
     phasePolicyEnabled: true,
     summaryIntervalMs: 30000,
