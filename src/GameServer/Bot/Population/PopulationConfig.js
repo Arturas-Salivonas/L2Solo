@@ -5,6 +5,9 @@ const DEFAULTS = {
     // cannot fill the order. All buyers still compare price and travel cost.
     staticShotsDisabled: false,
     developerDiagnostics: false,
+    // World legacy (Bot/Legacy): the last world's bots come back by name with their persona
+    // and know-how (ReturningBots). The spot lessons always apply when a legacy file exists.
+    worldLegacyEnabled: true,
     // The decision trace (Bot/DecisionTrace): its own switch, not under developerDiagnostics.
     decisionTrace: false,
     // Personal knowledge errors and learning by own actions share one switch.

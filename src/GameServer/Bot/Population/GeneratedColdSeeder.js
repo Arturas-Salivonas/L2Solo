@@ -367,7 +367,9 @@ function ensureCharacter(username, index, base = baseForIndex(index), seedProfil
         const spot = seedProfile?.spot || targetSpot(level, index, base);
         const loc = randomNear(spot?.center || { locX: 0, locY: 0, locZ: 0 }, index);
         const vitals = vitalsFor(template, level);
-        return uniqueNameFor(index, 0, null, base).then((name) => {
+        // A returning bot keeps its old name when it is free (ReturningBots).
+        return (base.legacy ? invoke('GameServer/Bot/Legacy/ReturningBots').nameFor(base.legacy, () => uniqueNameFor(index, 0, null, base))
+            : uniqueNameFor(index, 0, null, base)).then((name) => {
             const charData = {
                 name,
                 race: base.race,
@@ -708,6 +710,8 @@ const GeneratedColdSeeder = {
             .then(() => migratePopulationAppearances(LifeState.everyState()))
             .then(() => {
             const states = LifeState.populationSeedStates();
+            // The last world's bots already back in this one are not claimed again (ReturningBots).
+            invoke('GameServer/Bot/Legacy/ReturningBots').prepare(states);
             const plan = SeedPlanner.plan(
                 SpotProfiles.ensure(),
                 states,
@@ -734,13 +738,17 @@ const GeneratedColdSeeder = {
                     classTotal: Math.max(Number(plan.regionalTargets[spot.starterRegion] || 0),
                         Number(regionalClassTotals[race] || 0) + Number(regionalIntake[spot.starterRegion] || 0))
                 });
+                // A bot of the last world takes the slot when one of this race and starting
+                // class is waiting (ReturningBots): its name, sex and persona come back with it.
+                const returning = invoke('GameServer/Bot/Legacy/ReturningBots').claim(race, base.classId);
+                const slot = returning ? { ...base, sex: Number(returning.sex) ? 1 : 0, archetype: returning.persona.archetype, legacy: returning } : base;
                 const seedProfile = {
                     spot,
                     level: Math.max(1, Number(spot.minLevel || 1)),
                     band: `wave_${plan.wave}`
                 };
                 return ensureAccount(username)
-                    .then(() => ensureCharacter(username, index, base, seedProfile))
+                    .then(() => ensureCharacter(username, index, slot, seedProfile))
                     .then((result) => {
                         const state = stateFor(result.character, index, {
                             ...result,
@@ -751,8 +759,10 @@ const GeneratedColdSeeder = {
                             loc: result.loc || randomNear(spot.center, index)
                         });
                         return hydrateColdCombatProfile(state)
-                            .then((profiledState) => BotPersona.ensure(profiledState, { archetype: base.archetype }).then(() => profiledState))
-                            .then((profiledState) => LifeState.upsertState(profiledState, 'population_wave_seed'))
+                            .then((profiledState) => (returning ? BotPersona.restore(profiledState, returning.persona, { archetype: base.archetype })
+                                : BotPersona.ensure(profiledState, { archetype: base.archetype })).then(() => profiledState))
+                            .then((profiledState) => LifeState.upsertState(invoke('GameServer/Bot/Legacy/ReturningBots').welcome(profiledState, returning),
+                                'population_wave_seed'))
                             .then((saved) => {
                                 if (saved && result.created) created += 1;
                                 if (saved) {
