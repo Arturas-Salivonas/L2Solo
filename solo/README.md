@@ -117,4 +117,5 @@ window = board        ; chat = the old small chat window instead of the Communit
 
 - [docs/C4_REFERENCE.md](docs/C4_REFERENCE.md) - Lineage II up to Chronicle 4: classes, play styles, zones, grades, economy, PvP, raids
 - [docs/BOT_AI_MAP.md](docs/BOT_AI_MAP.md) - how the bot AI is wired: hot and cold, states, planner, class tactics, tests
+- [docs/BOT_BEHAVIOUR.md](docs/BOT_BEHAVIOUR.md) - what bots learn, how you influence them, when they attack or PK you, and the gaps
 - [BACKLOG.md](BACKLOG.md) - bugs and bot ideas, with what's been checked
