@@ -61,6 +61,7 @@ Steps:
    git fetch l2mods
    git cherry-pick 27040e379..l2mods/mine/solo-buffer
    git cherry-pick 27040e379..l2mods/fix/shutdown-saves-player-status   (buffs survive a server restart)
+   git cherry-pick 27040e379..l2mods/fix/buff-stack-groups   (same-kind buffs replace each other, as in C4)
    If git asks who I am, set user.name and user.email for this repository only.
    If a cherry-pick says a commit is already there, run git cherry-pick --skip.
    If a cherry-pick stops on a conflict, run git cherry-pick --abort and tell me which files conflicted. Don't guess a fix.
@@ -83,11 +84,19 @@ git fetch solo-helper
 git cherry-pick 27040e379..solo-helper/mine/solo-buffer
 ```
 
-Want your buffs to survive a server restart too (time left kept while you're offline, as in C4)? Add the small fix:
+Two small fixes go well with it:
 
-```
-git cherry-pick 27040e379..solo-helper/fix/shutdown-saves-player-status
-```
+- **Buffs survive a server restart** (time left kept while you're offline, as in C4):
+
+  ```
+  git cherry-pick 27040e379..solo-helper/fix/shutdown-saves-player-status
+  ```
+
+- **Same-kind buffs replace each other**, as in C4: Focus and Chant of Predator, Death Whisper and Chant of Rage, Vampiric Rage and Chant of Vampire no longer stack (L2Solo let 21 such kinds pile up). [What it fixes](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/buff-stack-groups/solo/guides/BUFF_STACKING.md).
+
+  ```
+  git cherry-pick 27040e379..solo-helper/fix/buff-stack-groups
+  ```
 
 That copies only the Solo Helper commits onto whatever L2Solo version you're on (`main` or `develop`). Start the server as usual (`npm start`).
 
