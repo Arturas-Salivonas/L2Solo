@@ -21,7 +21,8 @@ const skillTree = require('../../../data/Skills/Tree/tree.json');
 
 const MAX_CHAT_HTML = 8192;
 const MAX_TREE_LEVEL = 100; // enchanted skill levels (101+) are not C4 buffer levels
-const BOARD_WIDTH = 610;
+const Style = require('./BoardStyle');
+const BOARD_WIDTH = Style.WIDTH;
 const BOARD_COLUMNS = 3;
 
 // Buffer-class buffs from the C4 datapack, grouped the way players know them.
@@ -317,7 +318,7 @@ function groupTabs(activeId) {
     const cells = catalog().groups.map((group) => {
         const pressed = group.id === activeId;
         const fore = pressed ? Html.TEXTURE.defaultButtonDown : Html.TEXTURE.defaultButton;
-        return `<td width=${width} align=center><button value="${group.label}" action="bypass ${B(`group ${group.id}`)}" width=${width - 4} height=21 back="${Html.TEXTURE.defaultButtonDown}" fore="${fore}"></td>`;
+        return `<td width=${width} align=center><button value="${group.label}" action="bypass ${B(`group ${group.id}`)}" width=${Style.BUTTON_WIDTH} height=21 back="${Html.TEXTURE.defaultButtonDown}" fore="${fore}"></td>`;
     }).join('');
     return `<table width=${BOARD_WIDTH}><tr>${cells}</tr></table><br1>`;
 }
@@ -340,10 +341,11 @@ function buffGrid(group, active) {
 }
 
 function boardFooter(session) {
-    const buttons = [['Save as My set', 'save'], ['Clear my buffs', 'clear']];
-    if (summonOf(session.actor)) buttons.splice(1, 0, ['Buff my servitor', 'pet']);
-    const cells = buttons.map(([label, command]) => `<td width=140 align=center>${Html.button(label, B(command), { width: 130, hide: false })}</td>`).join('');
-    return `<br><img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1><table width=${buttons.length * 140}><tr>${cells}</tr></table>`;
+    const buttons = [['Save my set', 'save'], ['Clear buffs', 'clear']];
+    if (summonOf(session.actor)) buttons.splice(1, 0, ['Buff servitor', 'pet']);
+    const cell = Style.BUTTON_CELL + 8;
+    const cells = buttons.map(([label, command]) => `<td width=${cell} align=center>${Html.button(label, B(command), { width: Style.BUTTON_WIDTH, hide: false })}</td>`).join('');
+    return `<br><img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1><table width=${buttons.length * cell}><tr>${cells}</tr></table>`;
 }
 
 // The Buffer tab body; SoloHelper adds the window chrome and tabs.

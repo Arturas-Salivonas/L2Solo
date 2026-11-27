@@ -13,8 +13,9 @@
 const Html = require('../World/Generics/HtmlKit');
 const ShowBoard = require('./ShowBoardPacket');
 const { config } = require('./SoloConfig');
+const Style = require('./BoardStyle');
 
-const WIDTH = 610;
+const WIDTH = Style.WIDTH;
 const ROOT = '_bbssolo';
 const TABS = Object.freeze([
     { id: 'buff', label: 'Buffer' },
@@ -36,14 +37,14 @@ const market = (session) => invoke('GameServer/AfkTrade/PlayerBoardWindow').open
 function tabBar(activeId) {
     const cells = tabs().map((tab) => {
         const fore = tab.id === activeId ? Html.TEXTURE.defaultButtonDown : Html.TEXTURE.defaultButton;
-        return `<td width=120 align=center><button value="${tab.label}" action="bypass ${ROOT} ${tab.id}" width=116 height=21 `
+        return `<td width=${Style.BUTTON_CELL} align=center><button value="${tab.label}" action="bypass ${ROOT} ${tab.id}" width=${Style.BUTTON_WIDTH} height=21 `
             + `back="${Html.TEXTURE.defaultButtonDown}" fore="${fore}"></td>`;
     }).join('');
     return cells;
 }
 
 function chrome(activeId, body) {
-    const tabsWidth = tabs().length * 120;
+    const tabsWidth = tabs().length * Style.BUTTON_CELL;
     return '<html><body><br><center>'
         + `<table width=${WIDTH}><tr>`
         + `<td width=${WIDTH - tabsWidth} height=30>${Html.font('Solo Helper', Html.COLOR.title)}</td>`

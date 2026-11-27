@@ -193,6 +193,23 @@ assert.strictEqual(SoloBuffer.act(player(), 'pet').message, 'You have no servito
     assert.strictEqual(clicked.soloBuffGroup, 'dances', 'the board remembers the open group');
     assert.ok(pressed(SoloHelper.handleBoard(clicked, ['buff', 'preset', 'tank']), 'Dances'), 'a preset keeps the open group');
     assert.ok(pressed(page, 'Buffer') && !pressed(page, 'Market Board'), 'the Buffer tab is the pressed top tab');
+
+    // The C4 client draws a text button's texture at one size (BoardStyle.BUTTON_WIDTH): no board
+    // button may ask for more, or its label runs past the texture (seen in game 2026-11-27).
+    const Style = invoke('GameServer/Solo/BoardStyle');
+    const withServitor = player();
+    const SummonControl = invoke('GameServer/Npc/SummonControl');
+    const activeSummon = SummonControl.activeSummon;
+    SummonControl.activeSummon = () => ({ fetchId: () => 1, fetchName: () => 'Kat' });
+    try {
+        const pages = [SoloHelper.handleBoard(withServitor, ['buff']), ...catalog.groups.map((group) => SoloHelper.handleBoard(withServitor, ['buff', 'group', group.id]))];
+        const buttons = pages.flatMap((html) => [...html.matchAll(/<button value="([^"]*)"[^>]*width=(\d+)/g)]);
+        assert.ok(buttons.some(([, label]) => label === 'Buff servitor'), 'the servitor button is on the page');
+        for (const [, label, width] of buttons) {
+            assert.ok(Number(width) <= Style.BUTTON_WIDTH, `"${label}" asks for ${width}, more than ${Style.BUTTON_WIDTH}`);
+            assert.ok(label.length <= 13, `"${label}" is too long for one button`);
+        }
+    } finally { SummonControl.activeSummon = activeSummon; }
 }
 
 // ---------- chat view still works (window = chat) ----------
