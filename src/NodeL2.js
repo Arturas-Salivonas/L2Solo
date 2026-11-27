@@ -174,6 +174,10 @@ process.on('uncaughtException', (error) => {
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+// Closing the console window (Windows CTRL_CLOSE_EVENT) arrives as SIGHUP. Without a
+// listener Node exits at once and the buffered world state is lost; Windows allows
+// several seconds after the close, and the drain normally takes well under one.
+process.on('SIGHUP', () => shutdown('SIGHUP'));
 process.on('message', (message) => {
     if (message?.type === 'shutdown') shutdown(message.reason || 'IPC');
     if (message?.type === 'launcher:update-commit') { updateVerified = true; acceptUpdate?.(); }
