@@ -55,6 +55,8 @@ function levelUp(session, actor, nextLevel) {
     invoke('GameServer/Bot/AI/TownAttention').notice('level_up', actor);
     ConsoleText.transmit(session, ConsoleText.caption.levelUp);
     if (isBot) {
+        // It may say ding (BotMoments).
+        invoke('GameServer/Bot/AI/BotMoments').leveled(session, nextLevel);
         invoke('GameServer/Bot/AI/BotEventJournal').record({
             botId: id,
             eventType: 'level_up',

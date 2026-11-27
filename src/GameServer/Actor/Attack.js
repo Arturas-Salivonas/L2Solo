@@ -582,6 +582,7 @@ class Attack {
         // stack-rejected cast must never claim success to the party.
         invoke('GameServer/Bot/AI/BotPartyChat').confirmSkillResult(session, actor, target, skill, outcome);
         invoke('GameServer/Bot/AI/BotActionFeedback').result(session, actor, target, skill, outcome);
+        if (outcome && (outcome.heal > 0 || outcome.effect)) invoke('GameServer/Bot/AI/BotMoments').helped(actor, target, outcome);
         if (outcome?.applied && session?.accountId?.startsWith?.('bot_') && target?.session?.accountId && !target.session.accountId.startsWith('bot_')) {
             invoke('GameServer/Bot/AI/BotEventJournal').record({
                 playerId: target.session.actor?.fetchId?.(),
