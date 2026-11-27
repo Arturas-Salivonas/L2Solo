@@ -1137,6 +1137,7 @@ const tests = [
     'tests/test_market_counters.js',
     'tests/test_market_counter_replay.js',
     'tests/test_market_listing_demand.js',
+    'tests/test_player_trade_shouts.js',
     'tests/test_market_trade_demand.js',
     'tests/test_market_trade_quality.js',
     'tests/test_offer_query_callers.js',
