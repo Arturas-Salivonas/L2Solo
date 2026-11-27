@@ -52,8 +52,9 @@ A full-width Community Board window for solo play. [Install guide for other serv
   - Full HP/MP/CP in one click, your servitor's HP and MP too.
 - **Buff slots:** 20 as in C4, or up to 28 for you. Bots keep 20.
 - **Adena tab:** quick buttons from +10k to +1kkk, any typed amount (`250k`, `5kk`, `1b`), or `.adena 5kk` in chat.
+- **Class tab:** change class at level 20, 40 and 76 without the quests, from your race's C4 class tree (your path marked, cards for the next classes, a confirm step). `.class` in chat opens it.
 - **Market Board** is one tab away. `.buffer` in chat opens the window too.
-- **Settings** (`[SoloHelper]`): `enabled`, `altB`, `buffMinutes`, `window`, `adena`, `buffSlots`.
+- **Settings** (`[SoloHelper]`): `enabled`, `altB`, `buffMinutes`, `window`, `adena`, `classChange`, `buffSlots`.
 
 ### 2. Living Bots: all the bot AI in one mod (`feat/living-bots`)
 Bots that feel like people: [guide, screenshots and one install](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/living-bots/solo/guides/LIVING_BOTS.md).
@@ -90,6 +91,7 @@ Double-click it to open the browser launcher and start the server at your last r
 ## Changelog
 
 ### 2026-11-27
+- **Solo Helper:** Class tab - change class at 20, 40 and 76 from the C4 class tree, or `.class` in chat.
 - **Fix:** same-kind buffs (Focus and Chant of Predator, Death Whisper and Chant of Rage, Vampiric Rage and Chant of Vampire...) replace each other, as in C4.
 - **Living Bots:** bots hunt within 5 levels below them (parties up to 5 above), leave grey ground, and take no spot or easy fights on it; WTB/WTS demand removed; all the bot mods in one place, guides in each mod's branch.
 - **Living Bots:** one mod for all the bot AI, plus allies, friends defending you, calls for help, gossip, fear and bravado, rivalries, smarter party spots, spot warnings and feelings across a wipe.
@@ -123,7 +125,7 @@ Double-click it to open the browser launcher and start the server at your last r
 **Guides**
 - [Living Bots: bots that feel like people](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/living-bots/solo/guides/LIVING_BOTS.md). The bot AI mods together: what they do, screenshots, one install block and the plans.
 - [L2Solo mods: take only what you want](../solo/guides/MODS.md). Every modification with its own install line and patch link.
-- [Solo Helper: 1-hour buffs and Adena on Alt+B](https://github.com/Arturas-Salivonas/L2Solo/blob/mine/solo-buffer/solo/guides/SOLO_HELPER.md). A buffer and Adena window for solo play, with install steps for any L2Solo copy.
+- [Solo Helper: 1-hour buffs, Adena and class change on Alt+B](https://github.com/Arturas-Salivonas/L2Solo/blob/mine/solo-buffer/solo/guides/SOLO_HELPER.md). A buffer, Adena and class change window for solo play, with install steps for any L2Solo copy.
 
 **Workflow and tools:** [solo/README.md](../solo/README.md)
 **Upstream's README** (download, setup, in-game commands): [README.md](../README.md)

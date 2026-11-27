@@ -69,8 +69,8 @@ Restart the server after installing.
 
 Each mod's guide lives in its own branch, with screenshots, a copy-paste prompt for your AI agent, settings and how to remove it.
 
-### Solo Helper: 1-hour buffs and Adena on Alt+B
-- **What:** Alt+B opens a buffer with 89 C4 buffs (the 4 summoner servitor buffs included) and presets; every buff lasts 60 minutes. Full HP/MP/CP in one click, an Adena tab, up to 28 buff slots for you (bots keep 20).
+### Solo Helper: 1-hour buffs, Adena and class change on Alt+B
+- **What:** Alt+B opens a buffer with 89 C4 buffs (the 4 summoner servitor buffs included) and presets; every buff lasts 60 minutes. Full HP/MP/CP in one click, an Adena tab, a Class tab (change class at 20, 40 and 76 from the C4 class tree), up to 28 buff slots for you (bots keep 20).
 - **Guide:** [SOLO_HELPER.md](https://github.com/Arturas-Salivonas/L2Solo/blob/mine/solo-buffer/solo/guides/SOLO_HELPER.md)
 - **Install:** `git cherry-pick 27040e379..l2mods/mine/solo-buffer`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...mine/solo-buffer.diff>
