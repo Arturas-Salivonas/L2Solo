@@ -668,6 +668,8 @@ const BotAI = {
         const equipmentStartedAt = DiagnosticConfig.developerDiagnostics ? performance.now() : 0;
         BotEquipmentUpgrade.applyBestUpgrades(session);
         recordHotStage('equipmentUpgrade', equipmentStartedAt);
+        // Word of mouth (BotSpotTips): trusted bots together in town or resting share their best spot.
+        if (!isCompanion) invoke('GameServer/Bot/AI/BotSpotTips').tick(session, bot, tickStartedAt);
 
         // Physical hot actors collect their ground drops before selecting the
         // next hunt or formation move. The queue yields to combat and support.
