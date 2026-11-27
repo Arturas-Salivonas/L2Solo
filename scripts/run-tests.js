@@ -455,6 +455,7 @@ const tests = [
     'tests/test_party_spot_risk.js',
     'tests/test_bot_clan_welcome.js',
     'tests/test_bot_ambient_director.js',
+    'tests/test_town_attention.js',
     'tests/test_bot_death_respawn.js',
     'tests/test_bot_gear.js',
     'tests/test_bot_equipment_compatibility.js',

@@ -82,6 +82,8 @@ function record(victim, source, now = Date.now()) {
         if (String(member.accountId || '').startsWith('bot_')) invoke('GameServer/Bot/Population/BotLifeState').rememberEnemies(member);
     }
     invoke('GameServer/Bot/AI/BotRevenge').onAttack(attacker, victim, now);
+    // A fight between characters draws a few watchers (TownAttention).
+    invoke('GameServer/Bot/AI/TownAttention').notice('fight', attacker, { other: victim, now });
     // Wake the whole nearby defending party, including when its human leader
     // is hit. Damage wake coalescing bounds this independently per member.
     for (const member of party) {
