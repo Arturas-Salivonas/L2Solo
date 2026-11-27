@@ -14,7 +14,13 @@ Before starting anything, check upstream's open PRs so we don't duplicate them:
 - **Symptom:** `coldDue` climbs to 16-17 within about 5 minutes and stays there for the whole session.
 - **Detail:** `Manson(2000483) merchant` was due 792 s ago, with reason `unclaimed:5-8/32`. So the worker was **not** full, yet it never picked the bot up. There were 25 such log lines, all for the same bot.
 - **Code:** `src/GameServer/Bot/Population/PopulationService.js:3346` logs it. `ColdSimulationCoordinator.overdueReason()` (~2502) builds the reason.
-- **Next:** decide whether merchant-type bots should be left out of the due set (a reporting bug) or are really never stepped (a stall). Check the kernel's claim filter.
+- **Upstream calls this a bug.** The comment above the log line says a bot due for over a minute "is not normal".
+- **What I found:**
+  - `last step -1s` means the bot was never stepped at all.
+  - Merchant bots come from `GeneratedColdSeeder.js:682` (`activity: 'merchant'`).
+  - `ColdSimulationKernel.lifecycleKind()` (~451) routes `merchant` to `'command'`: main runs it, not the worker's resolver.
+  - `BotLifeState.coldDueSummary()` (~4036) still counts the bot as due. It skips PK hunters, party members, craft shops (`crafting` + `craftShop`) and event-driven trade or event waits, but not seeded `merchant` bots or station traders.
+- **Next:** run with `developerDiagnostics = true` (the overdue trace then prints the worker's copy of the bot). That settles whether this is a stalled command or a counting mismatch.
 
 ### 2. `postcommit training failed ... cold_training_source_retired` - `lead`
 - **Seen:** once, for bot 2000552, on the first run.
