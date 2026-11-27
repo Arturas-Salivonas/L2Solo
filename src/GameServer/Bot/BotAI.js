@@ -688,6 +688,9 @@ const BotAI = {
         // Reactions use the existing visible hot tick and never delay combat
         // or keep an actor seated just to finish a scripted exchange.
         if (lodContext.playerVisible) invoke('GameServer/Bot/AI/BotChatReactions').offerLocal(session, tickStartedAt);
+        // What happens around the bot (TownAttention): a gz, a PK warning, a fight to watch.
+        // Watching a fight owns the tick.
+        if (!isCompanion && invoke('GameServer/Bot/AI/TownAttention').tick(session, bot, tickStartedAt)) return;
 
         // 3. Dynamic State Machine Routing
         if (isCompanion) invoke('GameServer/Bot/AI/PlayerPartyRaidChatter').tick(session.followPlayerSession, tickStartedAt);
