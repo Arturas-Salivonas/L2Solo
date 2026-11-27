@@ -102,9 +102,13 @@ A GitHub Actions trick from upstream: pushing a branch named `tests/<name>/<a,b,
 - **Buffer tab:**
   - **Status:** your buff count (x/20), and an Active strip with the icons of your current buffs.
   - **Presets** as skill-icon tiles: Tank, Fighter, Mage, Support, My class (picked for your class) and My set.
-  - **Any buff:** 85 C4 buffs at their max level, in 7 tabs (Prophet, Resists, Chants, Overlord, Dances, Songs, 3rd class). Click the icon or the name; active ones show green with the minutes left.
+  - **Any buff:** 85 C4 buffs at their max level plus the 4 summoner servitor buffs, in 7 tabs (Prophet, Resists, Chants, Overlord, Dances, Songs, Special). Click the icon or the name; active ones show green with the minutes left.
+  - **Special tab:** the 3rd-class buffs plus Blessing of Queen and Gift of Queen (Feline Queen), and Blessing of Seraphim and Gift of Seraphim (Unicorn Seraphim). Values are from Lisvus C4.
+    - Each pair replaces itself as in C4: one Queen buff and one Seraphim buff at a time.
+    - Magnus' Chant isn't included: it's Interlude, not C4.
   - **Buttons:** Save my set, Buff servitor (shown when one is out) and Clear buffs (debuffs stay).
-- **Duration:** every buff lasts 60 minutes and survives relogin. C4's 20-slot limit applies; when you're full, your oldest buff makes room.
+- **Duration:** every buff lasts 60 minutes and survives relogin.
+- **Buff slots:** 20 as in C4, or up to 28 with `buffSlots`. Bots keep 20. When you're full, your oldest buff makes room.
 - **Adding a tool:** add a `TABS` row and a renderer in `src/GameServer/Solo/SoloHelper.js`.
 
 Settings go in `config/local.ini`, and all of them are optional:
@@ -115,6 +119,7 @@ altB = true           ; false = Alt+B opens the Market Board again (.buffer stil
 buffMinutes = 60      ; 1-1440
 window = board        ; chat = the old small chat window instead of the Community Board
 adena = true          ; false hides the Adena tab and turns off .adena
+buffSlots = 20        ; your buff slots, 20 (C4) to 28
 ```
 
 ### Bot vendettas: revenge, PK bots, manhunts - branch `feat/bot-vendettas` (upstream PR candidate)
