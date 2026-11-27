@@ -262,6 +262,7 @@ const tests = [
     'tests/test_bot_pvp_regressions.js',
     'tests/test_summon_pvp.js',
     'tests/test_bot_revenge.js',
+    'tests/test_bot_pvp_watch.js',
     'tests/test_bot_mob_competition.js',
     'tests/test_bot_enemy_memory_persistence.js',
     'tests/test_pvp_interaction_memory.js',
