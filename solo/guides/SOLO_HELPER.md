@@ -14,6 +14,9 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
 - **C4's 20-buff limit still applies.** When you're full, a new buff replaces your oldest.
 
 **Adena tab**
+
+![The Adena tab](solo-helper-adena.png)
+
 - **Quick buttons** from +10,000 up to +1,000,000,000.
 - **Type any amount** and press Add: `250000`, `1,000,000`, `250k`, `5kk` or `1b`.
 - **One stack holds 2,147,483,647 at most**, the C4 limit.
