@@ -71,7 +71,7 @@ const catalog = SoloBuffer.catalog();
 const groupIds = SoloBuffer.GROUPS.flatMap((group) => group.ids);
 assert.strictEqual(new Set(groupIds).size, groupIds.length, 'a buff must be listed in only one group');
 assert.strictEqual(catalog.byId.size, groupIds.length, 'every catalog buff must exist in the active skill data');
-assert.strictEqual(groupIds.length, 85, 'the catalog covers 85 C4 buffer buffs');
+assert.strictEqual(groupIds.length, 89, 'the catalog covers 85 C4 buffer buffs and the 4 servitor buffs');
 assert.ok(SoloBuffer.GROUPS.every((group) => group.ids.length <= 19), 'a group stays small enough for one board page');
 assert.strictEqual(SoloBuffer.maxLevel(1204), 2, 'Wind Walk comes from the Cleric tree at level 2');
 assert.strictEqual(SoloBuffer.maxLevel(1068), 3, 'Might tops out at level 3');
@@ -80,6 +80,28 @@ assert.strictEqual(SoloBuffer.maxLevel(1078), 6, 'Concentration tops out at leve
 assert.strictEqual(catalog.byId.get(271).level, 1, 'dances have one level');
 assert.strictEqual(SoloBuffer.iconFor(271), 'icon.skill0271', 'skill icons use the 4-digit client texture name');
 assert.strictEqual(SoloBuffer.iconFor(1068), 'icon.skill1068', 'four-digit ids keep their digits');
+
+// ---------- the summoner servitor buffs (ServitorBuffs, Lisvus C4) ----------
+{
+    const special = catalog.groups.find((group) => group.id === 'third');
+    assert.strictEqual(special.label, 'Special');
+    const names = special.buffs.filter((buff) => buff.selfId >= 4699 && buff.selfId <= 4703).map((buff) => buff.name);
+    assert.deepStrictEqual(names, ['Blessing of Queen', 'Gift of Queen', 'Blessing of Seraphim', 'Gift of Seraphim'], 'the four of them');
+    assert.strictEqual(SoloBuffer.iconFor(4699), 'icon.skill1331', 'Queen buffs show the Summon Queen of Cat icon');
+    assert.strictEqual(SoloBuffer.iconFor(4703), 'icon.skill1332', 'Seraphim buffs show the Summon Unicorn Seraphim icon');
+    const hero = player('Summoner');
+    SoloBuffer.applyEntries(hero, hero.actor, [[4699, 3]], { scheduleExpiry: false });
+    const blessing = buffs(hero.actor).find((effect) => effect.id === 4699);
+    assert.deepStrictEqual(blessing.stats, { pCritRateMul: 1.3, pCritDamageMul: 1.25 }, 'Blessing of Queen: crit rate and damage');
+    SoloBuffer.applyEntries(hero, hero.actor, [[4700, 3]], { scheduleExpiry: false });
+    assert.deepStrictEqual(buffs(hero.actor).filter((effect) => effect.id === 4699 || effect.id === 4700).map((effect) => effect.id), [4700],
+        'Gift of Queen replaces Blessing of Queen (C4 stack group QueenBuff)');
+    SoloBuffer.applyEntries(hero, hero.actor, [[4702, 3], [4703, 3]], { scheduleExpiry: false });
+    assert.deepStrictEqual(buffs(hero.actor).filter((effect) => effect.id === 4702 || effect.id === 4703).map((effect) => effect.id), [4703],
+        'the Seraphim pair works the same way');
+    assert.strictEqual(buffs(hero.actor).find((effect) => effect.id === 4703).stats.mReuseMul, 0.65, 'Gift of Seraphim: magic reuse');
+    assert.strictEqual(buffs(hero.actor).find((effect) => effect.id === 4700).stats.pAtkMul, 1.1, 'Gift of Queen: P.Atk');
+}
 
 // ---------- presets ----------
 for (const preset of SoloBuffer.PRESETS) {
@@ -91,11 +113,38 @@ assert.strictEqual(SoloBuffer.presetEntries({ profile: null }, player('Tank', { 
     'the My class preset should follow the class profile');
 
 // ---------- config ----------
-assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true }, 'defaults: on, Alt+B, 60 minutes, board');
+assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 }, 'defaults: on, Alt+B, 60 minutes, board');
 withOptions({ buffMinutes: '30', altB: 'false', window: 'CHAT' }, () => assert.deepStrictEqual(config(),
-    { enabled: true, altB: false, buffMinutes: 30, window: 'chat', adena: true }, 'local.ini values override the defaults'));
+    { enabled: true, altB: false, buffMinutes: 30, window: 'chat', adena: true, buffSlots: 20 }, 'local.ini values override the defaults'));
 withOptions({ buffMinutes: 'nonsense', enabled: false, window: 'weird' }, () => assert.deepStrictEqual(config(),
-    { enabled: false, altB: true, buffMinutes: 60, window: 'board', adena: true }, 'bad values fall back to the defaults'));
+    { enabled: false, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 }, 'bad values fall back to the defaults'));
+
+withOptions({ buffSlots: '28' }, () => assert.strictEqual(config().buffSlots, 28, 'up to 28 buff slots'));
+withOptions({ buffSlots: '35' }, () => assert.strictEqual(config().buffSlots, 28, 'never more than 28'));
+withOptions({ buffSlots: '12' }, () => assert.strictEqual(config().buffSlots, 20, 'never fewer than the C4 20'));
+
+// ---------- buff slots: a player may have up to 28, bots and summons keep C4's 20 ----------
+{
+    const withSession = (bot) => {
+        const session = player(bot ? 'Botty' : 'Hero', { id: bot ? 268480002 : 268480003 });
+        session.accountId = bot ? 'bot_pop_1' : 'player1';
+        session.actor.session = session;
+        return session;
+    };
+    const many = SoloBuffer.catalog().groups.flatMap((group) => group.buffs).slice(0, 30).map((buff) => [buff.selfId, buff.level]);
+    withOptions({ buffSlots: '28' }, () => {
+        const hero = withSession(false), bot = withSession(true);
+        assert.strictEqual(EffectStore.limitFor(hero.actor), 28, 'the player gets the configured slots');
+        assert.strictEqual(EffectStore.limitFor(bot.actor), 20, 'a bot keeps 20');
+        assert.strictEqual(EffectStore.limitFor({ fetchKind: () => 'Summon', session: hero }), 20, 'a summon keeps 20');
+        SoloBuffer.applyEntries(hero, hero.actor, many, { scheduleExpiry: false });
+        assert.strictEqual(buffs(hero.actor).length, 28, 'the player holds 28 buffs');
+        SoloBuffer.applyEntries(bot, bot.actor, many, { scheduleExpiry: false });
+        assert.strictEqual(buffs(bot.actor).length, 20, 'the bot holds 20');
+        assert.ok(SoloHelper.handleBoard(hero, ['buff']).includes('28/28'), 'the board counts the slots of the player');
+    });
+    assert.strictEqual(EffectStore.limitFor(withSession(false).actor), 20, 'by default a player has the C4 20');
+}
 
 // ---------- one buff: 60 minutes, level from the catalog only ----------
 {

@@ -22,6 +22,7 @@ const skillTree = require('../../../data/Skills/Tree/tree.json');
 const MAX_CHAT_HTML = 8192;
 const MAX_TREE_LEVEL = 100; // enchanted skill levels (101+) are not C4 buffer levels
 const Style = require('./BoardStyle');
+const Servitor = require('./ServitorBuffs');
 const BOARD_WIDTH = Style.WIDTH;
 const BOARD_COLUMNS = 3;
 
@@ -36,7 +37,8 @@ const GROUPS = Object.freeze([
     { id: 'paagrio', label: 'Overlord', ids: [1003, 1004, 1005, 1008, 1249, 1250, 1260, 1261, 1282] },
     { id: 'dances', label: 'Dances', ids: [271, 272, 273, 274, 275, 276, 277, 307, 309, 310, 365, 366] },
     { id: 'songs', label: 'Songs', ids: [264, 265, 266, 267, 268, 269, 270, 304, 305, 306, 308, 349, 363, 364] },
-    { id: 'third', label: '3rd class', ids: [1352, 1353, 1354, 1355, 1356, 1357, 1362, 1363, 1364, 1365] }
+    // 3rd-class buffs and the summoner servitors' buffs (ServitorBuffs: Feline Queen, Unicorn Seraphim).
+    { id: 'third', label: 'Special', ids: [1352, 1353, 1354, 1355, 1356, 1357, 1362, 1363, 1364, 1365, ...Servitor.IDS] }
 ]);
 
 // Presets reuse the admin full-buff profiles (AdminFullBuff.PROFILES), so the
@@ -56,7 +58,8 @@ const response = () => invoke('GameServer/Network/Response');
 const effects = () => invoke('GameServer/Effects/EffectStore');
 const ticker = () => invoke('GameServer/Effects/EffectTicker');
 const summonOf = (actor) => invoke('GameServer/Npc/SummonControl').activeSummon(actor);
-const iconFor = (selfId) => `icon.skill${String(Math.max(0, Number(selfId) || 0)).padStart(4, '0')}`;
+// A servitor buff shows its summon skill's icon (ServitorBuffs.iconOf).
+const iconFor = (selfId) => `icon.skill${String(Math.max(0, Number(Servitor.iconOf(selfId) ?? selfId) || 0)).padStart(4, '0')}`;
 
 // ---------- catalog ----------
 
@@ -64,6 +67,7 @@ let treeLevels = null;
 // A skill's highest level across every class tree: a 1st-class buff such as Wind
 // Walk is learned in the Cleric tree, not the Prophet one.
 function maxLevel(selfId) {
+    if (Servitor.has(selfId)) return Servitor.LEVEL;
     if (!treeLevels) {
         treeLevels = new Map();
         for (const cls of skillTree) {
@@ -87,7 +91,7 @@ function catalog() {
         label: group.label,
         buffs: group.ids.map((selfId) => {
             const level = maxLevel(selfId);
-            const skill = admin().skillData(selfId, level);
+            const skill = admin().skillData(selfId, level) || Servitor.skill(selfId);
             if (!skill) {
                 missing.push(`${selfId}@${level}`);
                 return null;
@@ -164,9 +168,10 @@ function applyEntries(session, target, entries, options = {}) {
     if (!target.activeBuffs) target.activeBuffs = {};
     const applied = [];
     for (const [selfId, level] of entries) {
-        const skill = admin().skillData(selfId, level);
+        const servitor = Servitor.has(selfId);
+        const skill = servitor ? Servitor.skill(selfId) : admin().skillData(selfId, level);
         if (!skill) continue;
-        const effect = effects().apply(target, admin().effectFromSkill(skill, expiresAt));
+        const effect = effects().apply(target, servitor ? Servitor.effect(selfId, expiresAt) : admin().effectFromSkill(skill, expiresAt));
         if (!effect) continue;
         target.activeBuffs[effect.key] = expiresAt;
         if (options.scheduleExpiry !== false) ticker().scheduleExpiry(session, target, effect);
@@ -280,7 +285,7 @@ function minutesLeft(effect) {
 
 function boardStatus(actor, message) {
     const used = currentBuffs(actor).length;
-    const limit = effects().BUFF_LIMIT;
+    const limit = effects().limitFor(actor);
     const count = Html.font(`${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok);
     const note = used >= limit ? 'full - a new buff replaces your oldest' : `${config().buffMinutes} min each`;
     return `<table width=${BOARD_WIDTH} bgcolor=222222><tr>`
@@ -294,8 +299,13 @@ function activeStrip(actor) {
     if (!active.length) {
         return `<table width=${BOARD_WIDTH}><tr><td height=30>${Html.font('No buffs yet. Pick a preset or any buff below.')}</td></tr></table>`;
     }
-    const cells = active.slice(0, 20).map((effect) => `<td width=28><img src="${iconFor(effect.id)}" width=24 height=24></td>`).join('');
-    return `<table width=${BOARD_WIDTH}><tr><td width=50 height=30>${Html.font('Active', Html.COLOR.title)}</td>${cells}<td></td></tr></table>`;
+    // Twenty icons a row: up to 28 buffs (buffSlots) take a second row.
+    const rows = [];
+    for (let i = 0; i < Math.min(active.length, effects().limitFor(actor)); i += 20) {
+        const cells = active.slice(i, i + 20).map((effect) => `<td width=28><img src="${iconFor(effect.id)}" width=24 height=24></td>`).join('');
+        rows.push(`<tr><td width=50 height=30>${i ? '' : Html.font('Active', Html.COLOR.title)}</td>${cells}<td></td></tr>`);
+    }
+    return `<table width=${BOARD_WIDTH}>${rows.join('')}</table>`;
 }
 
 function heading(label) {
@@ -364,7 +374,7 @@ function boardBody(session, state = {}) {
 
 function chatSlots(actor) {
     const used = currentBuffs(actor).length;
-    const limit = effects().BUFF_LIMIT;
+    const limit = effects().limitFor(actor);
     return Html.font(`Buffs ${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok)
         + Html.font(used >= limit ? ' - a new buff replaces your oldest' : ` - each lasts ${config().buffMinutes} min`);
 }

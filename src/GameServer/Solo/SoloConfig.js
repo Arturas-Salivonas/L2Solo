@@ -6,12 +6,20 @@
 //   buffMinutes = 60      length of every buff from the helper, 1-1440
 //   window      = board   board = full-width Community Board, chat = the small chat window
 //   adena       = true    false hides the Adena tab and turns off .adena
+//   buffSlots   = 20      your buff slots, 20 (C4) to 28; bots keep 20
 
-const DEFAULTS = Object.freeze({ enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true });
+const DEFAULTS = Object.freeze({ enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 });
+const MIN_SLOTS = 20;
+const MAX_SLOTS = 28;
 
 function flag(value, fallback) {
     if (value === undefined || value === null || value === '') return fallback;
     return !/^(false|0|no|off)$/i.test(String(value).trim());
+}
+
+function slots(value) {
+    const count = Math.floor(Number(value));
+    return Number.isFinite(count) ? Math.max(MIN_SLOTS, Math.min(MAX_SLOTS, count)) : DEFAULTS.buffSlots;
 }
 
 function config() {
@@ -22,8 +30,9 @@ function config() {
         altB: flag(raw.altB, DEFAULTS.altB),
         buffMinutes: Number.isFinite(minutes) && minutes >= 1 ? Math.min(minutes, 24 * 60) : DEFAULTS.buffMinutes,
         window: String(raw.window || '').trim().toLowerCase() === 'chat' ? 'chat' : 'board',
-        adena: flag(raw.adena, DEFAULTS.adena)
+        adena: flag(raw.adena, DEFAULTS.adena),
+        buffSlots: slots(raw.buffSlots)
     };
 }
 
-module.exports = { DEFAULTS, config };
+module.exports = { DEFAULTS, MIN_SLOTS, MAX_SLOTS, config };
