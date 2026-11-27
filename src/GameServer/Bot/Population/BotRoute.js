@@ -513,6 +513,15 @@ function huntSpot(state, leaf, { spots, timestamp, owner = null }) {
     }
     const frame = frameFor(hunter, null, [], timestamp);
     frame.owner = owner;
+    // A trusted bot's tip (SpotTipPolicy, word of mouth): the bot tries that spot until it
+    // has samples of its own there, if it may hunt it alone; never instead of a plan's item hunt.
+    const tip = require('../../Social/SpotTipPolicy').active(hunter, timestamp) && !farmsPlan(leaf, hunter.stats.equipmentPlan)
+        ? SpotIndex.spotById(spots, hunter.stats.spotTip.spotId) : null;
+    if (tip && tip.raidBoss !== true && soloLevelFits(hunter, tip, hunter.level)
+        && LevelingRoutes.groundVerdict(tip, hunter, { mode: 'solo' }).allowed) {
+        EconomyDiagnostics.count('route', 'hunt_spot', 'tip');
+        return { spotId: String(tip.id) };
+    }
     const wished = leafChoice(hunter, leaf, { spots, timestamp, frame });
     if (wished) return { spotId: String(wished.spotId) };
     // A protected starter keeps its field and a party waiter its fallback before a plan's source (choose).
@@ -546,7 +555,7 @@ function huntSpot(state, leaf, { spots, timestamp, owner = null }) {
 // huntSpot (neither kept).
 function heldHuntSpot(owner, state, leaf, { spots, timestamp }) {
     const stats = state.stats || {};
-    const key = `${leaf?.activity || ''}|${leaf?.spotId ?? ''}|${farmsPlan(leaf, stats.equipmentPlan) ? 1 : 0}`
+    const key = `${leaf?.activity || ''}|${leaf?.spotId ?? ''}|${farmsPlan(leaf, stats.equipmentPlan) ? 1 : 0}|${require('../../Social/SpotTipPolicy').routeKey(state, timestamp)}`
         + `|${planKey(stats.equipmentPlan, stats.partyRequest)}`
         + `|${stats.earning?.spotId ?? ''}|${EquipmentIncomeRoute.isCommanded(stats.earning) ? 1 : 0}`
         + `|${Number(state.level) || 0}|${state.party?.partyId || state.partyId || ''}`
