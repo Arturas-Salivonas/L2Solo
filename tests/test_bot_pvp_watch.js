@@ -23,6 +23,10 @@ const Budget = invoke('GameServer/Bot/AI/BotPvpChat');
 const Response = invoke('GameServer/Network/Response');
 const BotAI = invoke('GameServer/Bot/BotAI');
 const Life = invoke('GameServer/Bot/Population/BotLifeState');
+const Config = invoke('GameServer/Bot/Population/PopulationConfig');
+// The grudge cases meet only grudges: every roll here is 0, which a PK intent would pass.
+const savedPk = Config.pkBotsEnabled;
+Config.pkBotsEnabled = false;
 
 let now = Date.now(), serial = 2300000;
 const events = [];
@@ -154,9 +158,83 @@ try {
         assert.deepStrictEqual(done, [outcome], 'done hears the outcome once');
         reset(bot.session);
     }
+
+    // ---------- PK bots (BotPk) ----------
+    const Pk = invoke('GameServer/Bot/AI/BotPk');
+    Config.pkBotsEnabled = true;
+    const persona = (traits, inclinations) => ({ traits: { sociability: 0.5, commitment: 0.5, ambition: 0.5, resilience: 0.7, ...traits },
+        inclinations: { pvp: 0.15, justice: 0.1, speculation: 0.1, ...inclinations } });
+    const BRAWLER = persona({ caution: 0.22, assertiveness: 0.88, empathy: 0.25 }, { pvp: 0.85 });
+    const ACHIEVER = persona({ caution: 0.6, assertiveness: 0.53, empathy: 0.55 }, {});
+    const KEEPER = persona({ caution: 0.3, assertiveness: 0.76, empathy: 0.84 }, { pvp: 0.4, justice: 0.85 });
+    {
+        const brawler = Pk.chance(BRAWLER), achiever = Pk.chance(ACHIEVER), keeper = Pk.chance(KEEPER);
+        assert(brawler > 0.15 && brawler <= 0.5, `a brawler means a PK on a fair share of stays: ${brawler}`);
+        assert(achiever < 0.01, `an ordinary bot almost never: ${achiever}`);
+        assert(keeper < brawler / 20, `a justice keeper next to never: ${keeper}`);
+        const friend = { ready: true, personal: { trust: 8, affinity: 6, hostility: 0, fear: 0 } };
+        assert.strictEqual(Pk.chance(BRAWLER, friend), 0, 'a friend is never picked on');
+    }
+    const pkBot = (lvl = 40) => { const bot = character(true, lvl); bot.session.persona = BRAWLER; World.insertUser(bot.session); return bot; };
+    const pkPlayer = (lvl = 38) => { const player = character(false, lvl); World.insertUser(player.session); return player; };
+    {
+        const saved = { rate: Config.pkRate, enabled: Config.pkBotsEnabled, min: Config.pkMinLevel };
+        try {
+            const bot = pkBot();
+            const fits = player => !!Pk.intent(bot.session, player, { stay: 1 }, now);
+            assert(fits(pkPlayer(38)), 'a white player near its level is a PK target');
+            assert(!fits(pkPlayer(31)), `more than ${Pk.LEVEL_BELOW} levels below: left alone`);
+            assert(!fits(pkPlayer(43)), `more than ${Pk.LEVEL_ABOVE} levels above: left alone`);
+            const red = pkPlayer(38); red.fetchKarma = () => 50;
+            assert(!fits(red), 'a red player is a hunt for PK hunters, not a PK');
+            Config.pkRate = 0;
+            assert(!fits(pkPlayer(38)), 'pkRate = 0: no PK bots');
+            Config.pkRate = 1; Config.pkBotsEnabled = false;
+            assert(!fits(pkPlayer(38)), 'pkBotsEnabled = false: no PK bots');
+            Config.pkBotsEnabled = true;
+            const low = pkBot(15);
+            assert(!Pk.intent(low.session, pkPlayer(15), { stay: 1 }, now), 'under pkMinLevel nobody PKs');
+            const redBot = pkBot(); redBot.fetchKarma = () => 10;
+            assert(!Pk.intent(redBot.session, pkPlayer(38), { stay: 1 }, now), 'a red bot washes its karma first');
+            const grouped = pkBot(); grouped.session.coldLifeState = { party: { partyId: 'p1' } };
+            assert(!Pk.intent(grouped.session, pkPlayer(38), { stay: 1 }, now), 'a PK hunts alone');
+            const gentle = pkBot(); gentle.session.persona = ACHIEVER;
+            const intentRolls = Tendency.roll;
+            Tendency.roll = (...key) => key[0] === 'pk_intent' ? 0.05 : intentRolls(...key);
+            try { assert(!Pk.intent(gentle.session, pkPlayer(38), { stay: 1 }, now), 'a roll above the persona\'s odds means nothing'); }
+            finally { Tendency.roll = intentRolls; }
+        } finally { Config.pkRate = saved.rate; Config.pkBotsEnabled = saved.enabled; Config.pkMinLevel = saved.min; }
+    }
+    // The flow: decided at first sight, waits for the moment, then a revenge objective of reason pk.
+    {
+        const bot = pkBot(), player = pkPlayer(38);
+        bot.session.nearSpot = { seq: 3, spotId: 'stay-3' };
+        player.x = 400;
+        const chatBefore = events.length;
+        assert.strictEqual(Revenge.playerSeen(bot, player, now), 'watching', 'a healthy, idle player: the PK waits');
+        assert.deepStrictEqual(Watch.list(bot.session).map(e => e.reason), ['pk']);
+        assert.strictEqual(Watch.tick(bot.session, now + Watch.CHECK_MS), null, 'no moment yet');
+        player.hp = 45;
+        const outcome = Watch.tick(bot.session, now + 2 * Watch.CHECK_MS);
+        assert(['started', 'pending'].includes(outcome), `a hurt player is the moment: ${outcome}`);
+        assert.strictEqual((bot.session.pvpRevenge || bot.session.pendingPvpProvocation).reason, 'pk');
+        assert(Revenge.allows(bot.session, player, now + 2 * Watch.CHECK_MS), 'the native guards may let the PK swing');
+        assert(events.slice(chatBefore).some(e => e[0] === 'chat' && e[1] === bot.id && /Nothing personal|Wrong place|mine now/.test(e[2])),
+            'with a PK line');
+        assert.strictEqual(bot.session.lastPkAt, now + 2 * Watch.CHECK_MS, 'the PK is remembered');
+        reset(bot.session);
+        const next = pkPlayer(38);
+        assert(!Pk.intent(bot.session, next, { stay: 4 }, now + 3 * Watch.CHECK_MS), `one PK per ${Pk.COOLDOWN_MS / 60000} minutes`);
+        assert(Pk.intent(bot.session, next, { stay: 4 }, now + Pk.COOLDOWN_MS + 3 * Watch.CHECK_MS), 'then it may again');
+        // A busy player is a moment too; a player with company is not.
+        const busy = pkPlayer(38); busy.x = 300; busy.state.fetchHits = () => true;
+        assert(Pk.moment(bot.session, busy), 'a player fighting a monster is the moment');
+        busy.x = 2000;
+        assert(!Pk.moment(bot.session, busy), 'out of reach is not');
+    }
 } finally {
     utils.isInPeaceZone = original.peace; World.user = original.world; Life.rememberEnemies = original.remember;
     Budget.canSend = original.canSend; Budget.record = original.record; Response.speak = original.speak;
-    BotAI.promoteForPlayerInteraction = original.promote;
+    BotAI.promoteForPlayerInteraction = original.promote; Config.pkBotsEnabled = savedPk;
 }
 console.log('Bot PvP watch checks passed');

@@ -156,7 +156,9 @@ const LINES = {
     revenge: name => [`${name}, we still have a score to settle.`, `I remember what you did, ${name}.`,
         `Remember me, ${name}? I haven't forgotten.`],
     // Ours: a war enemy met in the field.
-    clan_war: name => [`${name}, your clan picked this war.`, `For the clan, ${name}!`]
+    clan_war: name => [`${name}, your clan picked this war.`, `For the clan, ${name}!`],
+    // Ours: a PK-minded bot picking on a player (BotPk).
+    pk: name => [`Nothing personal, ${name}.`, `Wrong place, wrong time, ${name}.`, `This spot is mine now, ${name}.`]
 };
 // An enemy met near a player (enemy_met): the bot starts the fight its rule
 // decided (reason revenge | clan_war, roll: the meeting's seeded roll, key: the meeting's)
@@ -207,9 +209,14 @@ function playerSeen(bot, player, now = Date.now()) {
     if (judged.size >= PLAYERS_A_STAY) { Situations.note('enemy_met:player_capped'); return null; }
     judged.add(playerId);
     const relation = relationTo(session, player, now);
-    if (!relation?.ready || !relation.personal && relation.war?.mutual !== true) return null;
-    const met = EnemyMet.player({ botId: bot.fetchId(), playerId, stay, social: assessment(session, player, now, relation) });
-    if (!met) return null;
+    if (!relation?.ready) return null;
+    const met = relation.personal || relation.war?.mutual === true
+        ? EnemyMet.player({ botId: bot.fetchId(), playerId, stay, social: assessment(session, player, now, relation) }) : null;
+    if (!met) {
+        // No grudge acted on: a PK-minded bot may still pick on the player (BotPk), at its moment.
+        const pk = invoke('GameServer/Bot/AI/BotPk').intent(session, player, { stay, relation }, now);
+        return pk ? counted(invoke('GameServer/Bot/AI/BotPvpWatch').start(session, player, pk, now)) : null;
+    }
     Situations.note(`enemy_met:${met.reason}`);
     const meeting = { ...met, key: `enemy_met:player:${bot.fetchId()}:${playerId}:${stay}`,
         fightKey: [`enemy_met_fight:${met.reason}`, Number(bot.fetchId()), playerId, stay] };
