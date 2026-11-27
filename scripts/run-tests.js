@@ -765,6 +765,7 @@ const tests = [
     'tests/test_sqlite_social_graph_migration.js',
     'tests/test_sqlite_account_casefold.js',
     'tests/test_character_status_persistence.js',
+    'tests/test_online_status_save.js',
     'tests/test_change_class.js',
     'tests/test_clan_bot_invite.js',
     'tests/test_player_managed_clan.js',

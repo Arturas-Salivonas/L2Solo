@@ -6,9 +6,23 @@ function activeBuffs(actor) {
         .filter((effect) => effect.type !== 'debuff' && effect.toggle !== true && Number(effect.expiresAt) > Date.now());
 }
 
-function serializeEffects(actor) {
-    return JSON.stringify(activeBuffs(actor));
+// A saved buff keeps the time it had left (remainingMs): as in C4, the clock does not run while
+// the character is offline or the server is down. restoreEffects starts it again at login.
+function serializeEffects(actor, now = Date.now()) {
+    return JSON.stringify(activeBuffs(actor).map((effect) => ({ ...effect, remainingMs: Number(effect.expiresAt) - now })));
 }
+
+// A real player's saved buff runs its time left from now. A bot's keeps its absolute expiry, so a
+// stale row cannot bring back old buffs, and so does an entry without it (a cold snapshot).
+function resumed(effect, now, resume) {
+    if (!effect || typeof effect !== 'object' || !('remainingMs' in effect)) return effect;
+    const { remainingMs, ...rest } = effect;
+    const remaining = Number(remainingMs);
+    if (!resume || !Number.isFinite(remaining)) return rest;
+    return { ...rest, expiresAt: remaining > 0 ? now + remaining : 0 };
+}
+
+const isBot = (session) => String(session?.accountId || '').startsWith('bot_');
 
 function parseEffects(value) {
     if (Array.isArray(value)) return value;
@@ -22,16 +36,17 @@ function parseEffects(value) {
     }
 }
 
-function restoreEffects(session, actor, value) {
+function restoreEffects(session, actor, value, now = Date.now()) {
     const restored = [];
-    parseEffects(value).forEach((effect) => {
+    const resume = !isBot(session);
+    parseEffects(value).map((effect) => resumed(effect, now, resume)).forEach((effect) => {
         if (
             !effect ||
             effect.type === 'debuff' ||
             effect.toggle === true ||
             !effect.key ||
             !Number(effect.id) ||
-            Number(effect.expiresAt) <= Date.now()
+            Number(effect.expiresAt) <= now
         ) {
             return;
         }
