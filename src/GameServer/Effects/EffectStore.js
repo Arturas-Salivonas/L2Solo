@@ -191,10 +191,18 @@ function orderedEffects(actor) {
     return [...commonBuffs, ...specialBuffs, ...debuffs];
 }
 
+// An actor's buff slots: C4's BUFF_LIMIT, or for a real player the Solo Helper's
+// [SoloHelper] buffSlots (fork-only, mine/solo-buffer: 20-28).
+function limitFor(actor) {
+    const session = actor?.session;
+    if (!session || actor.fetchKind || String(session.accountId || '').startsWith('bot_')) return BUFF_LIMIT;
+    return require('../Solo/SoloConfig').config().buffSlots;
+}
+
 function enforceSlotLimits(actor) {
     const effects = orderedEffects(actor);
     const debuffCount = effects.filter((effect) => effect.type === 'debuff').length;
-    const allowedBuffs = Math.max(0, BUFF_LIMIT - Math.max(0, debuffCount - DEBUFF_RESERVED_SLOTS));
+    const allowedBuffs = Math.max(0, limitFor(actor) - Math.max(0, debuffCount - DEBUFF_RESERVED_SLOTS));
     const countedBuffs = effects.filter(includedInBuffCount);
     const excess = Math.max(0, countedBuffs.length - allowedBuffs);
     return countedBuffs.slice(0, excess).filter((effect) => removeStored(actor, effect.key));
@@ -324,6 +332,7 @@ function abnormalMask(actor) {
 
 module.exports = {
     BUFF_LIMIT,
+    limitFor,
     includedInBuffCount,
     DEBUFF_RESERVED_SLOTS,
     SELF_PACKET_LIMIT,

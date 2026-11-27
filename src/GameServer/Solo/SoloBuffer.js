@@ -280,7 +280,7 @@ function minutesLeft(effect) {
 
 function boardStatus(actor, message) {
     const used = currentBuffs(actor).length;
-    const limit = effects().BUFF_LIMIT;
+    const limit = effects().limitFor(actor);
     const count = Html.font(`${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok);
     const note = used >= limit ? 'full - a new buff replaces your oldest' : `${config().buffMinutes} min each`;
     return `<table width=${BOARD_WIDTH} bgcolor=222222><tr>`
@@ -364,7 +364,7 @@ function boardBody(session, state = {}) {
 
 function chatSlots(actor) {
     const used = currentBuffs(actor).length;
-    const limit = effects().BUFF_LIMIT;
+    const limit = effects().limitFor(actor);
     return Html.font(`Buffs ${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok)
         + Html.font(used >= limit ? ' - a new buff replaces your oldest' : ` - each lasts ${config().buffMinutes} min`);
 }

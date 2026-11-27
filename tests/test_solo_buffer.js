@@ -91,11 +91,38 @@ assert.strictEqual(SoloBuffer.presetEntries({ profile: null }, player('Tank', { 
     'the My class preset should follow the class profile');
 
 // ---------- config ----------
-assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true }, 'defaults: on, Alt+B, 60 minutes, board');
+assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 }, 'defaults: on, Alt+B, 60 minutes, board');
 withOptions({ buffMinutes: '30', altB: 'false', window: 'CHAT' }, () => assert.deepStrictEqual(config(),
-    { enabled: true, altB: false, buffMinutes: 30, window: 'chat', adena: true }, 'local.ini values override the defaults'));
+    { enabled: true, altB: false, buffMinutes: 30, window: 'chat', adena: true, buffSlots: 20 }, 'local.ini values override the defaults'));
 withOptions({ buffMinutes: 'nonsense', enabled: false, window: 'weird' }, () => assert.deepStrictEqual(config(),
-    { enabled: false, altB: true, buffMinutes: 60, window: 'board', adena: true }, 'bad values fall back to the defaults'));
+    { enabled: false, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 }, 'bad values fall back to the defaults'));
+
+withOptions({ buffSlots: '28' }, () => assert.strictEqual(config().buffSlots, 28, 'up to 28 buff slots'));
+withOptions({ buffSlots: '35' }, () => assert.strictEqual(config().buffSlots, 28, 'never more than 28'));
+withOptions({ buffSlots: '12' }, () => assert.strictEqual(config().buffSlots, 20, 'never fewer than the C4 20'));
+
+// ---------- buff slots: a player may have up to 28, bots and summons keep C4's 20 ----------
+{
+    const withSession = (bot) => {
+        const session = player(bot ? 'Botty' : 'Hero', { id: bot ? 268480002 : 268480003 });
+        session.accountId = bot ? 'bot_pop_1' : 'player1';
+        session.actor.session = session;
+        return session;
+    };
+    const many = SoloBuffer.catalog().groups.flatMap((group) => group.buffs).slice(0, 30).map((buff) => [buff.selfId, buff.level]);
+    withOptions({ buffSlots: '28' }, () => {
+        const hero = withSession(false), bot = withSession(true);
+        assert.strictEqual(EffectStore.limitFor(hero.actor), 28, 'the player gets the configured slots');
+        assert.strictEqual(EffectStore.limitFor(bot.actor), 20, 'a bot keeps 20');
+        assert.strictEqual(EffectStore.limitFor({ fetchKind: () => 'Summon', session: hero }), 20, 'a summon keeps 20');
+        SoloBuffer.applyEntries(hero, hero.actor, many, { scheduleExpiry: false });
+        assert.strictEqual(buffs(hero.actor).length, 28, 'the player holds 28 buffs');
+        SoloBuffer.applyEntries(bot, bot.actor, many, { scheduleExpiry: false });
+        assert.strictEqual(buffs(bot.actor).length, 20, 'the bot holds 20');
+        assert.ok(SoloHelper.handleBoard(hero, ['buff']).includes('28/28'), 'the board counts the slots of the player');
+    });
+    assert.strictEqual(EffectStore.limitFor(withSession(false).actor), 20, 'by default a player has the C4 20');
+}
 
 // ---------- one buff: 60 minutes, level from the catalog only ----------
 {
