@@ -158,7 +158,9 @@ const LINES = {
     // Ours: a war enemy met in the field.
     clan_war: name => [`${name}, your clan picked this war.`, `For the clan, ${name}!`],
     // Ours: a PK-minded bot picking on a player (BotPk).
-    pk: name => [`Nothing personal, ${name}.`, `Wrong place, wrong time, ${name}.`, `This spot is mine now, ${name}.`]
+    pk: name => [`Nothing personal, ${name}.`, `Wrong place, wrong time, ${name}.`, `This spot is mine now, ${name}.`],
+    // Ours: a bot that came back for the player who killed it (BotManhunt).
+    manhunt: name => [`Found you, ${name}.`, `${name}! I came back for you.`, `Remember me, ${name}? My turn.`]
 };
 // An enemy met near a player (enemy_met): the bot starts the fight its rule
 // decided (reason revenge | clan_war, roll: the meeting's seeded roll, key: the meeting's)
@@ -208,6 +210,9 @@ function playerSeen(bot, player, now = Date.now()) {
     if (judged.has(playerId)) return null;
     if (judged.size >= PLAYERS_A_STAY) { Situations.note('enemy_met:player_capped'); return null; }
     judged.add(playerId);
+    // A bot hunting this player down (BotManhunt) goes for them wherever it meets them.
+    const hunt = invoke('GameServer/Bot/AI/BotManhunt').meeting(session, player, now);
+    if (hunt) return counted(invoke('GameServer/Bot/AI/BotPvpWatch').start(session, player, hunt, now));
     const relation = relationTo(session, player, now);
     if (!relation?.ready) return null;
     const met = relation.personal || relation.war?.mutual === true
