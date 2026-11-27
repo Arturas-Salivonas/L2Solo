@@ -162,6 +162,19 @@ playerTradeShoutsEnabled = true
 wordOfMouthEnabled = true
 ```
 
+### World legacy: bots remember across a wipe - branch `feat/world-legacy` (upstream PR candidate)
+- **Saved by itself:** every bot wipe (the launcher's wipe panel, or `npm run wipe:bots`) first saves `tmp/legacy/world-legacy.json`, with dated copies kept beside it.
+  - **By hand:** `node scripts/world-legacy.js save` (it only reads your world and is safe while the server runs).
+  - **To look:** `node scripts/world-legacy.js show`.
+- **The same people come back.** A new world's bots are the old ones: the same name, sex and personality, at level 1 with starter gear. They keep their know-how, so they judge spots, prices and people like veterans from day one. Veterans of several worlds come back first. Bots that missed a world aren't forgotten.
+- **Spot lessons.** What bots really earned on each spot corrects the spot table's guesses for spots a bot hasn't tried itself. A crowded or deadly camp looks worse; a quiet one that paid well looks better. A bot's own experience always wins.
+- **Feelings toward you are saved but not used yet.** That's the next step: a bot you killed in the last world remembers you.
+- **Off switch:** `[BotPopulation] worldLegacyEnabled = false` stops bots coming back; the spot lessons apply whenever a legacy file exists.
+
+### Upstream PRs are blocked for now
+- `pmbstyle/L2Solo` limits PRs and issues to prior contributors, so `gh pr create` is refused for this account.
+- The PR texts are ready in [prs/](prs/), for when the maintainer lifts the limit or adds you as a collaborator.
+
 ### Starter village robes - branch `fix/starter-village-robes` (upstream PR candidate)
 - The armor dealers in Talking Island, the Elven Village and the Dark Elven Village now sell the ten No-Grade robe pieces at C4 prices, as every C4 starter dealer did. Before, only the Orc and Dwarven villages had them.
 - **Waiting on a table rebuild:** the bot tables read the shop lists, so they need one. Until then the server warns that the spot table is stale, and bots don't plan to buy robes in those three villages. You can buy them already.
