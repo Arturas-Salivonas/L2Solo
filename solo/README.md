@@ -76,19 +76,23 @@ A GitHub Actions trick from upstream: pushing a branch named `tests/<name>/<a,b,
 
 ## Fork features (in `solo`)
 
-### Solo Buffer - branch `mine/solo-buffer`
-- **Open it** with **Alt+B** or by typing `.buffer` in chat. The Market Board, which Alt+B used to open, is a link at the bottom.
-- **One by one:** pick any of 85 C4 buffs at their max level, grouped as Prophet and Elders, Warcryer chants, Overlord, Dances, Songs and 3rd class. Active ones show green.
-- **Presets:** Tank, Fighter, Mage, Support, My class (picked for your class) and My set (save your current buffs, then reapply them in one click).
-- **Extras:** Buff my servitor, and Clear my buffs (debuffs stay).
+### Solo Helper (Alt+B) - branch `mine/solo-buffer`
+- **Open it** with **Alt+B** or by typing `.buffer` in chat. It opens the full-width Community Board with tabs: **Buffer** and **Market Board** (the board Alt+B used to open).
+- **Buffer tab:**
+  - **Status:** your buff count (x/20), and an Active strip with the icons of your current buffs.
+  - **Presets** as skill-icon tiles: Tank, Fighter, Mage, Support, My class (picked for your class) and My set.
+  - **Any buff:** 85 C4 buffs at their max level, in 7 tabs (Prophet, Resists, Chants, Overlord, Dances, Songs, 3rd class). Click the icon or the name; active ones show green with the minutes left.
+  - **Buttons:** Save as My set, Buff my servitor (shown when one is out) and Clear my buffs (debuffs stay).
 - **Duration:** every buff lasts 60 minutes and survives relogin. C4's 20-slot limit applies; when you're full, your oldest buff makes room.
+- **Adding a tool:** add a `TABS` row and a renderer in `src/GameServer/Solo/SoloHelper.js`.
 
 Settings go in `config/local.ini`, and all of them are optional:
 ```
 [SoloHelper]
-enabled = true        ; false turns the buffer off
+enabled = true        ; false turns the helper off (Alt+B = Market Board)
 altB = true           ; false = Alt+B opens the Market Board again (.buffer still works)
 buffMinutes = 60      ; 1-1440
+window = board        ; chat = the old small chat window instead of the Community Board
 ```
 
 ## Docs
