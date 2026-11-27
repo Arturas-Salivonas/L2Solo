@@ -9,6 +9,9 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
 **Buffer tab**
 - **89 buffs at their max level**, in 7 tabs: Prophet, Resists, Chants, Overlord, Dances, Songs and Special. Click the icon or the name.
 - **Special tab:** the 3rd-class buffs, plus the four summoner servitor buffs with their C4 values:
+
+  ![The Special tab](solo-helper-special.png)
+
   - Blessing of Queen: crit rate x1.30, crit damage x1.25
   - Gift of Queen: P.Atk x1.10, accuracy +3
   - Blessing of Seraphim: MP regen x1.35
