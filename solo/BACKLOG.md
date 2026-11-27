@@ -37,6 +37,11 @@ Before starting anything, check upstream's open PRs so we don't duplicate them:
 - **Seen:** once, for bot 2000552, on the first run.
 - **Next:** find where training is retired and whether skipping it loses skills or SP.
 
+### 2b. `test_party_presets` crashes on Windows after passing - `confirmed`, upstream, test-only
+- **What happens:** all of its checks pass, then `fs.rmSync` of its temp dir throws `ENOTEMPTY`. SQLite WAL files are probably still open; Windows won't delete open files, Linux CI doesn't mind.
+- **Scope:** it fails the same way on untouched upstream code (checked 2026-11-27).
+- **Fix idea:** close the databases before the cleanup, or retry the removal (`fs.rmSync(dir, { maxRetries: 5 })`). A tiny upstream PR.
+
 ### 3. Socket exceptions on client connect and disconnect - `lead`, probably noise
 - **Seen:** `AuthServer :: exception: unknown socket error` and `GameServer :: exception: Error: read ECONNRESET`.
 - **Next:** check whether these are only the client closing its socket. If so, log them quietly.

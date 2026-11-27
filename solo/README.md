@@ -74,6 +74,23 @@ npm test                                 everything (1,300+ files, slow; their C
 
 A GitHub Actions trick from upstream: pushing a branch named `tests/<name>/<a,b,c>` to the fork runs those test files in CI (free for public repos).
 
+## Fork features (in `solo`)
+
+### Solo Buffer - branch `mine/solo-buffer`
+- **Open it** with **Alt+B** or by typing `.buffer` in chat. The Market Board, which Alt+B used to open, is a link at the bottom.
+- **One by one:** pick any of 85 C4 buffs at their max level, grouped as Prophet and Elders, Warcryer chants, Overlord, Dances, Songs and 3rd class. Active ones show green.
+- **Presets:** Tank, Fighter, Mage, Support, My class (picked for your class) and My set (save your current buffs, then reapply them in one click).
+- **Extras:** Buff my servitor, and Clear my buffs (debuffs stay).
+- **Duration:** every buff lasts 60 minutes and survives relogin. C4's 20-slot limit applies; when you're full, your oldest buff makes room.
+
+Settings go in `config/local.ini`, and all of them are optional:
+```
+[SoloHelper]
+enabled = true        ; false turns the buffer off
+altB = true           ; false = Alt+B opens the Market Board again (.buffer still works)
+buffMinutes = 60      ; 1-1440
+```
+
 ## Docs
 
 - [docs/C4_REFERENCE.md](docs/C4_REFERENCE.md) - Lineage II up to Chronicle 4: classes, play styles, zones, grades, economy, PvP, raids
