@@ -168,10 +168,23 @@ function wipeHistory(db, wiped) {
         }
     } finally { history.close(); }
 }
-async function wipe(scope) { return withConnection((db) => wipeWithConnection(db, scope, (wiped) => wipeHistory(db, wiped))); }
+async function wipe(scope) {
+    return withConnection((db) => {
+        // What the world taught its bots, kept beside its database for the next one
+        // (Bot/Legacy/WorldLegacy). A failure here never blocks the wipe.
+        try {
+            const Legacy = require('../src/GameServer/Bot/Legacy/WorldLegacy');
+            const saved = Legacy.saveBeforeWipe(db, validateScope(scope), { folder: Legacy.dir(readDatabaseConfig().databasePath) });
+            if (saved) process.stderr.write(`World legacy: ${saved.bots} bots and ${saved.spots} spot lessons saved to ${saved.file}\n`);
+        } catch (error) {
+            process.stderr.write(`World legacy was not saved: ${error.message}\n`);
+        }
+        return wipeWithConnection(db, scope, (wiped) => wipeHistory(db, wiped));
+    });
+}
 
 module.exports = { validateScope, targetClause, previewWithConnection, wipeWithConnection,
-    wipeHistoryWithConnection: HistoryStore.wipeWorldHistory, preview, wipe };
+    wipeHistoryWithConnection: HistoryStore.wipeWorldHistory, preview, wipe, readDatabaseConfig };
 
 if (require.main === module) {
     const argument = process.argv.find((value) => value.startsWith('--scope='));
