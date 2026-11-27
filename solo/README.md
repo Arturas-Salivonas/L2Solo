@@ -42,7 +42,7 @@ Upstream takes PRs into `develop` (PRs aimed at `main` get closed). Their `devel
 
 **Double-click `solo\Play L2Solo.cmd`** (or run `node solo/play.js`). It opens the browser launcher and presses Start with the rate you last picked there. To start it from the desktop: right-click the file, Send to, Desktop (create shortcut).
 
-**Stop** with the launcher's **Stop** button or **Ctrl+C** in that window. Don't just close the window while the server runs: the game server has no handler for the console-close event, so Windows kills it before it saves recent progress (backlog item 4).
+**Stop** with the launcher's **Stop** button, **Ctrl+C** in that window, or by closing the window. All three save the world first (closing the window needed `fix/console-close-drain`, which is in `solo`; upstream still loses progress there).
 
 | Command | What it does |
 | --- | --- |

@@ -42,11 +42,20 @@ Before starting anything, check upstream's open PRs so we don't duplicate them:
 - **Scope:** it fails the same way on untouched upstream code (checked 2026-11-27).
 - **Fix idea:** close the databases before the cleanup, or retry the removal (`fs.rmSync(dir, { maxRetries: 5 })`). A tiny upstream PR.
 
+### 2c. `test_geodata_bootstrap` fails on Windows - `confirmed`, upstream, test-only
+- **What fails:** `fixture must exercise a child surviving its wrapper` (line ~413). The test SIGKILLs the wrapper and expects its child to live on, which is POSIX behaviour.
+- **Scope:** it fails the same way on untouched code (checked 2026-11-27).
+- **Fix idea:** skip that case on win32, or detach the fixture child.
+
 ### 3. Socket exceptions on client connect and disconnect - `lead`, probably noise
 - **Seen:** `AuthServer :: exception: unknown socket error` and `GameServer :: exception: Error: read ECONNRESET`.
 - **Next:** check whether these are only the client closing its socket. If so, log them quietly.
 
-### 4. Closing the server's console window skips the database drain (Windows) - `confirmed` by reading the code, not reproduced
+### 4. Closing the server's console window skips the database drain (Windows) - `in solo` (fix/console-close-drain), PR candidate
+- **Reproduced 2026-11-27** with a real console window and WM_CLOSE. Before the fix, all three processes ended at once and the log stopped mid-boot. After it: "flushing ... before SIGHUP", done in 31 ms, exit 0. Ctrl+C still drains (30 ms).
+- **Commit:** ca24d3e50. Its message holds the full evidence for the upstream PR: `node solo/fork.js pr fix/console-close-drain`.
+
+**Original notes:**
 - **Cause:** closing a console window sends `CTRL_CLOSE_EVENT`, which Node reports as `SIGHUP`, to every process attached to it. `src/NodeL2.js` (~175), `scripts/run-server.js` and `scripts/start.js` handle only SIGINT and SIGTERM. With no listener, Node's default ends the game server at once.
 - **Effect:** the server skips "flushing buffered character state" and loses recent progress. Ctrl+C (SIGINT) and the launcher's Stop both drain correctly.
 - **Fix:** `process.on('SIGHUP', () => shutdown('SIGHUP'))` in NodeL2.js, and the same forwarding in run-server.js and start.js. Windows allows about 5-10 s after a close and the drain takes about 50 ms, so it fits. A small upstream PR.

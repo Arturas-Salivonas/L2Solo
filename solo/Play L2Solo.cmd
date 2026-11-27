@@ -1,7 +1,7 @@
 @echo off
 rem One click to play: opens the L2Solo launcher and starts the server (geodata is checked on start).
-rem Stop with the launcher's Stop button or Ctrl+C. Don't just close this window while the server runs.
-title L2Solo - stop with Ctrl+C, don't close this window
+rem Stop with the launcher's Stop button, Ctrl+C, or by closing this window: the world is saved first.
+title L2Solo
 cd /d "%~dp0.."
 node solo\play.js
 if errorlevel 1 pause

@@ -9,10 +9,9 @@
 // checks data/Geodata first (the same code as `npm run geodata`) and downloads it only
 // when it is missing or damaged.
 //
-// Stop the server with the launcher's Stop button or Ctrl+C here: both drain the world
-// database before it exits. Do not just close this window while the server runs: the
-// game server (src/NodeL2.js) has no handler for the console-close event, so Windows
-// kills it before it saves recent progress.
+// Stop the server with the launcher's Stop button, Ctrl+C here, or by closing this window:
+// all three drain the world database before it exits (closing the window relies on
+// fix/console-close-drain, which handles SIGHUP; upstream code would lose recent progress).
 
 const http = require('http');
 const path = require('path');
@@ -82,7 +81,7 @@ async function main() {
     await waitForLauncher();
     const state = await pressStart();
     console.log(`L2Solo :: server ${state.phase || 'starting'} at ${state.progressionRate || 'the saved rate'}. Launcher: ${URL}`);
-    console.log('L2Solo :: to stop, use the launcher\'s Stop button or press Ctrl+C here. Don\'t just close this window.');
+    console.log('L2Solo :: to stop, use the launcher\'s Stop button, Ctrl+C here, or close this window. The world is saved first.');
 }
 
 main().catch((error) => {
