@@ -33,23 +33,22 @@ const GROUPS = Object.freeze([
     { id: 'prophet', label: 'Prophet', ids: [1204, 1086, 1068, 1040, 1077, 1242, 1240, 1062, 1268, 1045, 1048,
         1035, 1036, 1059, 1085, 1078, 1303, 1087, 1243] },
     { id: 'resist', label: 'Resists', ids: [1259, 1304, 1073, 1044, 1032, 1033, 1182, 1189, 1191, 1257] },
-    { id: 'chants', label: 'Chants', ids: [1007, 1009, 1006, 1002, 1251, 1252, 1253, 1284, 1308, 1309, 1310] },
-    { id: 'paagrio', label: 'Overlord', ids: [1003, 1004, 1005, 1008, 1249, 1250, 1260, 1261, 1282] },
+    // Each class line with its 3rd class: Doomcryer chants (1362, 1363), Dominator buffs (1364, 1365).
+    { id: 'chants', label: 'Chants', ids: [1007, 1009, 1006, 1002, 1251, 1252, 1253, 1284, 1308, 1309, 1310, 1362, 1363] },
+    { id: 'paagrio', label: 'Overlord', ids: [1003, 1004, 1005, 1008, 1249, 1250, 1260, 1261, 1282, 1364, 1365] },
     { id: 'dances', label: 'Dances', ids: [271, 272, 273, 274, 275, 276, 277, 307, 309, 310, 365, 366] },
     { id: 'songs', label: 'Songs', ids: [264, 265, 266, 267, 268, 269, 270, 304, 305, 306, 308, 349, 363, 364] },
-    // 3rd-class buffs and the summoner servitors' buffs (ServitorBuffs: Feline Queen, Unicorn Seraphim).
-    { id: 'third', label: 'Special', ids: [1352, 1353, 1354, 1355, 1356, 1357, 1362, 1363, 1364, 1365, ...Servitor.IDS] }
+    // Other 3rd-class buffs and the summoner servitors' buffs (ServitorBuffs: Feline Queen, Unicorn Seraphim).
+    { id: 'third', label: 'Special', ids: [1352, 1353, 1354, 1355, 1356, 1357, ...Servitor.IDS] }
 ]);
 
 // Presets reuse the admin full-buff profiles (AdminFullBuff.PROFILES), so the
-// two stay in step. 'auto' picks the profile for the player's class. icon is the
-// skill whose icon stands for the preset on the board.
+// two stay in step. icon is the skill whose icon stands for the preset on the board.
 const PRESETS = Object.freeze([
     { id: 'tank', label: 'Tank', profile: 'tank', icon: 1243 },
     { id: 'fighter', label: 'Fighter', profile: 'melee', icon: 1068 },
     { id: 'mage', label: 'Mage', profile: 'mage', icon: 1085 },
-    { id: 'support', label: 'Support', profile: 'support', icon: 1078 },
-    { id: 'auto', label: 'My class', profile: null, icon: 1062 }
+    { id: 'support', label: 'Support', profile: 'support', icon: 1078 }
 ]);
 const MY_SET_ICON = 1045;
 
@@ -111,9 +110,8 @@ function catalog() {
 
 const groupById = (id) => catalog().groups.find((group) => group.id === id) || null;
 
-function presetEntries(preset, actor) {
-    const profile = preset.profile || admin().profileForActor(actor);
-    return { profile, entries: admin().PROFILES[profile] || [] };
+function presetEntries(preset) {
+    return { profile: preset.profile, entries: admin().PROFILES[preset.profile] || [] };
 }
 
 // ---------- saved sets ----------
@@ -200,6 +198,7 @@ function refreshActor(session, actor) {
 // Client refreshes after a change. Tests swap these for spies: they need a live client actor.
 const hooks = {
     refresh: refreshActor,
+    vitals: (session, actor) => actor.statusUpdateVitals(actor),
     refreshSummon: (session, summon) => admin().refreshSummon(session, summon)
 };
 
@@ -218,6 +217,29 @@ function clearBuffs(session, actor) {
     }
     if (removed.length) hooks.refresh(session, actor);
     return removed.length;
+}
+
+// One buff off (the board's "remove" link): the C4 client sends nothing for a click on its own
+// buff bar, so this is where a buff is taken off.
+function removeBuff(session, actor, selfId) {
+    const effect = currentBuffs(actor).find((entry) => Number(entry.id) === Number(selfId));
+    if (!effect) return false;
+    effects().remove(actor, effect.key);
+    ticker().clear(actor, effect.key);
+    if (actor.activeBuffs) delete actor.activeBuffs[effect.key];
+    hooks.refresh(session, actor);
+    return true;
+}
+
+// Full HP, MP and CP for the player, and HP and MP for a live servitor.
+function restore(session, actor) {
+    actor.fillupVitals();
+    hooks.vitals(session, actor);
+    const summon = summonOf(actor);
+    if (!summon || summon.isDead?.()) return false;
+    summon.fillupVitals?.();
+    hooks.refreshSummon(session, summon);
+    return true;
 }
 
 // ---------- actions (shared by both views) ----------
@@ -243,9 +265,8 @@ function act(session, action = '', arg = '') {
             if (!preset) return {};
             const reason = deadReason();
             if (reason) return { message: reason };
-            const { profile, entries } = presetEntries(preset, actor);
-            const applied = buffSelf(session, entries);
-            return { message: `${preset.label} preset${preset.profile ? '' : ` (${profile})`}: ${applied.length} buffs on.` };
+            const applied = buffSelf(session, presetEntries(preset).entries);
+            return { message: `${preset.label} preset: ${applied.length} buffs on.` };
         }
         case 'mine': {
             const entries = savedSet(actor);
@@ -264,6 +285,15 @@ function act(session, action = '', arg = '') {
             const applied = applyEntries(session, summon, admin().PROFILES.servitor);
             if (applied.length) hooks.refreshSummon(session, summon);
             return { message: `Servitor: ${applied.length} buffs on.` };
+        }
+        case 'off': {
+            const buff = catalog().byId.get(Number(arg));
+            if (!buff || String(Number(arg)) !== String(arg)) return {};
+            return { group: buff.group, message: removeBuff(session, actor, buff.selfId) ? `${buff.name} removed.` : `${buff.name} is not on.` };
+        }
+        case 'restore': {
+            if (actor.isDead?.()) return { message: 'You cannot be healed while dead.' };
+            return { message: restore(session, actor) ? 'HP, MP and CP full, your servitor too.' : 'HP, MP and CP full.' };
         }
         case 'clear':
             return { message: `Removed ${clearBuffs(session, actor)} buffs.` };
@@ -295,20 +325,6 @@ function boardStatus(actor, message) {
         + `<td width=6></td><td width=250 height=24>Buffs ${count} ${Html.font(note)}</td>`
         + `<td width=348 align=right>${message ? Html.font(message, Html.COLOR.link) : ''}</td><td width=6></td>`
         + '</tr></table>';
-}
-
-function activeStrip(actor) {
-    const active = currentBuffs(actor);
-    if (!active.length) {
-        return `<table width=${BOARD_WIDTH}><tr><td height=30>${Html.font('No buffs yet. Pick a preset or any buff below.')}</td></tr></table>`;
-    }
-    // Twenty icons a row: up to 28 buffs (buffSlots) take a second row.
-    const rows = [];
-    for (let i = 0; i < Math.min(active.length, slotsOf(actor)); i += 20) {
-        const cells = active.slice(i, i + 20).map((effect) => `<td width=28><img src="${iconFor(effect.id)}" width=24 height=24></td>`).join('');
-        rows.push(`<tr><td width=50 height=30>${i ? '' : Html.font('Active', Html.COLOR.title)}</td>${cells}<td></td></tr>`);
-    }
-    return `<table width=${BOARD_WIDTH}>${rows.join('')}</table>`;
 }
 
 function heading(label) {
@@ -343,7 +359,8 @@ function buffGrid(group, active) {
         const cells = group.buffs.slice(i, i + BOARD_COLUMNS).map((buff) => {
             const effect = active.get(buff.selfId);
             const name = effect ? Html.font(buff.name, Html.COLOR.ok) : Html.esc(buff.name);
-            const detail = Html.font(`Lv ${buff.level}`) + (effect ? ` ${Html.font(minutesLeft(effect), Html.COLOR.ok)}` : '');
+            const detail = Html.font(`Lv ${buff.level}`) + (effect ? ` ${Html.font(minutesLeft(effect), Html.COLOR.ok)}`
+                + `  <a action="bypass ${B(`off ${buff.selfId}`)}">remove</a>` : '');
             return `<td width=38 height=38>${iconButton(buff.selfId, `one ${buff.selfId}`)}</td>`
                 + `<td width=${cellWidth - 38}><a action="bypass ${B(`one ${buff.selfId}`)}">${name}</a><br1>${detail}</td>`;
         });
@@ -354,11 +371,11 @@ function buffGrid(group, active) {
 }
 
 function boardFooter(session) {
-    const buttons = [['Save my set', 'save'], ['Clear buffs', 'clear']];
-    if (summonOf(session.actor)) buttons.splice(1, 0, ['Buff servitor', 'pet']);
+    const buttons = [['Full HP/MP/CP', 'restore'], ['Save my set', 'save'], ['Clear buffs', 'clear']];
+    if (summonOf(session.actor)) buttons.splice(2, 0, ['Buff servitor', 'pet']);
     const cell = Style.BUTTON_CELL + 8;
     const cells = buttons.map(([label, command]) => `<td width=${cell} align=center>${Html.button(label, B(command), { width: Style.BUTTON_WIDTH, hide: false })}</td>`).join('');
-    return `<br><img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1><table width=${buttons.length * cell}><tr>${cells}</tr></table>`;
+    return `<br1><img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1><table width=${buttons.length * cell}><tr>${cells}</tr></table>`;
 }
 
 // The Buffer tab body; SoloHelper adds the window chrome and tabs.
@@ -367,7 +384,6 @@ function boardBody(session, state = {}) {
     session.soloBuffGroup = group.id;
     const active = new Map(currentBuffs(session.actor).map((effect) => [Number(effect.id), effect]));
     return boardStatus(session.actor, state.message)
-        + activeStrip(session.actor)
         + heading('Presets') + presetTiles()
         + heading('Pick any buff') + groupTabs(group.id) + buffGrid(group, active)
         + boardFooter(session);
@@ -416,7 +432,8 @@ function homePage(session, message = '') {
     presets.push(['My set', 'solo-buffer mine']);
     let body = chatHeader(session.actor, message)
         + Html.font('Presets', Html.COLOR.title) + '<br1>' + chatButtons(presets)
-        + Html.link('Save my current buffs as My set', 'solo-buffer save') + '<br1>';
+        + Html.link('Save my current buffs as My set', 'solo-buffer save') + '<br1>'
+        + Html.link('Full HP, MP and CP', 'solo-buffer restore') + '<br1>';
     if (summonOf(session.actor)) body += Html.link('Buff my servitor', 'solo-buffer pet') + '<br1>';
     body += Html.line('L2UI.SquareGray') + Html.font('Pick buffs one by one', Html.COLOR.title) + '<br1>'
         + chatLinks(catalog().groups.map((group) => Html.link(`${group.label} (${group.buffs.length})`, `solo-buffer group ${group.id}`)));
@@ -463,6 +480,8 @@ module.exports = {
     currentBuffs,
     applyEntries,
     clearBuffs,
+    removeBuff,
+    restore,
     savedSet,
     saveSet,
     act,

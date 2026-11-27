@@ -28,6 +28,7 @@ const PlayerBoardWindow = invoke('GameServer/AfkTrade/PlayerBoardWindow');
 const refreshed = [];
 SoloBuffer.hooks.refresh = (session, actor) => refreshed.push(actor);
 SoloBuffer.hooks.refreshSummon = (session, summon) => refreshed.push(summon);
+SoloBuffer.hooks.vitals = (session, actor) => refreshed.push(actor);
 
 function player(name = 'Tester', options = {}) {
     const actor = {
@@ -37,7 +38,9 @@ function player(name = 'Tester', options = {}) {
         fetchName: () => name,
         fetchClassId: () => options.classId ?? 0,
         isSpellcaster: () => 0,
-        isDead: () => options.dead === true
+        isDead: () => options.dead === true,
+        hp: 10, mp: 5, cp: 0,
+        fillupVitals() { this.hp = 100; this.mp = 50; this.cp = 80; }
     };
     return { actor, sent: [], dataSendToMe(packet) { this.sent.push(packet); } };
 }
@@ -81,6 +84,16 @@ assert.strictEqual(catalog.byId.get(271).level, 1, 'dances have one level');
 assert.strictEqual(SoloBuffer.iconFor(271), 'icon.skill0271', 'skill icons use the 4-digit client texture name');
 assert.strictEqual(SoloBuffer.iconFor(1068), 'icon.skill1068', 'four-digit ids keep their digits');
 
+// ---------- each class line with its 3rd class ----------
+{
+    const ids = (groupId) => catalog.groups.find((group) => group.id === groupId).buffs.map((buff) => buff.selfId);
+    assert.ok([1364, 1365].every((id) => ids('paagrio').includes(id)), 'the Dominator buffs sit with the Overlord ones');
+    assert.ok([1003, 1004, 1005, 1008, 1249, 1250, 1260, 1261, 1282].every((id) => ids('paagrio').includes(id)),
+        'every Overlord buff of the C4 tree');
+    assert.ok([1362, 1363].every((id) => ids('chants').includes(id)), 'the Doomcryer chants sit with the Warcryer ones');
+    assert.ok(![1362, 1363, 1364, 1365].some((id) => ids('third').includes(id)), 'and no longer in Special');
+}
+
 // ---------- the summoner servitor buffs (ServitorBuffs, Lisvus C4) ----------
 {
     const special = catalog.groups.find((group) => group.id === 'third');
@@ -109,8 +122,7 @@ for (const preset of SoloBuffer.PRESETS) {
     assert.strictEqual(entries.length, EffectStore.BUFF_LIMIT, `${preset.id} preset should fill the 20 C4 buff slots`);
     entries.forEach(([selfId, level]) => assert.ok(AdminFullBuff.skillData(selfId, level), `${preset.id} uses sourced skill ${selfId}`));
 }
-assert.strictEqual(SoloBuffer.presetEntries({ profile: null }, player('Tank', { classId: 5 }).actor).profile, 'tank',
-    'the My class preset should follow the class profile');
+assert.deepStrictEqual(SoloBuffer.PRESETS.map((preset) => preset.label), ['Tank', 'Fighter', 'Mage', 'Support'], 'no My class preset');
 
 // ---------- config ----------
 assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 }, 'defaults: on, Alt+B, 60 minutes, board');
@@ -226,14 +238,15 @@ assert.strictEqual(SoloBuffer.act(player(), 'pet').message, 'You have no servito
     const html = boardHtml(session);
     assert.ok(html.startsWith('<html><body>') && html.endsWith('</body></html>'), 'the joined parts are one page');
     for (const command of ['_bbssolo buff preset tank', '_bbssolo buff preset fighter', '_bbssolo buff preset mage',
-        '_bbssolo buff preset support', '_bbssolo buff preset auto', '_bbssolo buff mine', '_bbssolo buff save',
+        '_bbssolo buff preset support', '_bbssolo buff restore', '_bbssolo buff mine', '_bbssolo buff save',
         '_bbssolo buff clear', '_bbssolo market', '_bbssolo buff group songs', '_bbssolo buff one 1204']) {
         assert.ok(html.includes(`bypass ${command}"`), `the board offers ${command}`);
     }
     assert.ok(html.includes('back="icon.skill1243" fore="icon.skill1243"'), 'presets are skill-icon buttons');
-    assert.ok(html.includes('No buffs yet.'), 'an unbuffed player sees the empty active strip');
+    assert.ok(!html.includes('preset auto') && !html.includes('My class'), 'no My class preset on the board');
+    assert.ok(!html.includes('>Active<'), 'no Active row');
 
-    // Worst case per group: 20 active buffs from that group plus the active strip.
+    // Worst case per group: 20 active buffs from that group.
     for (const group of catalog.groups) {
         const full = player();
         SoloBuffer.applyEntries(full, full.actor, group.buffs.slice(0, 20).map((buff) => [buff.selfId, buff.level]), { scheduleExpiry: false });
@@ -241,9 +254,25 @@ assert.strictEqual(SoloBuffer.act(player(), 'pet').message, 'You have no servito
         assert.ok(page.length < ShowBoard.MAX_LENGTH, `${group.id} board page fits the packet (${page.length})`);
         assert.ok((page.match(/<tr>/g) || []).length <= 25, `${group.id} board page stays under the client row limit`);
         group.buffs.forEach((buff) => assert.ok(page.includes(`_bbssolo buff one ${buff.selfId}"`), `${group.id} lists ${buff.selfId}`));
-        assert.ok(page.includes(`<img src="${SoloBuffer.iconFor(group.buffs[0].selfId)}" width=24 height=24>`), 'active buffs show in the strip');
+        assert.ok(!page.includes('width=24 height=24>'), 'no Active row of icons');
+        assert.ok(page.includes(`_bbssolo buff off ${group.buffs[0].selfId}">remove</a>`), 'an active buff can be removed');
         assert.ok(page.includes('60 min</font>'), 'active buffs show their time left');
     }
+
+    // Remove one buff, and full HP, MP and CP.
+    const remover = player();
+    SoloHelper.handleBoard(remover, ['buff', 'one', '1068']);
+    SoloHelper.handleBoard(remover, ['buff', 'one', '1040']);
+    const removed = SoloHelper.handleBoard(remover, ['buff', 'off', '1068']);
+    assert.ok(removed.includes('Might removed.'), 'a remove link takes that buff off');
+    assert.deepStrictEqual(buffs(remover.actor).map((effect) => Number(effect.id)), [1040], 'and only that one');
+    assert.ok(SoloHelper.handleBoard(remover, ['buff', 'off', '1068']).includes('Might is not on.'), 'removing it twice');
+    assert.deepStrictEqual(SoloBuffer.act(remover, 'off', '99999'), {}, 'an id outside the catalog does nothing');
+    const healed = SoloHelper.handleBoard(remover, ['buff', 'restore']);
+    assert.ok(healed.includes('HP, MP and CP full.'), 'the restore button reports it');
+    assert.deepStrictEqual([remover.actor.hp, remover.actor.mp, remover.actor.cp], [100, 50, 80], 'HP, MP and CP are full');
+    assert.deepStrictEqual(SoloBuffer.act(player('Ghost', { dead: true }), 'restore'), { message: 'You cannot be healed while dead.' },
+        'a dead player is not healed');
 
     const clicked = player();
     const page = SoloHelper.handleBoard(clicked, ['buff', 'one', '271']);
