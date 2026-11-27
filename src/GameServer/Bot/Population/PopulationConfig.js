@@ -10,6 +10,11 @@ const DEFAULTS = {
     // Mood titles (Bot/AI/BotMoodTitles): a bot's title shows its level and what it thinks of
     // the player ("Lv20 Friendly"), in place of its own title.
     botMoodTitles: true,
+    // The faces style of mood titles ("Lv20 :) Hunting"); false: one word ("Lv20 Friendly").
+    moodTitleFaces: true,
+    // Moments (Bot/AI/BotMoments): bots near the player say thanks for a heal, buff or res,
+    // "ding" on a level-up and "nice drop!" on a rare one, in local chat.
+    botMoments: true,
     // Personal knowledge errors and learning by own actions share one switch.
     knowledgeErrorsEnabled: true,
     backgroundResolverEnabled: true,

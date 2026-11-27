@@ -324,6 +324,7 @@ const tests = [
     'tests/test_bot_movement_visibility.js',
     'tests/test_character_visibility.js',
     'tests/test_bot_mood_titles.js',
+    'tests/test_bot_moments.js',
     'tests/test_bot_movement_goal.js',
     'tests/test_town_transit_policy.js',
     'tests/test_town_navigation.js',

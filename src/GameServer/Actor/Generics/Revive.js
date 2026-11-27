@@ -6,6 +6,7 @@ function finishRevive(session, actor, helper) {
     actor.state.setDead(false);
     actor.statusUpdateVitals?.(actor);
     if (helper && wasDead) invoke('GameServer/Social/CombatHelpMemory').record(helper, actor, { resurrected: true });
+    if (helper && wasDead) invoke('GameServer/Bot/AI/BotMoments').helped(helper, actor, { resurrected: true });
     actor.refreshVitalsRegeneration?.();
     // BotAI uses this marker to run the one-time death lifecycle.  A native
     // in-place resurrection must release it so a later death is counted and
