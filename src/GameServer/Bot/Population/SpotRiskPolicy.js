@@ -23,13 +23,14 @@ const FAILED_HUNT_RECOVERY_WINS = 3;
 // it until his next trip from town, his death or new gear; a ground too dangerous alone
 // also when he leaves his party. A mark saved with another reason lasts the outing.
 const MAX_SPOT_MARKS = 8;
-// Living Bots: ground more than OUTLEVELED_GAP levels below a solo bot (the floor of the leveling
-// band, SpotService's -7) holds no hunt for it. A round there marks it (reason outleveled, an
+// Living Bots: ground more than OUTLEVELED_GAP levels below a solo bot holds no hunt for it (the
+// leveling window's floor: BotRoute.frameFor and the income search read the same 5). A round there marks it (reason outleveled, an
 // outing's lifetime), so the bot leaves for the spot it chose and no search keeps it there.
 // Before this, a level-19 bot that came out of a starter town hunted the level-2 field beside
 // it for hours, losing money, while its own choice named a fitting spot elsewhere.
-// An item hunt there (a material, its gear plan's drop) is the exception.
-const OUTLEVELED_GAP = 7;
+// An item hunt there (a material, its gear plan's drop) and a spoiler (it farms lower mobs for
+// their spoil, as C4 spoilers do) are the exceptions.
+const OUTLEVELED_GAP = 5;
 let SpotTable = null;
 function spotLevelOf(spotId) {
     SpotTable ||= invoke('GameServer/Bot/AI/SpotValueTable');
@@ -38,6 +39,7 @@ function spotLevelOf(spotId) {
 }
 function outleveledGround(state, spotId, itemHunt = false) {
     if (!spotId || itemHunt) return false;
+    try { if (invoke('GameServer/Bot/AI/BotRoles').isSpoiler(state)) return false; } catch { /* no role: not a spoiler */ }
     const plan = state.stats?.equipmentPlan;
     if (plan?.status === 'active' && String(plan.next?.spotId || '') === String(spotId)) return false;
     let spotLevel = null;

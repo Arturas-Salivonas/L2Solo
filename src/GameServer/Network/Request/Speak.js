@@ -294,9 +294,6 @@ function consume(session, data) {
 
     broadcastSpeech(session, data);
     enterBotDialogue(session, data);
-    // A player's WTB line is demand the bots' market sees (PlayerTradeShouts).
-    try { invoke('GameServer/Bot/Economy/PlayerTradeShouts').heard(session, data); }
-    catch (error) { invoke('FailureLog').note('speech.player_wtb', error); }
 }
 
 module.exports = speak;

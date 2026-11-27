@@ -155,9 +155,6 @@ const DEFAULTS = {
     activityJournalRetentionMs: 30 * 24 * 60 * 60 * 1000,
     activityJournalRowsPerPair: 128,
     activityJournalMaxRows: 100000,
-    // A player's WTB chat line counts as item demand in the nearest town
-    // (Bot/Economy/PlayerTradeShouts), as an NPC-shop purchase does.
-    playerTradeShoutsEnabled: true,
     aiAuditRetentionMs: 30 * 24 * 60 * 60 * 1000,
     toolOutcomeMaxRows: 50000,
     llmTurnMaxRows: 50000,

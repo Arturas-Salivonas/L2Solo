@@ -67,7 +67,7 @@ const originalBuffPrice = BuffPolicy.priceFor;
 const spots = [
     { id: 'peer', minLevel: 20, maxLevel: 20, avgLevel: 20, density: 10,
         center: { locX: 0, locY: 0 }, tagsAuthoritative: true, tags: [], npcEntries: [] },
-    { id: 'lower', minLevel: 10, maxLevel: 10, avgLevel: 10, density: 10,
+    { id: 'lower', minLevel: 16, maxLevel: 16, avgLevel: 16, density: 10,
         center: { locX: 0, locY: 0 }, tagsAuthoritative: true, tags: [], npcEntries: [] }
 ];
 const row = (adena, shots = 0) => ({ kills: 100, exp: 100, adena, loot: 0, shots, potions: 0, deaths: 0 });

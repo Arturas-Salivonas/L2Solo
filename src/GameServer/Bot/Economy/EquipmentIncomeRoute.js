@@ -141,9 +141,12 @@ function find(state, { spots = [], timestamp = Date.now(), price, required = fal
         return { route: fixedRoute(Karma.washSpot(state, spots, timestamp, accept), evaluate), error: evaluate.incomeError };
     }
     if (!invoke('GameServer/Bot/AI/PersonalGearProgression').adventurer(state)) return none;
-    const minGap = -15;
     list ||= spotList(state, { price });
     const spoiler = list.spoiler();
+    // Living Bots: monsters at most SpotRiskPolicy.OUTLEVELED_GAP levels below the bot (the leveling
+    // window), 15 for a spoiler, who farms lower mobs for their spoil. Was 15 for every bot, and
+    // a level-19 bot could farm a level-5 field for money.
+    const minGap = spoiler ? -15 : -invoke('GameServer/Bot/Population/SpotRiskPolicy').OUTLEVELED_GAP;
     if (!required && !economicHunt(state) && !spoiler) return none;
     const Routes = invoke('GameServer/Bot/AI/LevelingRoutes');
     const Match = invoke('GameServer/Bot/AI/BotTargetMatchup');

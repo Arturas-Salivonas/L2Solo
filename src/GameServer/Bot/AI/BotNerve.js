@@ -37,8 +37,12 @@ function calm(session, bot) {
     return isBot(session) && !!bot && !session.partyCompanion && !session.followPlayerSession && !session.staticService
         && !session.arenaEphemeral && !bot.isDead?.() && !bot.fetchPrivateStore?.() && PLANS.has(session.plan)
         && !session.pvpDefense && !session.pvpRevenge && !session.pendingPvpProvocation && !session.pvpAggressors?.size
-        && !session.currentTargetId && !bot.state?.fetchHits?.() && !bot.state?.fetchCasts?.()
-        && invoke('GameServer/Bot/AI/PartyAwareness').npcsAttackingActor(bot, 900).length === 0;
+        && !session.currentTargetId && !bot.state?.fetchHits?.() && !bot.state?.fetchCasts?.();
+}
+
+// Nothing attacking it: read only once a player is close (a world query).
+function unhurried(bot) {
+    try { return invoke('GameServer/Bot/AI/PartyAwareness').npcsAttackingActor(bot, 900).length === 0; } catch { return false; }
 }
 
 function feelingOf(bot, player, now) {
@@ -113,7 +117,7 @@ function tick(session, bot, now = Date.now()) {
     let near = null;
     try { near = require('../../World/ActorSpatialQueries').nearestPlayer(invoke('GameServer/World/World'), bot); } catch { near = null; }
     const player = near?.session?.actor;
-    if (!player || !(Number(near.distance) <= FEAR_RADIUS)) return false;
+    if (!player || !(Number(near.distance) <= FEAR_RADIUS) || !unhurried(bot)) return false;
     const feeling = feelingOf(bot, player, now);
     if (!feeling) return false;
     if (Number(feeling.fear) >= FEAR) return !!keepAway(session, bot, player, now);

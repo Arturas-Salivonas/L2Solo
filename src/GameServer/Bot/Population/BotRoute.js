@@ -76,13 +76,17 @@ function currentSpotId(state, party, spots) {
 // No search reads the crowd: a spot is chosen by fit and met at arrival
 // (SpotContest); a solo bot's search skips a camp known held against it
 // (repelled: SpotRecords.reader, a hold it heard of in town).
+const PARTY_MAX_GAP = 5;
 function frameFor(state, party, partyMembers = [], timestamp) {
     const partyRoute = !!party;
     const routedMembers = partyRoute ? partyMembers : [state];
     const excludedSpotIds = partyRoute ? PartySpotRiskPolicy.excludedSpotIds(party, timestamp)
         : SpotRiskPolicy.excludedSpotIdsForStates(routedMembers, timestamp);
     const role = partyRoute ? PartyComposition.roleForState(state) : null;
-    const options = { capacityStates: routedMembers, excludedSpotIds, timestamp,
+    // Living Bots: the leveling window is 5 levels below the bot (SpotRiskPolicy.OUTLEVELED_GAP);
+    // a party may also take mobs up to PARTY_MAX_GAP above, where a solo bot keeps SpotService's 3.
+    const window = { minLevelGap: -SpotRiskPolicy.OUTLEVELED_GAP, ...(partyRoute ? { maxLevelGap: PARTY_MAX_GAP } : {}) };
+    const options = { capacityStates: routedMembers, excludedSpotIds, timestamp, ...window,
         ...(partyRoute ? { mode: 'party', role } : { repelled: SpotRecords.reader(state, BotPersona.of(state)) }) };
     let soloProfiles = null;
     const solo = () => {
