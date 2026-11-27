@@ -1,6 +1,6 @@
-# Solo Helper for L2Solo: 1-hour buffs and Adena on Alt+B
+# Solo Helper for L2Solo: 1-hour buffs, Adena and class change on Alt+B
 
-Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of running back to town for buffs? Solo Helper turns **Alt+B** into a full-width helper window with every C4 buff, one-click presets and an Adena tab. It's a small add-on for your own server. It stays in Chronicle 4: real C4 skills, values and icons, and C4's 20 buff slots by default (you can raise them to 28).
+Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of running back to town for buffs? Solo Helper turns **Alt+B** into a full-width helper window with every C4 buff, one-click presets, an Adena tab and a Class tab. It's a small add-on for your own server. It stays in Chronicle 4: real C4 skills, values and icons, and C4's 20 buff slots by default (you can raise them to 28).
 
 ![Solo Helper on Alt+B](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/guides/solo-helper.png)
 
@@ -32,8 +32,16 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
 - **Type any amount** and press Add: `250000`, `1,000,000`, `250k`, `5kk` or `1b`.
 - **One stack holds 2,147,483,647 at most**, the C4 limit.
 
+**Class tab**
+- **Change class at level 20, 40 and 76** without the class quests, like a class master. Each step follows the C4 class tree: a Dark Elven Fighter picks Palus Knight or Assassin at 20, a Palus Knight picks Shillien Knight or Bladedancer at 40, and a Shillien Knight becomes a Shillien Templar at 76.
+- **Cards for your next classes:** what each one does (tank, dagger, nuker, healer and so on) and where it leads next. Below your level, a card says the level it needs.
+- **Your race's whole class tree:** your path in green, what you can pick next in yellow, the paths you left in grey.
+- **It asks first:** "Become a Palus Knight? You cannot change back." Yes changes your class, learns the new class skills up to your level and refreshes your stats.
+- The tab checks every pick against the C4 tree: no skipping a step, no other race's classes.
+
 **Chat commands**
 - `.buffer` opens the window.
+- `.class` opens the Class tab.
 - `.adena 5kk` adds Adena straight away, and `.adena` alone opens the Adena tab.
 
 **Market Board** is still one tab away: it's what Alt+B used to open.
@@ -161,10 +169,11 @@ altB = true           ; false = Alt+B opens the Market Board again (.buffer stil
 buffMinutes = 60      ; how long helper buffs last, 1-1440
 window = board        ; chat = a small chat window instead of the full board
 adena = true          ; false hides the Adena tab and turns off .adena
+classChange = true    ; false hides the Class tab and turns off .class
 buffSlots = 20        ; your buff slots, 20 (C4) to 28; bots keep 20
 ```
 
-Don't want free Adena? Set `adena = false`.
+Don't want free Adena? Set `adena = false`. Rather do the class quests? Set `classChange = false`.
 
 ## Remove it
 

@@ -3,7 +3,8 @@
 // Solo Helper (fork-only, branch mine/solo-buffer): Alt+B for the one real player.
 //
 // A full-width Community Board window with tabs along the top. Buffer is the
-// first tab (SoloBuffer.js), Adena the second (SoloAdena.js); Market Board opens
+// first tab (SoloBuffer.js), Adena the second (SoloAdena.js), Class the third
+// (SoloClass.js); Market Board opens
 // upstream's board window, which Alt+B used to open. A new tool is a TABS row plus
 // a branch in handleBoard().
 //
@@ -20,6 +21,7 @@ const ROOT = '_bbssolo';
 const TABS = Object.freeze([
     { id: 'buff', label: 'Buffer' },
     { id: 'adena', label: 'Adena', enabled: () => config().adena },
+    { id: 'class', label: 'Class', enabled: () => config().classChange },
     { id: 'market', label: 'Market Board' }
 ]);
 // The board's own top buttons (home, favorite, region, clan, memo, mail, friends,
@@ -31,6 +33,7 @@ const TOP_BYPASSES = Object.freeze([
 
 const buffer = () => require('./SoloBuffer');
 const adena = () => require('./SoloAdena');
+const classes = () => require('./SoloClass');
 const tabs = () => TABS.filter((tab) => !tab.enabled || tab.enabled());
 const market = (session) => invoke('GameServer/AfkTrade/PlayerBoardWindow').open(session);
 
@@ -68,6 +71,10 @@ function showAdena(session, state = {}) {
     return sendBoard(session, chrome('adena', adena().boardBody(session, state)));
 }
 
+function showClass(session, state = {}) {
+    return sendBoard(session, chrome('class', classes().boardBody(session, state)));
+}
+
 // Opens the helper in the configured window: the board, or the chat window.
 function open(session) {
     if (config().window === 'chat') return buffer().chatHandle(session, []);
@@ -85,6 +92,10 @@ function handleBoard(session, args = []) {
         const actor = session.actor;
         return adena().act(session, action, arg).then((state) => (session.actor === actor ? showAdena(session, state) : null));
     }
+    if (tab === 'class' && config().classChange) {
+        const actor = session.actor;
+        return classes().act(session, action, arg).then((state) => (session.actor === actor ? showClass(session, state) : null));
+    }
     if (tab !== 'buff') return showBuffer(session);
     return showBuffer(session, buffer().act(session, action, arg));
 }
@@ -96,11 +107,12 @@ function openBoard(session) {
     return market(session);
 }
 
-// Local chat ".buffer", ".adena" and ".adena <amount>" (Request/Speak.js dispatchLocalCommand).
+// Local chat ".buffer", ".class", ".adena" and ".adena <amount>" (Request/Speak.js dispatchLocalCommand).
 function command(session, text) {
     const line = String(text || '').trim().toLowerCase();
     if (!config().enabled || !session?.actor) return false;
     if (line === '.buffer') { open(session); return true; }
+    if (line === '.class' && config().classChange) { showClass(session); return true; }
     if (!config().adena) return false;
     const handled = adena().command(session, line);
     if (handled === 'open') { showAdena(session); return true; }

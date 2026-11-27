@@ -6,9 +6,10 @@
 //   buffMinutes = 60      length of every buff from the helper, 1-1440
 //   window      = board   board = full-width Community Board, chat = the small chat window
 //   adena       = true    false hides the Adena tab and turns off .adena
+//   classChange = true    false hides the Class tab and turns off .class
 //   buffSlots   = 20      your buff slots, 20 (C4) to 28; bots keep 20
 
-const DEFAULTS = Object.freeze({ enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 });
+const DEFAULTS = Object.freeze({ enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, classChange: true, buffSlots: 20 });
 const MIN_SLOTS = 20;
 const MAX_SLOTS = 28;
 
@@ -31,6 +32,7 @@ function config() {
         buffMinutes: Number.isFinite(minutes) && minutes >= 1 ? Math.min(minutes, 24 * 60) : DEFAULTS.buffMinutes,
         window: String(raw.window || '').trim().toLowerCase() === 'chat' ? 'chat' : 'board',
         adena: flag(raw.adena, DEFAULTS.adena),
+        classChange: flag(raw.classChange, DEFAULTS.classChange),
         buffSlots: slots(raw.buffSlots)
     };
 }
