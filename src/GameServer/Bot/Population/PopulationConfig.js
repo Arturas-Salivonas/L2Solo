@@ -7,6 +7,9 @@ const DEFAULTS = {
     developerDiagnostics: false,
     // The decision trace (Bot/DecisionTrace): its own switch, not under developerDiagnostics.
     decisionTrace: false,
+    // Mood titles (Bot/AI/BotMoodTitles): a bot's title shows its level and what it thinks of
+    // the player ("Lv20 Friendly"), in place of its own title.
+    botMoodTitles: true,
     // Personal knowledge errors and learning by own actions share one switch.
     knowledgeErrorsEnabled: true,
     backgroundResolverEnabled: true,

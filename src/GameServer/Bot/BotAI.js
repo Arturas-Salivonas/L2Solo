@@ -442,6 +442,8 @@ const BotAI = {
         const nativeActors = ActorQueries.native(World);
         lodContext = HotActorLodPolicy.evaluate(session, nativeActors ? World : realPlayerSessions(World) || [], tickStartedAt);
         PopulationService.recordHotTick(session);
+        // Its title (level and mood toward the player) refreshed when it changes (BotMoodTitles).
+        invoke('GameServer/Bot/AI/BotMoodTitles').tick(session, bot, tickStartedAt);
         invoke('GameServer/Bot/Population/BotGlobalChat').offerReply(session, tickStartedAt);
         const botDead = bot.isDead();
         if (botDead) {
