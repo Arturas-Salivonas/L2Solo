@@ -139,6 +139,34 @@ manhuntMinutes = 120
 pvpAggression = 0.5   ; upstream's: scales every attack chance, these included
 ```
 
+### Livelier bots - four branches, each an upstream PR candidate
+- **Free loot** (`feat/free-loot`). An item nobody owns any more is anyone's, and a bot near you may walk over and take it, greedy personalities more often. That covers your discards, a PK's drops, and a monster drop its owners left for 15 seconds.
+- **Town attention** (`feat/town-attention`). Bots notice what happens around them:
+  - up to 3 say "gz" when you level up
+  - 2 bystanders call out a PK by name
+  - a fight draws up to 3 watchers who walk over and say "gg" now and then
+
+  It also fixes the "restless" mood, which never fired.
+- **Your WTB lines count** (`feat/player-trade-shouts`). "WTB Cotton Tunic x10" in local, shout or trade chat counts as demand for that item in the nearest town. Crafters see it and stock and bid for it.
+  - It takes two lines (yours or anyone's) before it shows, like all trade evidence.
+  - Each item counts once every 10 minutes per player.
+- **Word of mouth** (`feat/word-of-mouth`). Two bots that trust each other share their best hunting spot when they meet in town or resting near you ("try Ruins of Agony, I make 90k an hour there").
+  - **Trust:** same clan, same party, or friends.
+  - **After a tip:** the listener goes to try that spot once, then its own results decide.
+
+Each one can be switched off in `config/local.ini` under `[BotPopulation]`:
+```
+freeLootEnabled = true
+townAttentionEnabled = true
+playerTradeShoutsEnabled = true
+wordOfMouthEnabled = true
+```
+
+### Starter village robes - branch `fix/starter-village-robes` (upstream PR candidate)
+- The armor dealers in Talking Island, the Elven Village and the Dark Elven Village now sell the ten No-Grade robe pieces at C4 prices, as every C4 starter dealer did. Before, only the Orc and Dwarven villages had them.
+- **Waiting on a table rebuild:** the bot tables read the shop lists, so they need one. Until then the server warns that the spot table is stale, and bots don't plan to buy robes in those three villages. You can buy them already.
+- **How the rebuild runs:** on GitHub Actions, once Actions is switched on for the fork.
+
 ## Docs
 
 - [docs/C4_REFERENCE.md](docs/C4_REFERENCE.md) - Lineage II up to Chronicle 4: classes, play styles, zones, grades, economy, PvP, raids
