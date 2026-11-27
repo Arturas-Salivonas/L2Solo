@@ -46,6 +46,11 @@ Before starting anything, check upstream's open PRs so we don't duplicate them:
 - **Seen:** `AuthServer :: exception: unknown socket error` and `GameServer :: exception: Error: read ECONNRESET`.
 - **Next:** check whether these are only the client closing its socket. If so, log them quietly.
 
+### 4. Closing the server's console window skips the database drain (Windows) - `confirmed` by reading the code, not reproduced
+- **Cause:** closing a console window sends `CTRL_CLOSE_EVENT`, which Node reports as `SIGHUP`, to every process attached to it. `src/NodeL2.js` (~175), `scripts/run-server.js` and `scripts/start.js` handle only SIGINT and SIGTERM. With no listener, Node's default ends the game server at once.
+- **Effect:** the server skips "flushing buffered character state" and loses recent progress. Ctrl+C (SIGINT) and the launcher's Stop both drain correctly.
+- **Fix:** `process.on('SIGHUP', () => shutdown('SIGHUP'))` in NodeL2.js, and the same forwarding in run-server.js and start.js. Windows allows about 5-10 s after a close and the drain takes about 50 ms, so it fits. A small upstream PR.
+
 ## Small upstream-friendly PR candidates
 
 - **Warn on unknown config keys.** `PopulationConfig` silently ignores typos in `[BotPopulation]` (and likely in other sections). One warning line at boot would save people hours.

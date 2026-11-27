@@ -38,6 +38,24 @@ Downloads\L2Solo-backups\      world backups made by the tool
 
 Upstream takes PRs into `develop` (PRs aimed at `main` get closed). Their `develop` is merged into `main` for each release, roughly weekly.
 
+## Starting the game
+
+**Double-click `solo\Play L2Solo.cmd`** (or run `node solo/play.js`). It opens the browser launcher and presses Start with the rate you last picked there. To start it from the desktop: right-click the file, Send to, Desktop (create shortcut).
+
+**Stop** with the launcher's **Stop** button or **Ctrl+C** in that window. Don't just close the window while the server runs: the game server has no handler for the console-close event, so Windows kills it before it saves recent progress (backlog item 4).
+
+| Command | What it does |
+| --- | --- |
+| `solo\Play L2Solo.cmd` | Launcher plus an automatic Start: one click |
+| `npm start` | The same browser launcher (port 8090), where you press Start yourself |
+| `npm run NodeL2` | The server only, no launcher. **It ignores the launcher's rate** and uses `[General] progressionPreset` in `config/local.ini`, which is x1 unless set |
+| `npm run geodata` | Only checks or downloads geodata. You never need it: every start does this first |
+
+**How geodata works:** every server start runs `scripts/run-server.js`, which checks `data/Geodata` (141 regions, about 800 MB) before the game server starts.
+- If the files match the pinned manifest's fingerprint, it passes in milliseconds (`Startup :: ready: 141 region files` in the log).
+- If they're missing or damaged, it downloads `geodata-c4-client-20261027.zip` from l2solo.com, checks every file's SHA-256 and unpacks it.
+- `npm run geodata` runs the same check by hand, for example to download ahead of time.
+
 ## Daily commands
 
 Run from the play folder (`C:\Users\Arturas\Downloads\L2Solo`):
