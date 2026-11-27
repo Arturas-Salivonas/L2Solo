@@ -25,7 +25,8 @@ function charInfo(actor) {
     // so do not expose this cosmetic state in CharInfo for players or bots.
     const combatState = 0x00;
     const deadState = actor.state.fetchDead?.() ? 0x01 : 0x00;
-    const title = actor.fetchTitle();
+    // A bot shows its level and its mood toward the player (BotMoodTitles); everyone else their own title.
+    const title = invoke('GameServer/Bot/AI/BotMoodTitles').titleOf(actor) ?? actor.fetchTitle();
 
     packet
         .writeD(actor.fetchLocX())
