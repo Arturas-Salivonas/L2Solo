@@ -2,7 +2,7 @@
 
 Every modification of this fork is its own branch, cut from the same L2Solo commit (`27040e379`). You can install one, several, or all of them, in any order, on L2Solo `main` or `develop`.
 
-Each one was checked on both: installed alone, and all ten together. The seven bot AI mods are also gathered on one page with a single install block: [Living Bots](LIVING_BOTS.md). All of them stay in Chronicle 4, and none touches your world or characters.
+Each one was checked on both: installed alone, and all ten together. All of them stay in Chronicle 4, and none touches your world or characters.
 
 ## How to install
 
@@ -48,14 +48,14 @@ git fetch l2mods
 ```
 Then, for each mod you want, the cherry-pick line its section below shows, for example:
 ```
-git cherry-pick 27040e379..l2mods/feat/free-loot
+git cherry-pick 27040e379..l2mods/feat/living-bots
 ```
 If git asks who you are, run `git config user.name "you"` and `git config user.email "you@example.com"` once, then the cherry-pick again.
 
 **As a patch file:**
-1. Open the mod's patch link and save the file in your L2Solo folder, for example as `free-loot.diff`.
-2. Run `git apply -3 free-loot.diff`. The `-3` lets several mods' patches stack.
-3. On a launcher install without git history, plain `git apply free-loot.diff` works for one mod.
+1. Open the mod's patch link and save the file in your L2Solo folder, for example as `living-bots.diff`.
+2. Run `git apply -3 living-bots.diff`. The `-3` lets several mods' patches stack.
+3. On a launcher install without git history, plain `git apply living-bots.diff` works for one mod.
 
 **Remove a mod:** `git revert --no-edit 27040e379..l2mods/<branch>` (with git), or `git apply -R <file>.diff` (patch).
 
@@ -67,96 +67,44 @@ Restart the server after installing.
 
 ## The mods
 
+Each mod's guide lives in its own branch, with screenshots, a copy-paste prompt for your AI agent, settings and how to remove it.
+
 ### Solo Helper: 1-hour buffs and Adena on Alt+B
-- **What:** Alt+B opens a buffer with 85 C4 buffs, the 4 summoner servitor buffs and presets; every buff lasts 60 minutes.
-- **Also:** Full HP/MP/CP in one click, an Adena tab, and up to 28 buff slots for you (bots keep 20).
-- **Branch:** [`mine/solo-buffer`](https://github.com/Arturas-Salivonas/L2Solo/tree/mine/solo-buffer). Full guide with screenshots: [SOLO_HELPER.md](SOLO_HELPER.md).
+- **What:** Alt+B opens a buffer with 89 C4 buffs (the 4 summoner servitor buffs included) and presets; every buff lasts 60 minutes. Full HP/MP/CP in one click, an Adena tab, up to 28 buff slots for you (bots keep 20).
+- **Guide:** [SOLO_HELPER.md](https://github.com/Arturas-Salivonas/L2Solo/blob/mine/solo-buffer/solo/guides/SOLO_HELPER.md)
 - **Install:** `git cherry-pick 27040e379..l2mods/mine/solo-buffer`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...mine/solo-buffer.diff>
-- **Settings** (`[SoloHelper]`): `enabled`, `altB`, `buffMinutes`, `window`, `adena`, `buffSlots`.
-- **Heads-up:** your server may warn at start that the bot tables are stale, because the buff-slots change touches `EffectStore.js`. It still plays fine.
+- **Heads-up:** your server may warn at start that the bot tables are stale (the buff-slots change touches `EffectStore.js`). It still plays fine.
 
 ### Living Bots: all the bot AI in one mod
-- **What:** every bot mod below in one branch (mood titles, vendettas, free loot, town attention, WTB demand, word of mouth, world legacy), plus allies that jump into fights, friends that defend you, calls for help, gossip about you, fear and bravado, rivalries between bots, smarter party spots, spot warnings and feelings across a wipe.
-- **Branch:** [`feat/living-bots`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/living-bots). Full guide with screenshots: [LIVING_BOTS.md](LIVING_BOTS.md).
+- **What:** bots that feel like people. Mood titles and chat moments; allies who jump into fights, friends who defend you, calls for help; gossip about you, fear and bravado; revenge, PK bots and manhunts; rivalries between bots; town attention (gz, PK call-outs, fight watchers); free loot; your WTB lines as market demand; word of mouth; smarter hunting spots and spot warnings; world legacy and feelings across a wipe.
+- **Guide:** [LIVING_BOTS.md](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/living-bots/solo/guides/LIVING_BOTS.md)
 - **Install:** `git cherry-pick 27040e379..l2mods/feat/living-bots`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/living-bots.diff>
-- **Don't** also install the single bot mods below on top: Living Bots already holds them.
+
+### Same-kind buffs replace each other
+- **What:** a bug fix. Focus and Chant of Predator, Death Whisper and Chant of Rage, Vampiric Rage and Chant of Vampire and 18 more kinds no longer stack: the new one replaces the old unless the old is stronger, as in C4.
+- **Guide:** [BUFF_STACKING.md](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/buff-stack-groups/solo/guides/BUFF_STACKING.md)
+- **Install:** `git cherry-pick 27040e379..l2mods/fix/buff-stack-groups`
+- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...fix/buff-stack-groups.diff>
+
+### Buffs survive a server restart
+- **What:** a bug fix. A server stop saves every online player's HP, MP, CP and buffs first, and a saved buff keeps the time it had left while you're offline, as in C4.
+- **Guide:** [RESTART_BUFFS.md](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/shutdown-saves-player-status/solo/guides/RESTART_BUFFS.md)
+- **Install:** `git cherry-pick 27040e379..l2mods/fix/shutdown-saves-player-status`
+- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...fix/shutdown-saves-player-status.diff>
 
 ### Starter village shops sell the C4 robe set
-- **What:** the armor dealers in Talking Island, the Elven Village and the Dark Elven Village sell the ten No-Grade robe pieces (tunics and stockings) at C4 prices. Before, only the Orc and Dwarven villages had them.
-- **Source:** Lisvus C4 and L2J Mobius C4.
-- **Branch:** [`fix/starter-village-robes`](https://github.com/Arturas-Salivonas/L2Solo/tree/fix/starter-village-robes)
-- **Install the shop fix only:** `git cherry-pick ed0f165d5`
-  - Your server may then warn at start that the bot spot table is stale. It still plays fine.
-- **Install with the rebuilt bot tables too** (matches L2Solo `develop` of late November 2026): `git cherry-pick 27040e379..l2mods/fix/starter-village-robes`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...ed0f165d5.diff>
-
-### Mood titles above bots, and moments in chat
-- **What:** every bot's title shows its level, a face for what it thinks of you and a word for what it needs or does, live: `Lv20 :) Hunting`, `Lv31 >:( Attacks`, `Lv14 o_O LFP`, `Lv18 Res pls`, `Lv22 To spot`.
-- **Moments:** bots near you say thanks for a heal, buff or res, "ding" on a level-up and "nice drop!" in local chat.
-- **Branch:** [`feat/bot-mood-titles`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/bot-mood-titles)
-- **Install:** `git cherry-pick 27040e379..l2mods/feat/bot-mood-titles`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/bot-mood-titles.diff>
-- **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces` (false = one word, like `Lv20 Fights you`), `botMoments`.
-- **Works better with** the vendettas mod: a manhunt shows as `>:( Revenge`.
-
-### Bot vendettas: revenge, PK bots, manhunts
-- **Revenge that happens:** a bug fix; bots act on grudges once you come close.
-- **PK bots:** PvP-minded bots, level 20 and up, sometimes pick on a lone, busy or hurt player.
-- **Manhunts:** a bot you kill may come back for you.
-- **Branch:** [`feat/bot-vendettas`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/bot-vendettas)
-- **Install:** `git cherry-pick 27040e379..l2mods/feat/bot-vendettas`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/bot-vendettas.diff>
-- **Settings** (`[BotPopulation]`): `pkBotsEnabled`, `pkRate`, `pkMinLevel`, `manhuntEnabled`, `manhuntRate`, `manhuntMinutes`.
-
-### Free loot
-- **What:** bots pick up items nobody owns: your drops, PK drops, and monster drops left for 15 seconds. Greedy bots take more.
-- **Branch:** [`feat/free-loot`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/free-loot)
-- **Install:** `git cherry-pick 27040e379..l2mods/feat/free-loot`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/free-loot.diff>
-- **Setting:** `freeLootEnabled`.
-
-### Town attention
-- **What:** bots say "gz" when you level up, bystanders call out PKs, and fights draw watchers.
-- **Branch:** [`feat/town-attention`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/town-attention)
-- **Install:** `git cherry-pick 27040e379..l2mods/feat/town-attention`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/town-attention.diff>
-- **Setting:** `townAttentionEnabled`.
-
-### Your WTB lines are market demand
-- **What:** "WTB Cotton Tunic x10" in chat counts as demand in the nearest town, so crafters stock and bid for it.
-- **Branch:** [`feat/player-trade-shouts`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/player-trade-shouts)
-- **Install:** `git cherry-pick 27040e379..l2mods/feat/player-trade-shouts`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/player-trade-shouts.diff>
-- **Setting:** `playerTradeShoutsEnabled`.
-
-### Word of mouth
-- **What:** bots that trust each other share their best hunting spot out loud, and the one doing worse goes to try it.
-- **Branch:** [`feat/word-of-mouth`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/word-of-mouth)
-- **Install:** `git cherry-pick 27040e379..l2mods/feat/word-of-mouth`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/word-of-mouth.diff>
-- **Setting:** `wordOfMouthEnabled`.
-
-### World legacy: bots remember across a wipe
-- **What:** a bot wipe first saves what the world learned. The next world's bots come back as the same people (names, personalities, know-how) at level 1, and spot lessons correct the bots' spot guesses.
-- **By hand:** `node scripts/world-legacy.js save` or `show`.
-- **Branch:** [`feat/world-legacy`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/world-legacy)
-- **Install:** `git cherry-pick 27040e379..l2mods/feat/world-legacy`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/world-legacy.diff>
-- **Setting:** `worldLegacyEnabled`.
+- **What:** the armor dealers in Talking Island, the Elven Village and the Dark Elven Village sell the ten No-Grade robe pieces at C4 prices, as the Orc and Dwarven villages already did.
+- **Guide:** [STARTER_ROBES.md](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/starter-village-robes/solo/guides/STARTER_ROBES.md)
+- **Install:** `git cherry-pick 27040e379..l2mods/fix/starter-village-robes`
+- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...fix/starter-village-robes.diff>
 
 ### Closing the server window saves the world
 - **What:** a bug fix. Closing the console window used to kill the server before it saved; now it saves first, like Stop and Ctrl+C.
-- **Branch:** [`fix/console-close-drain`](https://github.com/Arturas-Salivonas/L2Solo/tree/fix/console-close-drain)
+- **Guide:** [CONSOLE_CLOSE.md](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/console-close-drain/solo/guides/CONSOLE_CLOSE.md)
 - **Install:** `git cherry-pick 27040e379..l2mods/fix/console-close-drain`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...fix/console-close-drain.diff>
-
-### Buffs survive a server restart
-- **What:** a bug fix. A server stop now saves every online player's HP, MP, CP and buffs first, and a saved buff keeps the time it had left while you're offline, as in C4.
-- **Branch:** [`fix/shutdown-saves-player-status`](https://github.com/Arturas-Salivonas/L2Solo/tree/fix/shutdown-saves-player-status)
-- **Install:** `git cherry-pick 27040e379..l2mods/fix/shutdown-saves-player-status`
-- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...fix/shutdown-saves-player-status.diff>
 
 ---
 

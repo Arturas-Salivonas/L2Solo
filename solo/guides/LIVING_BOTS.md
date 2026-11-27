@@ -10,14 +10,14 @@ It's one mod, `feat/living-bots`, and it keeps growing.
 
 **Titles that say what a bot thinks and does.** Every bot's title shows its level, a face for its opinion of you, and one word for what it needs or does, live:
 
-![A bot that Attacks you](../showcase/mood-attacks.png) ![Heal me, Res pls and Watches](../showcase/mood-heal-res.png)
+![A bot that Attacks you](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/showcase/mood-attacks.png) ![Heal me, Res pls and Watches](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/showcase/mood-heal-res.png)
 
 - **Faces:** `>:(` angry with you, `>:|` holds a grudge, `o_O` afraid, `-_-` wary, `:)` friendly, `^_^` a friend, `:D` your party. A stranger has no face.
 - **Needs:** `Res pls`, `Heal me`, `No MP`, `Heavy`, `LFP`, `Selling`.
 - **Doing:** `Fights`, `To spot`, `Roaming`, `No mobs`, `Looting`, `Watches`, `Chats`, `To town`, `Resting`.
 - **Standing about:** its gear goal (`Saving`, `Farming`, `Gathers`) or its mood (`Tired`, `Bored`, `Chill`), else `AFK`.
 
-![Resting](../showcase/mood-resting.png) ![To spot](../showcase/mood-to-spot.png)
+![Resting](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/showcase/mood-resting.png) ![To spot](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/showcase/mood-to-spot.png)
 
 **Moments.** Bots near you talk in local chat like players do: "ty!" for a heal, "ty for res!!" when you bring one back, "ding!" on a level-up, "nice drop!" for a good item.
 
@@ -40,7 +40,7 @@ It's one mod, `feat/living-bots`, and it keeps growing.
 - Level up and up to 3 bots say "gz". A PK gets called out by name.
 - A fight draws watchers, and sometimes a "gg".
 
-![A fight draws a watcher](../showcase/mood-watches.png)
+![A fight draws a watcher](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/showcase/mood-watches.png)
 
 **They use the world.**
 - Bots pick up items nobody owns: your drops, PK drops, loot left on the ground.
@@ -49,6 +49,7 @@ It's one mod, `feat/living-bots`, and it keeps growing.
 
 **They get smarter.**
 - **Smarter party spots.** A party now hunts where its level fits. Before, a party took the spot where its first member happened to stand and kept it, so a level-18 party could farm level-7 monsters until it was 9 levels over them. Now it moves on as soon as the spot drops below its level band.
+- **Solo bots leave grey ground.** A bot hunting a spot more than 7 levels below it leaves for the spot it chose, unless it farms an item there. Before, a level-19 bot that came out of a starter town could hunt the level-2 field beside it for hours, losing money.
 - **Spots that killed them.** A bot that died at a spot twice already stays away from it for a while. Now it also warns its friends in town ("stay away from Cruma, I died there twice"), and they keep away too until their next trip back to town.
 - **After a wipe.** A bot wipe first saves what the world learned. The next world's bots are the same people, with the same names, personalities and know-how, at level 1. What they earned on each spot corrects their spot guesses, and when they meet a player of the same name again, they remember how they felt: "Arturas... I remember you".
 
@@ -97,7 +98,7 @@ git cherry-pick 27040e379..l2mods/feat/living-bots
 
 Restart the server after installing. Checked on L2Solo `main` and `develop` of late November 2026: it applies cleanly and the tests pass.
 
-**Updates:** `git fetch l2mods`, then cherry-pick the new commits of `feat/living-bots`. Patch files and the older single pieces are in [MODS.md](MODS.md).
+**Updates:** `git fetch l2mods`, then cherry-pick the new commits of `feat/living-bots`. Patch files and the older single pieces are in [MODS.md](https://github.com/Arturas-Salivonas/L2Solo/blob/solo/solo/guides/MODS.md).
 
 ## Settings (optional)
 

@@ -2,7 +2,7 @@
 
 Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of running back to town for buffs? Solo Helper turns **Alt+B** into a full-width helper window with every C4 buff, one-click presets and an Adena tab. It's a small add-on for your own server. It stays in Chronicle 4: real C4 skills, values and icons, and C4's 20 buff slots by default (you can raise them to 28).
 
-![Solo Helper on Alt+B](solo-helper.png)
+![Solo Helper on Alt+B](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/guides/solo-helper.png)
 
 ## What you get
 
@@ -11,7 +11,7 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
 - **Each class line with its 3rd class:** Chants has the Doomcryer's Chant of Spirit, and Overlord has the Dominator's Eye and Soul of Paagrio.
 - **Special tab:** the Prophecies, Protections and Chant of Victory, plus the four summoner servitor buffs with their C4 values:
 
-  ![The Special tab](solo-helper-special.png)
+  ![The Special tab](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/guides/solo-helper-special.png)
 
   - Blessing of Queen: crit rate x1.30, crit damage x1.25
   - Gift of Queen: P.Atk x1.10, accuracy +3
@@ -26,7 +26,7 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
 
 **Adena tab**
 
-![The Adena tab](solo-helper-adena.png)
+![The Adena tab](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/solo/solo/guides/solo-helper-adena.png)
 
 - **Quick buttons** from +10,000 up to +1,000,000,000.
 - **Type any amount** and press Add: `250000`, `1,000,000`, `250k`, `5kk` or `1b`.
