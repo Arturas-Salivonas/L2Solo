@@ -1088,6 +1088,7 @@ const tests = [
     'tests/test_skill_semantics.js',
     'tests/test_skill_mp_c4_totals.js',
     'tests/test_buffer_healer_skills.js',
+    'tests/test_buff_stack_groups.js',
     'tests/test_archer_class_skills.js',
     'tests/test_melee_dd_class_skills.js',
     'tests/test_remaining_class_skills.js',

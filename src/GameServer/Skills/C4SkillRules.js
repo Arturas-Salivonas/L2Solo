@@ -79,6 +79,8 @@ const DUAL_SWORD_DANCE = Object.freeze({
 // Lisvus stack families used by the local effect rules. Keeping the source family
 // separate from the local effect key preserves source stack families without
 // collapsing unrelated multi-stat buffs such as Prophecies and Chant of Victory.
+const BuffStackGroups = require('./C4BuffStackGroups');
+
 const STACK_FAMILY_BY_SKILL_ID = Object.freeze({
     76: 'possession', 83: 'possession', 109: 'possession',
     282: 'possession', 292: 'possession', 298: 'possession',
@@ -1228,7 +1230,9 @@ function resolve(skill = {}) {
     const inferred = infer(skill, name);
     // A sourced pure-damage rule can explicitly clear a name-inferred buff.
     const effect = Object.prototype.hasOwnProperty.call(rule, 'effect') ? rule.effect : inferred.effect;
+    // A buff of a C4 kind this table lacks takes its group from the C4 datapack (C4BuffStackGroups).
     const sourcedStackFamily = STACK_FAMILY_BY_SKILL_ID[Number(skill.selfId)]
+        || BuffStackGroups.family(skill.selfId)
         || CONTROL_STACK_FAMILY_BY_EFFECT[effect]
         || null;
     const target = rule.target || inferred.target;
@@ -1326,6 +1330,7 @@ function resolve(skill = {}) {
         stackOrder: resolveByLevel(rule.stackOrderByLevel, skill.level)
             ?? rule.stackOrder
             ?? STACK_ORDER_BY_SKILL_ID[Number(skill.selfId)]
+            ?? (rule.stackFamily || STACK_FAMILY_BY_SKILL_ID[Number(skill.selfId)] ? null : BuffStackGroups.order(skill.selfId, skill.level))
             ?? (CONTROL_STACK_FAMILY_BY_EFFECT[effect] ? 1 : null)
             ?? null,
         baneStackFamilies: rule.baneStackFamilies || null
