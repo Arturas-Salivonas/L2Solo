@@ -92,8 +92,9 @@ assert.strictEqual(SoloBuffer.iconFor(1068), 'icon.skill1068', 'four-digit ids k
     assert.ok([1364, 1365].every((id) => ids('paagrio').includes(id)), 'the Dominator buffs sit with the Overlord ones');
     assert.ok([1003, 1004, 1005, 1008, 1249, 1250, 1260, 1261, 1282].every((id) => ids('paagrio').includes(id)),
         'every Overlord buff of the C4 tree');
-    assert.ok([1362, 1363].every((id) => ids('chants').includes(id)), 'the Doomcryer chants sit with the Warcryer ones');
-    assert.ok(![1362, 1363, 1364, 1365].some((id) => ids('third').includes(id)), 'and no longer in Special');
+    assert.ok(ids('chants').includes(1362), 'Chant of Spirit sits with the Warcryer chants');
+    assert.ok(ids('third').includes(1363) && !ids('chants').includes(1363), 'Chant of Victory is in Special');
+    assert.ok(![1362, 1364, 1365].some((id) => ids('third').includes(id)), 'the others no longer in Special');
 }
 
 // ---------- the summoner servitor buffs (ServitorBuffs, Lisvus C4) ----------
@@ -257,7 +258,7 @@ assert.strictEqual(SoloBuffer.act(player(), 'pet').message, 'You have no servito
         assert.ok((page.match(/<tr>/g) || []).length <= 25, `${group.id} board page stays under the client row limit`);
         group.buffs.forEach((buff) => assert.ok(page.includes(`_bbssolo buff one ${buff.selfId}"`), `${group.id} lists ${buff.selfId}`));
         assert.ok(!page.includes('width=24 height=24>'), 'no Active row of icons');
-        assert.ok(page.includes(`_bbssolo buff off ${group.buffs[0].selfId}">remove</a>`), 'an active buff can be removed');
+        assert.ok(!page.includes('>remove</a>'), 'no remove links on the board');
         assert.ok(page.includes('60 min</font>'), 'active buffs show their time left');
     }
 
@@ -265,11 +266,10 @@ assert.strictEqual(SoloBuffer.act(player(), 'pet').message, 'You have no servito
     const remover = player();
     SoloHelper.handleBoard(remover, ['buff', 'one', '1068']);
     SoloHelper.handleBoard(remover, ['buff', 'one', '1040']);
-    const removed = SoloHelper.handleBoard(remover, ['buff', 'off', '1068']);
-    assert.ok(removed.includes('Might removed.'), 'a remove link takes that buff off');
+    assert.strictEqual(SoloBuffer.removeBuff(remover, remover.actor, 1068), true, 'removeBuff takes one buff off');
     assert.deepStrictEqual(buffs(remover.actor).map((effect) => Number(effect.id)), [1040], 'and only that one');
-    assert.ok(SoloHelper.handleBoard(remover, ['buff', 'off', '1068']).includes('Might is not on.'), 'removing it twice');
-    assert.deepStrictEqual(SoloBuffer.act(remover, 'off', '99999'), {}, 'an id outside the catalog does nothing');
+    assert.strictEqual(SoloBuffer.removeBuff(remover, remover.actor, 1068), false, 'removing it twice');
+    assert.deepStrictEqual(SoloBuffer.act(remover, 'off', '1040'), {}, 'the board has no remove action');
     const healed = SoloHelper.handleBoard(remover, ['buff', 'restore']);
     assert.ok(healed.includes('HP, MP and CP full.'), 'the restore button reports it');
     assert.deepStrictEqual([remover.actor.hp, remover.actor.mp, remover.actor.cp], [100, 50, 80], 'HP, MP and CP are full');

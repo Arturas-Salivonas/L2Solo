@@ -33,13 +33,14 @@ const GROUPS = Object.freeze([
     { id: 'prophet', label: 'Prophet', ids: [1204, 1086, 1068, 1040, 1077, 1242, 1240, 1062, 1268, 1045, 1048,
         1035, 1036, 1059, 1085, 1078, 1303, 1087, 1243] },
     { id: 'resist', label: 'Resists', ids: [1259, 1304, 1073, 1044, 1032, 1033, 1182, 1189, 1191, 1257] },
-    // Each class line with its 3rd class: Doomcryer chants (1362, 1363), Dominator buffs (1364, 1365).
-    { id: 'chants', label: 'Chants', ids: [1007, 1009, 1006, 1002, 1251, 1252, 1253, 1284, 1308, 1309, 1310, 1362, 1363] },
+    // Each class line with its 3rd class: Doomcryer's Chant of Spirit (1362), Dominator buffs (1364, 1365).
+    { id: 'chants', label: 'Chants', ids: [1007, 1009, 1006, 1002, 1251, 1252, 1253, 1284, 1308, 1309, 1310, 1362] },
     { id: 'paagrio', label: 'Overlord', ids: [1003, 1004, 1005, 1008, 1249, 1250, 1260, 1261, 1282, 1364, 1365] },
     { id: 'dances', label: 'Dances', ids: [271, 272, 273, 274, 275, 276, 277, 307, 309, 310, 365, 366] },
     { id: 'songs', label: 'Songs', ids: [264, 265, 266, 267, 268, 269, 270, 304, 305, 306, 308, 349, 363, 364] },
-    // Other 3rd-class buffs and the summoner servitors' buffs (ServitorBuffs: Feline Queen, Unicorn Seraphim).
-    { id: 'third', label: 'Special', ids: [1352, 1353, 1354, 1355, 1356, 1357, ...Servitor.IDS] }
+    // Other 3rd-class buffs (Chant of Victory 1363 among them) and the summoner servitors' buffs
+    // (ServitorBuffs: Feline Queen, Unicorn Seraphim).
+    { id: 'third', label: 'Special', ids: [1352, 1353, 1354, 1355, 1356, 1357, 1363, ...Servitor.IDS] }
 ]);
 
 // Presets reuse the admin full-buff profiles (AdminFullBuff.PROFILES), so the
@@ -219,8 +220,7 @@ function clearBuffs(session, actor) {
     return removed.length;
 }
 
-// One buff off (the board's "remove" link): the C4 client sends nothing for a click on its own
-// buff bar, so this is where a buff is taken off.
+// One buff off, by its skill id.
 function removeBuff(session, actor, selfId) {
     const effect = currentBuffs(actor).find((entry) => Number(entry.id) === Number(selfId));
     if (!effect) return false;
@@ -285,11 +285,6 @@ function act(session, action = '', arg = '') {
             const applied = applyEntries(session, summon, admin().PROFILES.servitor);
             if (applied.length) hooks.refreshSummon(session, summon);
             return { message: `Servitor: ${applied.length} buffs on.` };
-        }
-        case 'off': {
-            const buff = catalog().byId.get(Number(arg));
-            if (!buff || String(Number(arg)) !== String(arg)) return {};
-            return { group: buff.group, message: removeBuff(session, actor, buff.selfId) ? `${buff.name} removed.` : `${buff.name} is not on.` };
         }
         case 'restore': {
             if (actor.isDead?.()) return { message: 'You cannot be healed while dead.' };
@@ -359,8 +354,7 @@ function buffGrid(group, active) {
         const cells = group.buffs.slice(i, i + BOARD_COLUMNS).map((buff) => {
             const effect = active.get(buff.selfId);
             const name = effect ? Html.font(buff.name, Html.COLOR.ok) : Html.esc(buff.name);
-            const detail = Html.font(`Lv ${buff.level}`) + (effect ? ` ${Html.font(minutesLeft(effect), Html.COLOR.ok)}`
-                + `  <a action="bypass ${B(`off ${buff.selfId}`)}">remove</a>` : '');
+            const detail = Html.font(`Lv ${buff.level}`) + (effect ? ` ${Html.font(minutesLeft(effect), Html.COLOR.ok)}` : '');
             return `<td width=38 height=38>${iconButton(buff.selfId, `one ${buff.selfId}`)}</td>`
                 + `<td width=${cellWidth - 38}><a action="bypass ${B(`one ${buff.selfId}`)}">${name}</a><br1>${detail}</td>`;
         });
