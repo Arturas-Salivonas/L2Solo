@@ -9,6 +9,9 @@ const DEFAULTS = {
     decisionTrace: false,
     // Personal knowledge errors and learning by own actions share one switch.
     knowledgeErrorsEnabled: true,
+    // Word of mouth (Bot/AI/BotSpotTips): trusted bots near the player share their best
+    // hunting spot; the listener tries it once (Social/SpotTipPolicy).
+    wordOfMouthEnabled: true,
     backgroundResolverEnabled: true,
     backgroundPartyEnabled: true,
     opportunisticRaidsEnabled: true,
