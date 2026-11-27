@@ -1585,13 +1585,30 @@ server.on('error', (err) => {
     process.exit(1);
 });
 
+let launcherShuttingDown = false;
+
 function shutdown() {
-    if (state.child) {
-        stopServer();
+    if (launcherShuttingDown) return;
+    launcherShuttingDown = true;
+
+    const exit = () => {
+        server.closeAllConnections?.();
+        server.close(() => process.exit(0));
+    };
+    const child = state.child;
+    if (!child) {
+        exit();
+        return;
     }
 
-    server.close(() => process.exit(0));
+    // Keep logging until the server has saved its world and exited. A closed console
+    // window is ended by Windows several seconds after the close, so stop waiting first.
+    child.once('exit', exit);
+    stopServer();
+    setTimeout(exit, 8000).unref();
 }
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+// Closing the console window arrives as SIGHUP on Windows.
+process.on('SIGHUP', shutdown);
