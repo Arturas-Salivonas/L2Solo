@@ -43,6 +43,13 @@ Restart the server after installing.
 - **Settings** (`[SoloHelper]`): `enabled`, `altB`, `buffMinutes`, `window`, `adena`, `buffSlots`.
 - **Heads-up:** your server may warn at start that the bot tables are stale, because the buff-slots change touches `EffectStore.js`. It still plays fine.
 
+### Living Bots: all the bot AI in one mod
+- **What:** every bot mod below in one branch (mood titles, vendettas, free loot, town attention, WTB demand, word of mouth, world legacy), plus allies that jump into fights, friends that defend you, calls for help, gossip about you, fear and bravado, rivalries between bots, smarter party spots, spot warnings and feelings across a wipe.
+- **Branch:** [`feat/living-bots`](https://github.com/Arturas-Salivonas/L2Solo/tree/feat/living-bots). Full guide with screenshots: [LIVING_BOTS.md](LIVING_BOTS.md).
+- **Install:** `git cherry-pick 27040e379..l2mods/feat/living-bots`
+- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/living-bots.diff>
+- **Don't** also install the single bot mods below on top: Living Bots already holds them.
+
 ### Starter village shops sell the C4 robe set
 - **What:** the armor dealers in Talking Island, the Elven Village and the Dark Elven Village sell the ten No-Grade robe pieces (tunics and stockings) at C4 prices. Before, only the Orc and Dwarven villages had them.
 - **Source:** Lisvus C4 and L2J Mobius C4.
