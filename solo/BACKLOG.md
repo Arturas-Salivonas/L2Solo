@@ -62,7 +62,8 @@ Before starting anything, check upstream's open PRs so we don't duplicate them:
 
 ## Gaps vs C4 (checked in code 2026-11-27)
 
-- **Subclass:** zero code. It's missing for players too. Noblesse and Olympiad are barely there. A big feature for later.
+- **Subclass:** zero code. It's missing for players too. A big feature for later.
+- **Noblesse, Olympiad and Hero:** barely there. The C4 reference says all three are new in C4, so they're in era.
 - **Day/night:** `isNight` is only used in combat stats. Bots never change plans at night.
 - **Newbie helpers:** nothing. High-level bots never visit starter villages to buff or point the way.
 - **Already covered by upstream:** buff sellers, dwarf shops, the shot economy, spoil and sweep, soul crystals, clan raids, PK bots, archer kiting, rebuffs, LFP and WTS chat, res requests.
