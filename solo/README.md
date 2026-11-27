@@ -103,7 +103,7 @@ A GitHub Actions trick from upstream: pushing a branch named `tests/<name>/<a,b,
   - **Status:** your buff count (x/20), and an Active strip with the icons of your current buffs.
   - **Presets** as skill-icon tiles: Tank, Fighter, Mage, Support, My class (picked for your class) and My set.
   - **Any buff:** 85 C4 buffs at their max level, in 7 tabs (Prophet, Resists, Chants, Overlord, Dances, Songs, 3rd class). Click the icon or the name; active ones show green with the minutes left.
-  - **Buttons:** Save as My set, Buff my servitor (shown when one is out) and Clear my buffs (debuffs stay).
+  - **Buttons:** Save my set, Buff servitor (shown when one is out) and Clear buffs (debuffs stay).
 - **Duration:** every buff lasts 60 minutes and survives relogin. C4's 20-slot limit applies; when you're full, your oldest buff makes room.
 - **Adding a tool:** add a `TABS` row and a renderer in `src/GameServer/Solo/SoloHelper.js`.
 
