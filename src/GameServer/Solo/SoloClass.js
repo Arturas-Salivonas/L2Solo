@@ -165,9 +165,9 @@ function heading(label) {
 
 function status(actor, message) {
     const classId = Number(actor.fetchClassId());
-    return `<table width=${BOARD_WIDTH} bgcolor=222222><tr>`
+    return `<table width=${BOARD_WIDTH}><tr>`
         + `<td width=6></td><td width=36 height=36>${icon(classId)}</td>`
-        + `<td width=250>${Html.font(nameOf(classId), Html.COLOR.ok)}<br1>${Html.font(`Level ${actor.fetchLevel()} - ${roleOf(classId).label}`)}</td>`
+        + `<td width=250>${Html.font(nameOf(classId), Html.COLOR.ok)}<br1>${Html.font(`Level ${actor.fetchLevel()} - ${roleOf(classId).label}`, Style.SOFT)}</td>`
         + `<td width=312 align=right>${message ? Html.font(message, Html.COLOR.link) : ''}</td><td width=6></td>`
         + '</tr></table>';
 }
@@ -187,10 +187,10 @@ function treeTable(actor, next) {
     const color = (id) => {
         if (mine.includes(id)) return Html.COLOR.ok;
         if (nextIds.has(id)) return Html.COLOR.title;
-        return ahead.has(id) ? 'FFFFFF' : Html.COLOR.muted;
+        return ahead.has(id) ? 'FFFFFF' : Style.CLOSED;
     };
 
-    const header = COLUMNS.map((width, index) => `<td width=${width} height=20>${Html.font(index ? `Level ${STEP_LEVELS[index]}` : 'Start')}</td>`).join('');
+    const header = COLUMNS.map((width, index) => `<td width=${width} height=20>${Html.font(index ? `Level ${STEP_LEVELS[index]}` : 'Start', Style.SOFT)}</td>`).join('');
     const seen = new Set();
     const rows = tree(classId).map((path) => {
         const cells = COLUMNS.map((width, index) => {
@@ -201,7 +201,7 @@ function treeTable(actor, next) {
             const pick = readyIds.has(id) ? `pick ${id}` : null;
             const name = pick ? `<a action="bypass ${C(pick)}">${Html.font(nameOf(id), color(id))}</a>` : Html.font(nameOf(id), color(id));
             return `<td width=${width} height=38><table><tr><td width=36>${icon(id, pick)}</td>`
-                + `<td width=${width - 40}>${name}<br1>${Html.font(roleOf(id).label)}</td></tr></table></td>`;
+                + `<td width=${width - 40}>${name}<br1>${Html.font(roleOf(id).label, Style.SOFT)}</td></tr></table></td>`;
         }).join('');
         return `<tr>${cells}</tr>`;
     }).join('');
@@ -211,7 +211,7 @@ function treeTable(actor, next) {
 function choiceCards(actor, next) {
     if (!next.length) {
         return `<table width=${BOARD_WIDTH}><tr><td width=6></td><td height=24>`
-            + `${Html.font(`${nameOf(actor.fetchClassId())} is your last class in C4.`)}</td></tr></table>`;
+            + `${Html.font(`${nameOf(actor.fetchClassId())} is your last class in C4.`, Style.SOFT)}</td></tr></table>`;
     }
     const width = Math.floor(BOARD_WIDTH / Math.max(next.length, 2));
     const cells = next.map((entry) => {
@@ -219,10 +219,10 @@ function choiceCards(actor, next) {
             ? Html.button('Choose', C(`pick ${entry.classId}`), { width: Style.BUTTON_WIDTH, hide: false })
             : Html.font(`Needs level ${entry.requiredLevel}`, Html.COLOR.warn);
         const leads = childrenOf(entry.classId).map(nameOf);
-        return `<td width=${width}><table width=${width - 4} bgcolor=222222><tr><td width=6></td>`
+        return `<td width=${width}><table width=${width - 4}><tr><td width=6></td>`
             + `<td width=38 height=44>${icon(entry.classId, entry.ready ? `pick ${entry.classId}` : null)}</td>`
-            + `<td width=${width - 54}>${Html.font(entry.name, Html.COLOR.title)}<br1>${Html.font(roleOf(entry.classId).label)}`
-            + (leads.length ? `<br1>${Html.font(`Then: ${leads.join(' or ')}`)}` : '')
+            + `<td width=${width - 54}>${Html.font(entry.name, Html.COLOR.title)}<br1>${Html.font(roleOf(entry.classId).label, Style.SOFT)}`
+            + (leads.length ? `<br1>${Html.font(`Then: ${leads.join(' or ')}`, Style.SOFT)}` : '')
             + `</td><td width=6></td></tr><tr><td></td><td></td><td height=26>${action}</td><td></td></tr></table></td>`;
     }).join('');
     return `<table width=${BOARD_WIDTH}><tr>${cells}</tr></table>`;
@@ -231,10 +231,10 @@ function choiceCards(actor, next) {
 function confirmCard(choice) {
     const buttons = `<table><tr><td width=${Style.BUTTON_CELL}>${Html.button('Yes, change', C(`yes ${choice.classId}`), { width: Style.BUTTON_WIDTH, hide: false })}</td>`
         + `<td width=${Style.BUTTON_CELL}>${Html.button('Cancel', C(''), { width: Style.BUTTON_WIDTH, hide: false })}</td></tr></table>`;
-    return `<table width=${BOARD_WIDTH} bgcolor=222222><tr><td width=6></td>`
+    return `<table width=${BOARD_WIDTH}><tr><td width=6></td>`
         + `<td width=38 height=44>${icon(choice.classId)}</td>`
         + `<td width=${BOARD_WIDTH - 50}>${Html.font(`Become a ${choice.name}?`, Html.COLOR.title)}<br1>`
-        + `${Html.font(`${roleOf(choice.classId).label}. You cannot change back.`)}</td><td width=6></td></tr>`
+        + `${Html.font(`${roleOf(choice.classId).label}. You cannot change back.`, Style.SOFT)}</td><td width=6></td></tr>`
         + `<tr><td></td><td></td><td height=28>${buttons}</td><td></td></tr></table>`;
 }
 
