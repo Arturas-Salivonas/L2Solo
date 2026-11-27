@@ -78,6 +78,8 @@ function pickupItem(session, actor, item) {
             if (award && typeof award.then === 'function') award.then(releases[index], releases[index]);
             else releases[index]();
             ConsoleText.transmitPickup(entry.session, selfId, entry.amount);
+            // A bot that picked up a rare item may say so (BotMoments).
+            invoke('GameServer/Bot/AI/BotMoments').looted(entry.session, selfId, entry.amount);
         });
     } finally {
         releases.slice(scheduled).forEach(release => release());
