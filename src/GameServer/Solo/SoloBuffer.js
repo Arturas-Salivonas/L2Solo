@@ -59,6 +59,9 @@ const effects = () => invoke('GameServer/Effects/EffectStore');
 const ticker = () => invoke('GameServer/Effects/EffectTicker');
 const summonOf = (actor) => invoke('GameServer/Npc/SummonControl').activeSummon(actor);
 // A servitor buff shows its summon skill's icon (ServitorBuffs.iconOf).
+// The buff slots of an actor: EffectStore.limitFor (the buffSlots setting), or C4's 20 on a
+// server where the Solo Helper was copied in without that EffectStore edit.
+const slotsOf = (actor) => (typeof effects().limitFor === 'function' ? effects().limitFor(actor) : effects().BUFF_LIMIT);
 const iconFor = (selfId) => `icon.skill${String(Math.max(0, Number(Servitor.iconOf(selfId) ?? selfId) || 0)).padStart(4, '0')}`;
 
 // ---------- catalog ----------
@@ -285,7 +288,7 @@ function minutesLeft(effect) {
 
 function boardStatus(actor, message) {
     const used = currentBuffs(actor).length;
-    const limit = effects().limitFor(actor);
+    const limit = slotsOf(actor);
     const count = Html.font(`${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok);
     const note = used >= limit ? 'full - a new buff replaces your oldest' : `${config().buffMinutes} min each`;
     return `<table width=${BOARD_WIDTH} bgcolor=222222><tr>`
@@ -301,7 +304,7 @@ function activeStrip(actor) {
     }
     // Twenty icons a row: up to 28 buffs (buffSlots) take a second row.
     const rows = [];
-    for (let i = 0; i < Math.min(active.length, effects().limitFor(actor)); i += 20) {
+    for (let i = 0; i < Math.min(active.length, slotsOf(actor)); i += 20) {
         const cells = active.slice(i, i + 20).map((effect) => `<td width=28><img src="${iconFor(effect.id)}" width=24 height=24></td>`).join('');
         rows.push(`<tr><td width=50 height=30>${i ? '' : Html.font('Active', Html.COLOR.title)}</td>${cells}<td></td></tr>`);
     }
@@ -374,7 +377,7 @@ function boardBody(session, state = {}) {
 
 function chatSlots(actor) {
     const used = currentBuffs(actor).length;
-    const limit = effects().limitFor(actor);
+    const limit = slotsOf(actor);
     return Html.font(`Buffs ${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok)
         + Html.font(used >= limit ? ' - a new buff replaces your oldest' : ` - each lasts ${config().buffMinutes} min`);
 }
