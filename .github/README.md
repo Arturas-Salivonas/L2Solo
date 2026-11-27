@@ -34,7 +34,7 @@ A full-width Community Board window for solo play. [Install guide for other serv
 - **Buffer tab:**
   - 85 C4 buffs at max level plus the 4 summoner servitor buffs (Blessing and Gift of Queen, Blessing and Gift of Seraphim), in 7 tabs with skill icons.
   - Presets: Tank, Fighter, Mage, Support and My set.
-  - Every buff lasts 60 minutes and survives a relog. Each active buff has a remove link.
+  - Every buff lasts 60 minutes and survives a relog or a server restart.
   - Full HP/MP/CP in one click, your servitor's HP and MP too.
 - **Buff slots:** 20 as in C4, or up to 28 for you. Bots keep 20.
 - **Adena tab:** quick buttons from +10k to +1kkk, any typed amount (`250k`, `5kk`, `1b`), or `.adena 5kk` in chat.
@@ -98,16 +98,20 @@ Jackson (Talking Island), Payne (Elven Village) and Ariel (Dark Elven Village) n
 ### 12. Closing the server window saves the world (`fix/console-close-drain`)
 A bug fix. Closing the console window used to kill the server before it saved, losing recent progress. Now closing the window saves first, like Stop and Ctrl+C.
 
-### 13. One-click Play (`solo/Play L2Solo.cmd`)
+### 13. Buffs survive a server restart (`fix/shutdown-saves-player-status`)
+A bug fix. A server stop never saved the players still online, so after a restart you logged in with no buffs and your HP and MP from your last logout. Now the stop saves every online player first, and a saved buff keeps the time it had left: as in C4, the clock doesn't run while you're offline.
+
+### 14. One-click Play (`solo/Play L2Solo.cmd`)
 Double-click it to open the browser launcher and start the server at your last rate. `npm run start` still works the same.
 
-### 14. Fork tools (`solo/fork.js`)
+### 15. Fork tools (`solo/fork.js`)
 `status`, `sync`, `new`, `land`, `pr`, `backup` and `restore` keep upstream updates and these changes apart, and never lose work. See [solo/README.md](../solo/README.md).
 
 ## Changelog
 
 ### 2026-11-27
-- **Solo Helper:** Full HP/MP/CP button, a remove link on each active buff, the Active row and My class preset gone, the Dominator and Doomcryer buffs in their class tabs.
+- **Fix:** a server stop saves online players' HP, MP, CP and buffs, and a saved buff keeps its time left while you're offline, as in C4.
+- **Solo Helper:** Full HP/MP/CP button, the Active row and My class preset gone, the Dominator buffs in the Overlord tab, Chant of Victory in Special.
 - **Mood titles:** faces, what a bot needs, where it really is (no more "Hunting" while standing in town), and moments in chat.
 - **Mood titles** show live state and activity (Fights you, Angry, Hunting, Looting) instead of mostly Neutral.
 - **Mood titles:** level and opinion above every bot.

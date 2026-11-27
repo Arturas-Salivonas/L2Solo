@@ -36,7 +36,7 @@ Restart the server after installing.
 
 ### Solo Helper: 1-hour buffs and Adena on Alt+B
 - **What:** Alt+B opens a buffer with 85 C4 buffs, the 4 summoner servitor buffs and presets; every buff lasts 60 minutes.
-- **Also:** Full HP/MP/CP in one click, a remove link on each active buff, an Adena tab, and up to 28 buff slots for you (bots keep 20).
+- **Also:** Full HP/MP/CP in one click, an Adena tab, and up to 28 buff slots for you (bots keep 20).
 - **Branch:** [`mine/solo-buffer`](https://github.com/Arturas-Salivonas/L2Solo/tree/mine/solo-buffer). Full guide with screenshots: [SOLO_HELPER.md](SOLO_HELPER.md).
 - **Install:** `git cherry-pick 27040e379..l2mods/mine/solo-buffer`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...mine/solo-buffer.diff>
@@ -111,6 +111,12 @@ Restart the server after installing.
 - **Branch:** [`fix/console-close-drain`](https://github.com/Arturas-Salivonas/L2Solo/tree/fix/console-close-drain)
 - **Install:** `git cherry-pick 27040e379..l2mods/fix/console-close-drain`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...fix/console-close-drain.diff>
+
+### Buffs survive a server restart
+- **What:** a bug fix. A server stop now saves every online player's HP, MP, CP and buffs first, and a saved buff keeps the time it had left while you're offline, as in C4.
+- **Branch:** [`fix/shutdown-saves-player-status`](https://github.com/Arturas-Salivonas/L2Solo/tree/fix/shutdown-saves-player-status)
+- **Install:** `git cherry-pick 27040e379..l2mods/fix/shutdown-saves-player-status`
+- **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...fix/shutdown-saves-player-status.diff>
 
 ---
 
