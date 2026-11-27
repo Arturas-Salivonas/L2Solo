@@ -90,6 +90,7 @@ const mocks = {
     'GameServer/Actor/Generics/CalculateStats': () => {},
     'GameServer/Skills/ChargeLifecycle': { clear() {} },
     'GameServer/World/ArenaDuelService': { onPlayerDeath: () => false },
+    'GameServer/Events/LastHero/LastHero': { involves: () => false, onDeath: () => false, restartPoint: () => null },
     'GameServer/Progression/DeathExperience': {
         applyDeathPenalty: () => ({ applied: false, persistence: Promise.resolve() }),
         clearPendingRestoration: () => Promise.resolve({ cleared: false }),

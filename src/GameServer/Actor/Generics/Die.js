@@ -38,7 +38,7 @@ function die(session, actor, context = {}) {
     // (the actor's timers, charges and effects cleared, dead state, the die packet), which is not
     // guarded: a failed PK drop or EXP loss still leaves a dead body, not one alive at 0 HP.
     const LastHero = invoke('GameServer/Events/LastHero/LastHero');
-    if (!ArenaDuelService.duelForActor?.(actor) && !LastHero.involves(actor)) killEffect('death.pk_drop', () => require('./PkDeathDrop').drop(victimSession, actor));
+    if (!ArenaDuelService.duelForActor?.(actor) && !LastHero.involves?.(actor)) killEffect('death.pk_drop', () => require('./PkDeathDrop').drop(victimSession, actor));
     if (typeof actor.fetchExp === 'function' && typeof actor.setExpSp === 'function' && !actor.fetchKind) {
         killEffect('death.exp_penalty', () => invoke('GameServer/Progression/DeathExperience').applyDeathPenalty(victimSession, actor, {
             timestamp: context.timestamp,
@@ -80,7 +80,7 @@ function die(session, actor, context = {}) {
     if (arenaDeath) return;
     // A fall at the Last Hero Coliseum is an elimination: no bot death row, nothing more.
     let heroDeath = false;
-    killEffect('death.last_hero', () => { heroDeath = LastHero.onDeath(victimSession, actor, killer); });
+    killEffect('death.last_hero', () => { heroDeath = LastHero.onDeath?.(victimSession, actor, killer) === true; });
     if (heroDeath) return;
     if (victimSession?.accountId?.startsWith?.('bot_') && victimSession.arenaEphemeral !== true) {
         const Life = invoke('GameServer/Bot/Population/BotLifeState');

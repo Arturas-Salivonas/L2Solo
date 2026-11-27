@@ -16,7 +16,7 @@ function askForTeamUp(session, buffer) {
 
 function consume(session, data) {
     // Last Hero is everyone for themselves: no party while you are in it or queued for it.
-    if (invoke('GameServer/Events/LastHero/LastHero').partyBlocked(session)) {
+    if (invoke('GameServer/Events/LastHero/LastHero').partyBlocked?.(session)) {
         const ServerResponse = invoke('GameServer/Network/Response');
         session.dataSendToMe(ServerResponse.systemMessage.text('No parties during Last Hero.'));
         session.dataSendToMe(ServerResponse.actionFailed());

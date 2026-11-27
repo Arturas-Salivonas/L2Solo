@@ -28,7 +28,7 @@ function consume(session, data) {
     const ArenaDuelService = invoke('GameServer/World/ArenaDuelService');
     const arenaDeath = session.arenaDeath === true && ArenaDuelService.duelForActor?.(actor);
     const TownRespawn = invoke('GameServer/World/TownRespawn');
-    const destination = invoke('GameServer/Events/LastHero/LastHero').restartPoint(session) || (arenaDeath
+    const destination = invoke('GameServer/Events/LastHero/LastHero').restartPoint?.(session) || (arenaDeath
         ? invoke('GameServer/World/GiranArena').RESTART
         : hallRestart || TownRespawn.restartCoords(actor));
     const Generics = invoke(path.actor);
