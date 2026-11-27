@@ -128,11 +128,11 @@ for (const preset of SoloBuffer.PRESETS) {
 assert.deepStrictEqual(SoloBuffer.PRESETS.map((preset) => preset.label), ['Tank', 'Fighter', 'Mage', 'Support'], 'no My class preset');
 
 // ---------- config ----------
-assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 }, 'defaults: on, Alt+B, 60 minutes, board');
+assert.deepStrictEqual(config(), { enabled: true, altB: true, buffMinutes: 60, window: 'board', adena: true, classChange: true, buffSlots: 20 }, 'defaults: on, Alt+B, 60 minutes, board');
 withOptions({ buffMinutes: '30', altB: 'false', window: 'CHAT' }, () => assert.deepStrictEqual(config(),
-    { enabled: true, altB: false, buffMinutes: 30, window: 'chat', adena: true, buffSlots: 20 }, 'local.ini values override the defaults'));
+    { enabled: true, altB: false, buffMinutes: 30, window: 'chat', adena: true, classChange: true, buffSlots: 20 }, 'local.ini values override the defaults'));
 withOptions({ buffMinutes: 'nonsense', enabled: false, window: 'weird' }, () => assert.deepStrictEqual(config(),
-    { enabled: false, altB: true, buffMinutes: 60, window: 'board', adena: true, buffSlots: 20 }, 'bad values fall back to the defaults'));
+    { enabled: false, altB: true, buffMinutes: 60, window: 'board', adena: true, classChange: true, buffSlots: 20 }, 'bad values fall back to the defaults'));
 
 withOptions({ buffSlots: '28' }, () => assert.strictEqual(config().buffSlots, 28, 'up to 28 buff slots'));
 withOptions({ buffSlots: '35' }, () => assert.strictEqual(config().buffSlots, 28, 'never more than 28'));
