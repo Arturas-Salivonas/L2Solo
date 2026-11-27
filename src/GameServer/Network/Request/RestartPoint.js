@@ -28,9 +28,9 @@ function consume(session, data) {
     const ArenaDuelService = invoke('GameServer/World/ArenaDuelService');
     const arenaDeath = session.arenaDeath === true && ArenaDuelService.duelForActor?.(actor);
     const TownRespawn = invoke('GameServer/World/TownRespawn');
-    const destination = arenaDeath
+    const destination = invoke('GameServer/Events/LastHero/LastHero').restartPoint(session) || (arenaDeath
         ? invoke('GameServer/World/GiranArena').RESTART
-        : hallRestart || TownRespawn.restartCoords(actor);
+        : hallRestart || TownRespawn.restartCoords(actor));
     const Generics = invoke(path.actor);
 
     // Revive (C4 doRevive: 70 % HP) before TeleportTo checks HP/dead state.

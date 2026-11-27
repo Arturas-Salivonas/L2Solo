@@ -4,6 +4,11 @@ function service() {
     return invoke('GameServer/World/ArenaDuelService');
 }
 
+// The Last Hero event at the Coliseum (Events/LastHero): its fighters follow its rules.
+function lastHero() {
+    return invoke('GameServer/Events/LastHero/LastHero');
+}
+
 function isEphemeral(actor) {
     return actor?.session?.arenaEphemeral === true;
 }
@@ -24,6 +29,7 @@ function participantFor(duel, actor) {
 
 function canInteract(attacker, victim) {
     if (!attacker || !victim || attacker === victim) return false;
+    if (lastHero().involves(attacker, victim)) return lastHero().canInteract(attacker, victim);
     const duel = service().duelForActor?.(attacker) || service().duelForActor?.(victim);
     if (!duel) return !isArenaParticipant(attacker) && !isArenaParticipant(victim);
     if (duel.state === 'PREPARED' && duel.enteredArena !== true) {
@@ -39,6 +45,7 @@ function canInteract(attacker, victim) {
 
 function suppressConsequences(attacker, victim) {
     if (!attacker || !victim) return false;
+    if (lastHero().involves(attacker, victim)) return true;
     const duel = service().duelForActor?.(attacker) || service().duelForActor?.(victim);
     if (!duel) return false;
     const attackerParticipant = participantFor(duel, attacker);

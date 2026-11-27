@@ -103,7 +103,7 @@ function charInfo(actor) {
         .writeC(0x00)  // Team circle color
         .writeD(Pledge.largeCrestId(actor))  // Clan large crest ID
         .writeC(0x00)  // Noble
-        .writeC(0x00)  // Hero
+        .writeC(invoke('GameServer/Events/LastHero/LastHero').heroAura(actor) ? 1 : 0)  // Hero (aura: the Last Hero winner)
         .writeC(0x00)  // Fishing
         .writeD(0x00)  // Fishing X
         .writeD(0x00)  // Fishing Y

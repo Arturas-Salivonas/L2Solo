@@ -347,6 +347,7 @@ const World = {
         this.indexSpawnsInGrid();
         DayNightSpawnManager.start(this);
         invoke('GameServer/Npc/NpcAggro').startAggroTicker(this);
+        invoke('GameServer/Events/LastHero/LastHero').start();
         return this;
     },
 
