@@ -22,10 +22,30 @@ const cases = [
 for (const [feeling, word] of cases) assert.strictEqual(Titles.mood(feeling), word, `${JSON.stringify(feeling)} reads ${word}`);
 assert.strictEqual(Titles.mood({ hostility: 40 }, { hunting: true }), 'Hunting you', 'a manhunt says so first');
 assert.strictEqual(Titles.mood({ trust: 9, affinity: 9 }, { party: true }), 'Party', 'a party member is party');
+// What it does to you now comes first; what it is busy with replaces "Neutral".
+assert.strictEqual(Titles.mood(null, { fighting: true }), 'Fights you', 'a bot attacking you says so at once');
+assert.strictEqual(Titles.mood({ trust: 9, affinity: 9 }, { fighting: true }), 'Fights you', 'even a friend');
+assert.strictEqual(Titles.mood(null, { watching: 'revenge' }), 'Revenge', 'a grudge waiting for you to come close');
+assert.strictEqual(Titles.mood(null, { watching: 'clan_war' }), 'War');
+assert.strictEqual(Titles.mood(null, { angry: true }), 'Angry', 'you hit it lately');
+assert.strictEqual(Titles.mood(null, { activity: 'Hunting' }), 'Hunting', 'a stranger shows what it is doing');
+assert.strictEqual(Titles.mood({ hostility: 12 }, { activity: 'Hunting' }), 'Grudge', 'a feeling still beats a doing');
+const idle = (plan, extra = {}) => Titles.activityOf({ plan, ...extra }, { fetchHp: () => extra.hp ?? 100, fetchMaxHp: () => 100,
+    fetchPrivateStore: () => extra.store || 0 });
+assert.strictEqual(idle('resting'), 'Resting');
+assert.strictEqual(idle('shopping'), 'Shopping');
+assert.strictEqual(idle('hunting', { freeLoot: { itemId: 1 } }), 'Looting', 'running for free loot');
+assert.strictEqual(idle('hunting', { attentionWatch: { eventId: 1 } }), 'Watching', 'watching a fight');
+assert.strictEqual(idle('hunting', { hp: 20 }), 'Hurt', 'low on HP');
+assert.strictEqual(idle('hunting', { store: 1 }), 'Selling', 'a private store');
+assert.strictEqual(idle('fleeing'), 'Fleeing');
+assert.strictEqual(idle('nonsense'), null);
 assert.strictEqual(Titles.text(20, 'Friendly'), 'Lv20 Friendly');
 assert.strictEqual(Titles.text(76, 'Hunting you'), 'Lv76 Hunting you');
 assert(Titles.text(76, 'Hunting you').length <= Titles.MAX_LENGTH, 'every title fits C4’s 16 characters');
 for (const [, word] of cases) assert(Titles.text(80, word).length <= Titles.MAX_LENGTH, `${word} fits`);
+for (const word of ['Fights you', 'Hunting you', 'Revenge', 'War', 'Angry', 'Party', 'Traveling', 'Following', 'Shopping', 'Watching'])
+    assert(Titles.text(80, word).length <= Titles.MAX_LENGTH, `${word} fits at level 80`);
 
 // ---------- titleOf and the refresh ----------
 const saved = { assess: Memory.assess, nearest: Queries.nearestPlayer, party: Risk.sameParty, charInfo: Response.charInfo,
@@ -60,6 +80,31 @@ try {
     assert.strictEqual(sent.length, 2, 'a level-up shows too');
     Titles.tick(bot.session, bot, now + 3 * Titles.REFRESH_MS);
     assert.strictEqual(sent.length, 2, 'no change, nothing sent');
+
+    // Live PvP: the bot attacking the player, then hit by the player.
+    feeling = null;
+    bot.session.plan = 'hunting';
+    delete bot.session.moodTitle;
+    assert.strictEqual(Titles.titleOf(bot, now + 4 * Titles.REFRESH_MS), 'Lv21 Hunting', 'a stranger at work');
+    bot.session.pvpRevenge = { target: player };
+    delete bot.session.moodTitle;
+    assert.strictEqual(Titles.titleOf(bot, now + 4 * Titles.REFRESH_MS), 'Lv21 Fights you', 'attacking the player');
+    delete bot.session.pvpRevenge;
+    bot.session.pvpAggressors = new Map([[268480001, { at: now }]]);
+    bot.session.pvpDefense = { action: 'flee' };
+    delete bot.session.moodTitle;
+    assert.strictEqual(Titles.titleOf(bot, now + 4 * Titles.REFRESH_MS), 'Lv21 Angry', 'hit by the player and running');
+    bot.session.pvpDefense = { action: 'fight' };
+    delete bot.session.moodTitle;
+    assert.strictEqual(Titles.titleOf(bot, now + 4 * Titles.REFRESH_MS), 'Lv21 Fights you', 'hit by the player and fighting back');
+    delete bot.session.pvpAggressors; delete bot.session.pvpDefense;
+    bot.session.pvpWatch = new Map([[268480001, { reason: 'pk' }]]);
+    delete bot.session.moodTitle;
+    assert.strictEqual(Titles.titleOf(bot, now + 4 * Titles.REFRESH_MS), 'Lv21 Hunting', 'a PK waiting for its moment does not give itself away');
+    bot.session.pvpWatch = new Map([[268480001, { reason: 'revenge' }]]);
+    delete bot.session.moodTitle;
+    assert.strictEqual(Titles.titleOf(bot, now + 4 * Titles.REFRESH_MS), 'Lv21 Revenge');
+    delete bot.session.pvpWatch;
 
     // A manhunt on this player, and switching it off.
     bot.session.coldLifeState = { stats: { manhunt: { targetId: 268480001, until: now + 3600000, found: 0 } } };
