@@ -11,19 +11,33 @@ Every setting below is optional. They go in `config/local.ini`, which git ignore
 
 ## Living bots in game
 
-The title above every bot shows its level and what it thinks of you or is doing, live. Every shot is from real play.
+The goal: bots that feel like people. Each one has its own personality, remembers you, wants things, reacts to what happens around it and gets smarter over time. The title above every bot shows its level, a face for what it thinks of you, and what it needs or is doing, live. Every shot is from real play.
 
 **Out hunting.** A stranger shows what it's doing. When you take a bot's mob, it tells you so.
 
 ![Bots hunting, one telling you to find your own mob](../solo/showcase/mood-hunting.png)
 
-**Hit one, and it remembers.**
+**It comes for you, and its face says so.**
 
-![A bot you hit turns Angry](../solo/showcase/mood-angry.png)
+![A bot that Attacks you, with an angry face](../solo/showcase/mood-attacks.png)
 
-**Pick a fight with a group, and they all come for you.**
+**A fight draws a watcher, while the others keep hunting.**
+
+![A bot that Watches a fight, two Hunting](../solo/showcase/mood-watches.png)
+
+**After the fight, each one says what it needs:** one wants a heal, one lies dead asking for a res, and the watcher is still watching.
+
+![Heal me, Res pls and Watches](../solo/showcase/mood-heal-res.png)
+
+**Taking a break, and heading out to its spot.**
+
+![A wary bot Resting](../solo/showcase/mood-resting.png) ![A bot teleporting To spot](../solo/showcase/mood-to-spot.png)
+
+**Pick a fight with a group, and they all come for you** (the one-word style, `moodTitleFaces = false`).
 
 ![Three bots that Fight you](../solo/showcase/mood-fights-you.png)
+
+All the bot AI mods together, with one install block: [Living Bots](../solo/guides/LIVING_BOTS.md).
 
 ## All modifications
 
@@ -138,6 +152,7 @@ Double-click it to open the browser launcher and start the server at your last r
 - **Blocked for now:** pmbstyle/L2Solo currently accepts PRs only from prior contributors, so they wait for the maintainer to open that up.
 
 **Guides**
+- [Living Bots: bots that feel like people](../solo/guides/LIVING_BOTS.md). The bot AI mods together: what they do, screenshots, one install block and the plans.
 - [L2Solo mods: take only what you want](../solo/guides/MODS.md). Every modification with its own install line and patch link.
 - [Solo Helper: 1-hour buffs and Adena on Alt+B](../solo/guides/SOLO_HELPER.md). A buffer and Adena window for solo play, with install steps for any L2Solo copy.
 

@@ -2,7 +2,7 @@
 
 Every modification of this fork is its own branch, cut from the same L2Solo commit (`27040e379`). You can install one, several, or all of them, in any order, on L2Solo `main` or `develop`.
 
-Each one was checked on both: installed alone, and all ten together. All of them stay in Chronicle 4, and none touches your world or characters.
+Each one was checked on both: installed alone, and all ten together. The seven bot AI mods are also gathered on one page with a single install block: [Living Bots](LIVING_BOTS.md). All of them stay in Chronicle 4, and none touches your world or characters.
 
 ## How to install
 
