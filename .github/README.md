@@ -64,10 +64,10 @@ Bots that feel like people: [guide, screenshots and one install](https://github.
 - **Revenge, PK bots, manhunts:** bots act on grudges once you come close; PvP-minded bots (level 20+) pick on lone, busy or hurt players; a bot you kill may come back for you.
 - **Rivalries:** kill-steals and kills between bots become grudges: arguments when they meet, sometimes a fight.
 - **Town attention:** gz when you level up, PKs called out by name, fights draw watchers.
-- **Free loot, WTB demand, word of mouth:** bots pick up ownerless items, your WTB lines count as market demand, and trusted bots share their best spots.
-- **Smarter hunting:** parties hunt where their level fits, a solo bot leaves ground more than 7 levels below it, and a bot that died at a spot twice warns its friends.
+- **Free loot, word of mouth:** bots pick up ownerless items, and trusted bots share their best spots.
+- **Smarter hunting:** bots hunt monsters within 5 levels below them (parties up to 5 above too), leave grey ground for the spot they chose, and a bot that died at a spot twice warns its friends.
 - **World legacy:** a bot wipe saves what the world learned; the same bots come back and remember players by name.
-- **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces`, `botMoments`, `allyDefenseEnabled`, `allyDefenseRate`, `gossipEnabled`, `nerveEnabled`, `rivalriesEnabled`, `spotDangerEnabled`, `legacyFeelingsEnabled`, `pkBotsEnabled`, `pkRate`, `pkMinLevel`, `manhuntEnabled`, `manhuntRate`, `manhuntMinutes`, `freeLootEnabled`, `townAttentionEnabled`, `playerTradeShoutsEnabled`, `wordOfMouthEnabled`, `worldLegacyEnabled`.
+- **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces`, `botMoments`, `allyDefenseEnabled`, `allyDefenseRate`, `gossipEnabled`, `nerveEnabled`, `rivalriesEnabled`, `spotDangerEnabled`, `legacyFeelingsEnabled`, `pkBotsEnabled`, `pkRate`, `pkMinLevel`, `manhuntEnabled`, `manhuntRate`, `manhuntMinutes`, `freeLootEnabled`, `townAttentionEnabled`, `wordOfMouthEnabled`, `worldLegacyEnabled`.
 
 ### 3. Starter villages sell the C4 robe set (`fix/starter-village-robes`)
 Jackson (Talking Island), Payne (Elven Village) and Ariel (Dark Elven Village) now sell the ten No-Grade robe pieces at C4 prices, as the Orc and Dwarven villages already did. Checked against two C4 server datapacks, Lisvus and L2J Mobius. [Guide](https://github.com/Arturas-Salivonas/L2Solo/blob/fix/starter-village-robes/solo/guides/STARTER_ROBES.md).
@@ -91,7 +91,7 @@ Double-click it to open the browser launcher and start the server at your last r
 
 ### 2026-11-27
 - **Fix:** same-kind buffs (Focus and Chant of Predator, Death Whisper and Chant of Rage, Vampiric Rage and Chant of Vampire...) replace each other, as in C4.
-- **Living Bots:** a solo bot leaves ground more than 7 levels below it; all the bot mods now in one place, guides in each mod's branch.
+- **Living Bots:** bots hunt within 5 levels below them (parties up to 5 above), leave grey ground, and take no spot or easy fights on it; WTB/WTS demand removed; all the bot mods in one place, guides in each mod's branch.
 - **Living Bots:** one mod for all the bot AI, plus allies, friends defending you, calls for help, gossip, fear and bravado, rivalries, smarter party spots, spot warnings and feelings across a wipe.
 - **Fix:** a server stop saves online players' HP, MP, CP and buffs, and a saved buff keeps its time left while you're offline, as in C4.
 - **Solo Helper:** Full HP/MP/CP button, the Active row and My class preset gone, the Dominator buffs in the Overlord tab, Chant of Victory in Special.

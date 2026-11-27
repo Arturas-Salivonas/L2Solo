@@ -77,7 +77,7 @@ Each mod's guide lives in its own branch, with screenshots, a copy-paste prompt 
 - **Heads-up:** your server may warn at start that the bot tables are stale (the buff-slots change touches `EffectStore.js`). It still plays fine.
 
 ### Living Bots: all the bot AI in one mod
-- **What:** bots that feel like people. Mood titles and chat moments; allies who jump into fights, friends who defend you, calls for help; gossip about you, fear and bravado; revenge, PK bots and manhunts; rivalries between bots; town attention (gz, PK call-outs, fight watchers); free loot; your WTB lines as market demand; word of mouth; smarter hunting spots and spot warnings; world legacy and feelings across a wipe.
+- **What:** bots that feel like people. Mood titles and chat moments; allies who jump into fights, friends who defend you, calls for help; gossip about you, fear and bravado; revenge, PK bots and manhunts; rivalries between bots; town attention (gz, PK call-outs, fight watchers); free loot; word of mouth; hunting at their level (5 below, parties up to 5 above) and spot warnings; world legacy and feelings across a wipe.
 - **Guide:** [LIVING_BOTS.md](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/living-bots/solo/guides/LIVING_BOTS.md)
 - **Install:** `git cherry-pick 27040e379..l2mods/feat/living-bots`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/living-bots.diff>

@@ -44,12 +44,11 @@ It's one mod, `feat/living-bots`, and it keeps growing.
 
 **They use the world.**
 - Bots pick up items nobody owns: your drops, PK drops, loot left on the ground.
-- Your "WTB Cotton Tunic x10" in chat counts as market demand, so crafters stock it.
 - Two bots that trust each other share their best hunting spot when they meet in town.
 
 **They get smarter.**
-- **Smarter party spots.** A party now hunts where its level fits. Before, a party took the spot where its first member happened to stand and kept it, so a level-18 party could farm level-7 monsters until it was 9 levels over them. Now it moves on as soon as the spot drops below its level band.
-- **Solo bots leave grey ground.** A bot hunting a spot more than 7 levels below it leaves for the spot it chose, unless it farms an item there. Before, a level-19 bot that came out of a starter town could hunt the level-2 field beside it for hours, losing money.
+- **Smarter party spots.** A party now hunts where its level fits. Before, a party took the spot where its first member happened to stand and kept it, so a level-18 party could farm level-7 monsters until it was 9 levels over them. Now it moves on as soon as the spot drops more than 5 levels below its leader.
+- **Hunting at their level.** Bots hunt monsters from 5 levels below them to 3 above; parties may go up to 5 above, for stronger mobs together. A bot on grey ground (more than 5 below) leaves for the spot it chose, and takes no spot or easy fights there on its way out of town, unless it farms an item there or is a spoiler. Before, a level-19 bot that came out of a starter town could hunt the level-3 field beside it for hours, losing money.
 - **Spots that killed them.** A bot that died at a spot twice already stays away from it for a while. Now it also warns its friends in town ("stay away from Cruma, I died there twice"), and they keep away too until their next trip back to town.
 - **After a wipe.** A bot wipe first saves what the world learned. The next world's bots are the same people, with the same names, personalities and know-how, at level 1. What they earned on each spot corrects their spot guesses, and when they meet a player of the same name again, they remember how they felt: "Arturas... I remember you".
 
@@ -124,7 +123,6 @@ manhuntRate = 1                 ; 0 = never, up to 5
 manhuntMinutes = 120
 freeLootEnabled = true
 townAttentionEnabled = true
-playerTradeShoutsEnabled = true
 wordOfMouthEnabled = true
 worldLegacyEnabled = true
 ```
