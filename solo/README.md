@@ -1,0 +1,81 @@
+# L2Solo - our fork
+
+Personal fork of [pmbstyle/L2Solo](https://github.com/pmbstyle/L2Solo) (Lineage II C4 solo server with bots).
+Goal: play solo, fix bugs, make bots smarter, and send the good parts back upstream as PRs.
+
+Everything fork-specific lives in this `solo/` folder (plus `.claude/` and `.github/README.md`).
+Upstream never has these paths, so their updates cannot conflict with them.
+
+## Why our work can't get lost
+
+| Risk | What protects us |
+| --- | --- |
+| Upstream update overwrites our edits | Updates come in as a **git merge** into `solo`. Our commits stay; a clash stops as a visible conflict, never a silent overwrite. |
+| Desktop launcher "Update / Verify server" | It replaces changed release files, git or not. **Never use it on this folder.** Start the server with `npm start` (browser launcher, port 8090) or the desktop launcher's Start only. If it ever happens: `git status` shows the damage, `git restore .` puts our committed work back. |
+| PC dies / folder deleted | Every branch is pushed to `github.com/Arturas-Salivonas/L2Solo`. |
+| An update's DB migration breaks the world | `sync` backs up the world first, outside the repo (`..\L2Solo-backups`). `restore` puts it back. |
+| Editing code under a running server | Changes are built in separate worktrees (`.work/`). The play folder only changes on `land` and `sync`, and both refuse while the server runs. |
+
+## Layout
+
+```
+Downloads\L2Solo\              play folder, always on branch "solo"
+  solo\                        fork-only: tool, docs, backlog
+  .work\fix-something\         one worktree per change (git-ignored, local only)
+  tmp\nodel2.sqlite            your world (git-ignored, git never touches it)
+  config\local.ini             your settings + API keys (git-ignored, never committed)
+Downloads\L2Solo-backups\      world backups made by the tool
+```
+
+## Branches
+
+| Branch | What it is | Rule |
+| --- | --- | --- |
+| `main`, `develop` | Exact mirrors of upstream | Never commit here. `sync` refreshes them. |
+| `solo` | What we play: upstream `develop` + all our landed changes | Only `sync` and `land` change it. |
+| `fix/...`, `feat/...`, `perf/...`, `docs/...` | One change each, cut from upstream `develop` | Small and focused, so it can become a PR as is. |
+| `mine/...` | Personal tweaks upstream wouldn't want | Landed into `solo`, never PR'd (the tool refuses). |
+
+Upstream takes PRs into `develop` (PRs aimed at `main` get closed). Their `develop` is merged into `main` for each release, roughly weekly.
+
+## Daily commands
+
+Run from the play folder (`C:\Users\Arturas\Downloads\L2Solo`):
+
+```
+node solo/fork.js status                 where everything stands
+node solo/fork.js sync                   get upstream's latest into solo (server stopped)
+node solo/fork.js new fix/short-name     start a change in .work\fix-short-name
+node solo/fork.js land fix/short-name    put a finished change into solo (server stopped)
+node solo/fork.js pr fix/short-name      push it and open the upstream PR page (you press Create)
+node solo/fork.js drop fix/short-name    delete the change's worktree, keep the branch
+node solo/fork.js backup before-raid     manual world backup (server stopped)
+node solo/fork.js restore <folder> --yes put a backup back (current world is backed up first)
+```
+
+`pr` never creates the PR itself. It pushes the branch to the fork and opens GitHub's compare page so you read the diff and press the button. It refuses `mine/` branches and anything that touches `solo/`, `.claude/` or `.github/README.md`.
+If upstream moved on and the branch clashes, `pr <name> --rebase` replays it on their latest `develop`.
+
+## Keeping merges painless
+
+- **Put new behaviour in new files** and hook it in with a few lines. Upstream edits the big files (`BotAI.js`, `HuntingState.js`, `Database.js`) all the time, and every line we change there can clash.
+- **Don't reformat or reorder upstream code.** Touch only the lines the change needs.
+- **Tunables go in `config/local.ini`**, not `default.ini`, when they're just our taste (rates, bot counts, PvP aggression).
+- **Generated tables** (`data/Bots/*.json`, spot and hunt tables) come from `scripts/generate-*.js`. Change the generator, then regenerate, or upstream's next regen wipes the edit.
+- **Send good fixes upstream early.** Once merged there, they're upstream's code to maintain and stop being a merge risk for us.
+
+## Checks before landing
+
+```
+npm run check                            syntax + data tables (fast)
+npm test -- --only=bot_class_policy      one test file (tests/test_<name>.js)
+npm test                                 everything (1,300+ files, slow; their CI shards it 12 ways)
+```
+
+A GitHub Actions trick from upstream: pushing a branch named `tests/<name>/<a,b,c>` to the fork runs those test files in CI (free for public repos).
+
+## Docs
+
+- [docs/C4_REFERENCE.md](docs/C4_REFERENCE.md) - Lineage II up to Chronicle 4: classes, play styles, zones, grades, economy, PvP, raids
+- [docs/BOT_AI_MAP.md](docs/BOT_AI_MAP.md) - how the bot AI is wired: hot and cold, states, planner, class tactics, tests
+- [BACKLOG.md](BACKLOG.md) - bugs and bot ideas, with what's been checked
