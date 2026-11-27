@@ -14,6 +14,10 @@ const BUTTON_WIDTH = 83; // the C4 client draws L2UI_ch3.Btn1 at this size (Solo
 const BUTTON_CELL = 92;
 const EVENT_ICON = 'icon.skill0121';
 const ADENA_ICON = 'icon.etc_adena_i00';
+// The board is dark and see-through: no bgcolor panels (they draw as grey boxes) and a light
+// grey for second lines instead of HtmlKit's muted 777777 (as Solo/BoardStyle.js SOFT).
+const SOFT = 'B5B5B5';
+const soft = (text) => Html.font(text, SOFT);
 
 const Response = () => invoke('GameServer/Network/Response');
 
@@ -66,7 +70,7 @@ function heading(label) {
 }
 
 function statusBar(view, message) {
-    return `<table width=${WIDTH} bgcolor=222222><tr>`
+    return `<table width=${WIDTH}><tr>`
         + `<td width=6></td><td width=36 height=36><img src="${EVENT_ICON}" width=32 height=32></td>`
         + `<td width=300>${Html.font('Last Hero', Html.COLOR.title)}<br1>${Html.esc(view.text)}</td>`
         + `<td width=262 align=right>${message ? Html.font(message, Html.COLOR.link) : Html.font(yourLine(view), Html.COLOR.ok)}</td><td width=6></td>`
@@ -84,7 +88,7 @@ function tiles(view) {
     const width = Math.floor(WIDTH / list.length);
     const cells = list.map(([icon, value, label]) => `<td width=${width}><table><tr>`
         + `<td width=36 height=36><img src="${icon}" width=32 height=32></td>`
-        + `<td width=${width - 40}>${Html.font(value, 'FFFFFF')}<br1>${Html.font(label)}</td></tr></table></td>`).join('');
+        + `<td width=${width - 40}>${Html.font(value, 'FFFFFF')}<br1>${soft(label)}</td></tr></table></td>`).join('');
     return `<table width=${WIDTH}><tr>${cells}</tr></table>`;
 }
 
@@ -99,20 +103,20 @@ function buttonRow(view) {
 function heroCard(view) {
     const hero = view.hero;
     const body = hero
-        ? `${Html.font(hero.name, Html.COLOR.ok)}<br1>${Html.font(`Lv ${hero.level} ${className(hero.classId)} - won ${ago(hero.at)}, glows until the next winner`)}`
-        : Html.font('No Last Hero yet. Win one and you glow.');
-    return `<table width=${WIDTH} bgcolor=222222><tr><td width=6></td>`
+        ? `${Html.font(hero.name, Html.COLOR.ok)}<br1>${soft(`Lv ${hero.level} ${className(hero.classId)} - won ${ago(hero.at)}, glows until the next winner`)}`
+        : soft('No Last Hero yet. Win one and you glow.');
+    return `<table width=${WIDTH}><tr><td width=6></td>`
         + `<td width=36 height=36><img src="${EVENT_ICON}" width=32 height=32></td><td width=562>${body}</td><td width=6></td></tr></table>`;
 }
 
 function historyTable(view) {
     const rows = (view.history || []).slice(0, 5).map((entry) => {
-        const winner = entry.winner ? `${Html.esc(entry.winner.name)} ${Html.font(`Lv ${entry.winner.level} ${className(entry.winner.classId)}`)}` : Html.font('no winner');
-        const you = entry.you ? Html.font(entry.you.place === 1 ? 'You won!' : `You: #${entry.you.place}, ${entry.you.kills} kills`, entry.you.place === 1 ? Html.COLOR.ok : Html.COLOR.muted)
-            : Html.font(entry.mode === 'simulated' ? 'You did not join' : '');
-        return `<tr><td width=110 height=20>${Html.font(ago(entry.at))}</td><td width=300>${winner}</td><td width=200>${you}</td></tr>`;
+        const winner = entry.winner ? `${Html.esc(entry.winner.name)} ${soft(`Lv ${entry.winner.level} ${className(entry.winner.classId)}`)}` : soft('no winner');
+        const you = entry.you ? Html.font(entry.you.place === 1 ? 'You won!' : `You: #${entry.you.place}, ${entry.you.kills} kills`, entry.you.place === 1 ? Html.COLOR.ok : SOFT)
+            : soft(entry.mode === 'simulated' ? 'You did not join' : '');
+        return `<tr><td width=110 height=20>${soft(ago(entry.at))}</td><td width=300>${winner}</td><td width=200>${you}</td></tr>`;
     }).join('');
-    return rows ? `<table width=${WIDTH}>${rows}</table>` : `<table width=${WIDTH}><tr><td height=20>${Html.font('No events yet.')}</td></tr></table>`;
+    return rows ? `<table width=${WIDTH}>${rows}</table>` : `<table width=${WIDTH}><tr><td height=20>${soft('No events yet.')}</td></tr></table>`;
 }
 
 function boardBody(session, state = {}) {
