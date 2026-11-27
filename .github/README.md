@@ -27,6 +27,8 @@ The title above every bot shows its level and one word about you, live. Every sh
 
 ## All modifications
 
+**Want only some of them on your own L2Solo?** Each one installs on its own: [L2Solo mods: take only what you want](../solo/guides/MODS.md).
+
 ### 1. Solo Helper on Alt+B (`mine/solo-buffer`)
 A full-width Community Board window for solo play. [Install guide for other servers](../solo/guides/SOLO_HELPER.md).
 - **Buffer tab:**
@@ -127,6 +129,7 @@ Double-click it to open the browser launcher and start the server at your last r
 - **Blocked for now:** pmbstyle/L2Solo currently accepts PRs only from prior contributors, so they wait for the maintainer to open that up.
 
 **Guides**
+- [L2Solo mods: take only what you want](../solo/guides/MODS.md). Every modification with its own install line and patch link.
 - [Solo Helper: 1-hour buffs and Adena on Alt+B](../solo/guides/SOLO_HELPER.md). A buffer and Adena window for solo play, with install steps for any L2Solo copy.
 
 **Workflow and tools:** [solo/README.md](../solo/README.md)
