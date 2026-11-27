@@ -99,6 +99,8 @@ function record(victim, source, now = Date.now()) {
         member.lastPvpWakeAt = now;
         invoke('GameServer/Bot/BotAI').promoteForPlayerInteraction(member, 'party_pvp_damage');
     }
+    // Bots outside the party may take the victim's side: clan, friends, justice (BotAllies).
+    invoke('GameServer/Bot/AI/BotAllies').notice(victim, attacker, now);
     return true;
 }
 

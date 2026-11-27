@@ -70,10 +70,15 @@ function moment(session, kind, arg = '', now = Date.now()) {
 function helped(helper, target, result = {}) {
     if (!helper || !target || helper === target || helper.fetchKind || isBot(helper.session)) return null;
     if (!isBot(target.session)) return null;
-    if (result.resurrected) return moment(target.session, 'res');
-    if (Number(result.heal) > 0 && Number(target.fetchHp?.()) < Number(target.fetchMaxHp?.()) * 0.9) return moment(target.session, 'heal');
-    if (result.effect && result.effect.type === 'buff') return moment(target.session, 'buff');
-    return null;
+    // A heal counts when the bot was below 90% before it (the result is already applied).
+    const before = Number(target.fetchHp?.()) - Number(result.heal || 0);
+    const kind = result.resurrected ? 'res'
+        : Number(result.heal) > 0 && before < Number(target.fetchMaxHp?.()) * 0.9 ? 'heal'
+            : result.effect?.type === 'buff' ? 'buff' : null;
+    if (!kind) return null;
+    // The bot remembers who helped and may tell others in town (BotGossip).
+    invoke('GameServer/Bot/AI/BotGossip').helped(helper, target, kind);
+    return moment(target.session, kind);
 }
 
 function leveled(session, level) {

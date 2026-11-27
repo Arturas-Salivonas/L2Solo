@@ -18,6 +18,26 @@ const DEFAULTS = {
     // Moments (Bot/AI/BotMoments): bots near the player say thanks for a heal, buff or res,
     // "ding" on a level-up and "nice drop!" on a rare one, in local chat.
     botMoments: true,
+    // Living Bots. Allies (Bot/AI/BotAllies): bots outside a victim's party may take its side,
+    // clan and friends first; bots that like the player defend the player. allyDefenseRate
+    // scales every chance (0 = never, 1 = the persona's own, at most 5).
+    allyDefenseEnabled: true,
+    allyDefenseRate: 1,
+    // Gossip (Bot/AI/BotGossip): what a player does to bots spreads in town and colours how
+    // bots who never met them feel about them.
+    gossipEnabled: true,
+    // Fear and bravado (Bot/AI/BotNerve): an afraid bot keeps away from the player, a bold one
+    // with a grudge says so to their face.
+    nerveEnabled: true,
+    // Feelings across a wipe (Bot/Legacy/LegacyFeelings): a returning bot remembers how it felt
+    // about a player of the same name.
+    legacyFeelingsEnabled: true,
+    // Dangerous spots (Bot/AI/BotSpotDanger): a bot that died twice at a spot stays away for a
+    // while and warns its friends.
+    spotDangerEnabled: true,
+    // Rivalries (Bot/AI/BotRivalry): kill-steals and kills between bots turn into grudges that
+    // show as words, and now and then a fight.
+    rivalriesEnabled: true,
     // Personal knowledge errors and learning by own actions share one switch.
     knowledgeErrorsEnabled: true,
     // Word of mouth (Bot/AI/BotSpotTips): trusted bots near the player share their best

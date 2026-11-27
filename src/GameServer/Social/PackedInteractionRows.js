@@ -13,7 +13,7 @@ const EVENTS = ['hunted_together', 'helped_in_combat', 'healed', 'resurrected', 
     'mob_contested', 'attacked', 'killed', 'aided_opponent', 'invite_attempt', 'party_formed',
     'party_refused', 'party_dismissed', 'party_kicked', 'party_wiped', 'chat', 'supported_party',
     'trade_completed', 'gave_useful_loot', 'ignored_loot_request', 'insulted', 'crafted_for',
-    'buff_service', 'gift', 'loot_taken'];
+    'buff_service', 'gift', 'loot_taken', 'heard_pk', 'heard_kind', 'remembered_foe', 'remembered_friend'];
 const EVENT_IDS = new Map(EVENTS.map((type, index) => [type, index]));
 // Help clocks (one column per Help.TYPES entry; the meta order code says which
 // exist and in what key order) and the event traits {loyalty, resilience}

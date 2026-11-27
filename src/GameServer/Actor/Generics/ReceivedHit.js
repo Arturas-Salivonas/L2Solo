@@ -128,6 +128,8 @@ function creditKill(session, source, victim) {
             bots: [isBotSession(attackerSession) ? attacker.fetchId() : null,
                 isBotSession(victim.session) ? victim.fetchId() : null].filter(Boolean)
         }).catch(error => FailureLog.note('death.pvp_memory', error)));
+        // Word of it gets around town (BotGossip).
+        killEffect('death.gossip', () => invoke('GameServer/Bot/AI/BotGossip').killed({ attacker, victim, outcome, at }));
     }
     if (outcome !== 'none') {
         const previousKarma = attacker.fetchKarma();

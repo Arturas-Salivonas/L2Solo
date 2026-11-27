@@ -89,6 +89,11 @@ function tick(session, bot, Generics, BotAI, { now = Date.now(), rng = Math.rand
             decision.action = 'fight';
             decision.reasons = ['defend_party', 'weakest_aggressor_first'];
         }
+        // A bot that chose to help someone against this target fights it (BotAllies).
+        if (invoke('GameServer/Bot/AI/BotAllies').decided(session, target, now)) {
+            decision.action = 'fight';
+            decision.reasons = ['ally', session.allyJoined.why];
+        }
         if (Revenge.allows(session, target, now)) {
             decision.action = 'fight';
             decision.reasons = [session.pvpRevenge.reason, session.pvpRevenge.initiator === session ? 'initiator' : 'party_assist'];
