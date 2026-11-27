@@ -1012,7 +1012,10 @@ const LISTS = {
         { selfId: 256, price: 156400 }
     ],
 
-    orcRobes: [
+    // The No-Grade robe list every C4 starter armor dealer has beside its fighter list
+    // (Lisvus fdc7e33a buylists 12, 34, 40, 78, 84 for Jackson 7002, Payne 7136,
+    // Ariel 7148, Shari 7517 and Kunai 7559; the same ten ids in L2J Mobius C4).
+    starterRobes: [
         { selfId: 462, price: 106 },
         { selfId: 426, price: 169 },
         { selfId: 1103, price: 1748 },
@@ -1034,7 +1037,7 @@ const NPC_LISTS = {
     7892: ['heine7892'],
     7893: ['heine7893'],
     7001: ['starterWeapons', 'starterMysticWeapons'],
-    7002: ['starterArmor'],
+    7002: ['starterArmor', 'starterRobes'],
     7003: ['talkingIslandJewelry', 'talkingIslandSpellbooks'],
     7004: ['talkingIslandGrocer'],
 
@@ -1057,12 +1060,12 @@ const NPC_LISTS = {
     7829: ['giranPetSupplies'],
 
     7135: ['starterWeapons', 'starterMysticWeapons'],
-    7136: ['starterArmor'],
+    7136: ['starterArmor', 'starterRobes'],
     7137: ['talkingIslandGrocer'],
     7138: ['talkingIslandJewelry', 'talkingIslandSpellbooks'],
 
     7147: ['starterWeapons', 'starterMysticWeapons'],
-    7148: ['starterArmor'],
+    7148: ['starterArmor', 'starterRobes'],
     7149: ['talkingIslandJewelry', 'talkingIslandSpellbooks'],
     7150: ['talkingIslandGrocer'],
 
@@ -1112,7 +1115,7 @@ const NPC_LISTS = {
     7519: ['dwarvenGrocer', 'dwarvenMagicBooks'],
 
     7558: ['orcWeapons', 'starterMysticWeapons'],
-    7559: ['starterArmor', 'orcRobes'],
+    7559: ['starterArmor', 'starterRobes'],
     7560: ['talkingIslandJewelry', 'orcAmulets'],
     7561: ['talkingIslandGrocer']
 };
