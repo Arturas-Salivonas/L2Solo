@@ -54,7 +54,7 @@ function git(args, { cwd = ROOT, allowFail = false, inherit = false } = {}) {
 const gitOut = (args, opts) => git(args, opts).out;
 const refExists = ref => git(['rev-parse', '--verify', '--quiet', ref], { allowFail: true }).status === 0;
 const isAncestor = (a, b) => git(['merge-base', '--is-ancestor', a, b], { allowFail: true }).status === 0;
-const countRange = range => Number(gitOut(['rev-list', '--count', range]) || 0);
+const countRange = (range, noMerges = false) => Number(gitOut(['rev-list', '--count', ...(noMerges ? ['--no-merges'] : []), range]) || 0);
 const currentBranch = (cwd = ROOT) => gitOut(['branch', '--show-current'], { cwd });
 
 function assertRemotes() {
@@ -265,7 +265,7 @@ async function cmdStatus() {
     const branch = currentBranch();
     const port = await serverPort();
     const behind = refExists(BASE) && refExists(PLAY) ? countRange(`${PLAY}..${BASE}`) : 0;
-    const ours = refExists(PLAY) ? countRange(`${BASE}..${PLAY}`) : 0;
+    const ours = refExists(PLAY) ? countRange(`${BASE}..${PLAY}`, true) : 0;
     log(
         `Play folder : ${ROOT}`,
         `Branch      : ${branch || 'detached'}${branch === PLAY ? '' : `   <- expected ${PLAY}`}`,
@@ -290,7 +290,7 @@ async function cmdStatus() {
             : 'not pushed';
         const pr = prs?.find(p => p.headRefName === name);
         const bits = [
-            `${countRange(`${BASE}..${name}`)} commit(s)`,
+            `${countRange(`${BASE}..${name}`, true)} commit(s)`,
             isAncestor(name, PLAY) ? 'in solo' : 'NOT in solo',
             pushed,
             pr ? `PR #${pr.number} ${pr.state.toLowerCase()}` : (name.startsWith('mine/') ? 'personal' : 'no PR'),
@@ -407,6 +407,7 @@ async function cmdPr(name, flags) {
     assertTopic(name);
     if (name.startsWith('mine/')) fail('mine/ branches are personal and never go upstream. Rename it (git branch -m) if it should.');
     if (!refExists(`refs/heads/${name}`)) fail(`No local branch ${name}.`);
+    const { owner, repo } = forkOwner();
     git(['fetch', 'upstream', '--quiet']);
 
     let rebased = false;
@@ -429,7 +430,6 @@ async function cmdPr(name, flags) {
     if (push.status !== 0) fail(`Push failed:\n${push.err}`);
 
     const commits = gitOut(['log', '--oneline', `${BASE}..${name}`]).split(/\r?\n/).filter(Boolean);
-    const { owner, repo } = forkOwner();
     const url = `https://github.com/${UPSTREAM_REPO}/compare/${UPSTREAM_BASE_BRANCH}...${owner}:${repo}:${name}?expand=1`;
     log(`${name}: ${commits.length} commit(s), ${files.length} file(s), pushed to your fork.`,
         ...commits.map(c => `  ${c}`),
