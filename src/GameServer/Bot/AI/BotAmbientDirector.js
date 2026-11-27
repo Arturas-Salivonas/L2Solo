@@ -64,6 +64,14 @@ function trait(session, name, fallback = 0.5) {
     return Number.isFinite(value) ? value : fallback;
 }
 
+// No persona carries a restlessness trait (BotPersonaTypes.TRAITS), so the check below
+// read the 0.5 fallback and never fired. A restless bot is an ambitious one with little
+// patience for staying put: ambition and the want of commitment (ours). A brawler is
+// about 0.68, a competitive climber 0.74, a steady achiever 0.57.
+function restlessness(session) {
+    return (trait(session, 'ambition') + 1 - trait(session, 'commitment')) / 2;
+}
+
 function ratio(actor, current, maximum) {
     const max = number(actor?.[maximum]?.(), 0);
     if (max <= 0) return 1;
@@ -98,7 +106,7 @@ function deriveMood(session) {
     if (persona?.primaryDrive === 'social' || trait(session, 'sociability') >= 0.76) {
         return { mood: 'sociable', intent: 'seek_company', reason: 'social_persona' };
     }
-    if (Number(session.noTargetTicks || 0) >= 3 || session.plan === 'resting' && trait(session, 'restlessness') >= 0.68) {
+    if (Number(session.noTargetTicks || 0) >= 3 || session.plan === 'resting' && restlessness(session) >= 0.68) {
         return { mood: 'restless', intent: 'look_for_activity', reason: 'idle_or_restless' };
     }
     if (persona?.primaryDrive === 'progression' || persona?.primaryDrive === 'wealth') {
