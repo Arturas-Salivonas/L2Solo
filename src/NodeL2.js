@@ -88,6 +88,8 @@ function exitAfterFinalWrites() {
 // left when the budget runs out are named and skipped.
 async function drainServices(progress) {
     const steps = [
+        // Online players' HP, MP, CP and buffs, while the database is still open.
+        ['online player status', () => invoke('GameServer/World/OnlineStatusSave').saveAll()],
         ['cold simulation drain', () => invoke('GameServer/Bot/Population/PopulationService').stop()],
         ['Garden of Eva doors', () => invoke('GameServer/World/GardenOfEvaDoors').stop()],
         ['pathfinding workers', () => PathfindingWorkerPool.shutdown()],
