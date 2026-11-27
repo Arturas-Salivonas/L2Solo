@@ -136,6 +136,8 @@ function creditKill(session, source, victim) {
         attacker.setPvp(tally.pvp);
         attacker.setPk(tally.pk);
         attacker.setKarma(tally.karma);
+        // Bystanders may call it out (TownAttention).
+        if (outcome === 'pk') killEffect('death.town_attention', () => invoke('GameServer/Bot/AI/TownAttention').notice('pk', attacker, { other: owner }));
         if (isBotSession(attackerSession) && !Karma.closesTowns(previousKarma) && Karma.closesTowns(tally.karma)) {
             killEffect('death.pk_meeting_ads', () => invoke('GameServer/AfkTrade/AfkTradeService').merchantBecamePk(attacker.fetchId()));
         }

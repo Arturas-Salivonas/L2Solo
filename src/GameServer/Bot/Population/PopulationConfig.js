@@ -127,6 +127,9 @@ const DEFAULTS = {
     // Idle formation can fill six parties per pass; live-player protection
     // still caps the same pass at one party in PopulationService.
     partyFormationBatchSize: 6,
+    // Town attention (Bot/AI/TownAttention): bots near the player say gz to a player's
+    // level-up, call out a PK, and walk over to watch a fight.
+    townAttentionEnabled: true,
     // The spot aggregate's outcomes (SpotContest, EnemyMet) reach main in a
     // frame; main-process actions validate and commit cooperation, resource
     // interruptions and optional bounded PvP.

@@ -51,6 +51,8 @@ function levelUp(session, actor, nextLevel) {
 
     // Level up effect
     session.dataSendToMeAndOthers(ServerResponse.socialAction(id, 15), actor);
+    // Bots nearby may say gz (TownAttention: only a player's level-up).
+    invoke('GameServer/Bot/AI/TownAttention').notice('level_up', actor);
     ConsoleText.transmit(session, ConsoleText.caption.levelUp);
     if (isBot) {
         invoke('GameServer/Bot/AI/BotEventJournal').record({
