@@ -459,6 +459,8 @@ const BotAI = {
             // background timer is needed for a session-local preference.
             HotBotPolicyOverlay.get(session);
         }
+        // A fight nearby may draw it in on the victim's side (BotAllies): it then defends.
+        if (!botDead) invoke('GameServer/Bot/AI/BotAllies').tick(session, bot, tickStartedAt);
         // Actual player aggression owns the action window before travel,
         // conversation, recovery or ordinary party/PvE state routing.
         const defendingPvp = !botDead && invoke('GameServer/Bot/AI/BotPvpDefense').tick(session, bot, invoke(path.actor), this);
@@ -672,6 +674,8 @@ const BotAI = {
         recordHotStage('equipmentUpgrade', equipmentStartedAt);
         // Word of mouth (BotSpotTips): trusted bots together in town or resting share their best spot.
         if (!isCompanion) invoke('GameServer/Bot/AI/BotSpotTips').tick(session, bot, tickStartedAt);
+        // Gossip (BotGossip): what a player did to it or to others, told to the bots around it.
+        if (!isCompanion) invoke('GameServer/Bot/AI/BotGossip').tick(session, bot, tickStartedAt);
 
         // Physical hot actors collect their ground drops before selecting the
         // next hunt or formation move. The queue yields to combat and support.
@@ -692,6 +696,8 @@ const BotAI = {
         // Reactions use the existing visible hot tick and never delay combat
         // or keep an actor seated just to finish a scripted exchange.
         if (lodContext.playerVisible) invoke('GameServer/Bot/AI/BotChatReactions').offerLocal(session, tickStartedAt);
+        // Near a player it fears it keeps away; a bold one with a grudge says so (BotNerve).
+        if (!isCompanion && invoke('GameServer/Bot/AI/BotNerve').tick(session, bot, tickStartedAt)) return;
         // What happens around the bot (TownAttention): a gz, a PK warning, a fight to watch.
         // Watching a fight owns the tick.
         if (!isCompanion && invoke('GameServer/Bot/AI/TownAttention').tick(session, bot, tickStartedAt)) return;

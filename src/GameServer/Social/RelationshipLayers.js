@@ -22,7 +22,8 @@ function persistent(row, at) {
     return { grudge: decay(row?.grudge, elapsed, spans.middle), gratitude: decay(row?.gratitude, elapsed, spans.middle) };
 }
 // Events that add grudge (durable layer) or raise the short-lived value; every other type counts as positive.
-const NEGATIVE_EVENTS = new Set(['mob_contested', 'loot_taken', 'attacked', 'killed', 'aided_opponent', 'party_kicked', 'party_wiped', 'ignored_loot_request', 'insulted']);
+const NEGATIVE_EVENTS = new Set(['mob_contested', 'loot_taken', 'attacked', 'killed', 'aided_opponent', 'party_kicked', 'party_wiped', 'ignored_loot_request', 'insulted',
+    'heard_pk', 'remembered_foe']);
 function apply(row, event) {
     const at = hours(row, event), prior = persistent(row, at);
     const negative = NEGATIVE_EVENTS.has(event.type);

@@ -30,7 +30,11 @@ const EVENTS = Object.freeze({
     chat: [0, 0, 0, 0, 1], supported_party: [1, 1, 0, 0, 1], trade_completed: [1, 1, 0, 0, 1],
     gave_useful_loot: [3, 3, 0, 0, 0], ignored_loot_request: [-1, -1, 1, 0, 0], insulted: [-3, -3, 3, 0, 0],
     crafted_for: [3, 4, 0, 0, 1], buff_service: [2, 3, 0, 0, 1], gift: [2, 3, 0, 0, 1],
-    loot_taken: [-2, -2, 0, 0, 1]
+    loot_taken: [-2, -2, 0, 0, 1],
+    // Living Bots. Heard in town (Bot/AI/BotGossip): a PK's or a kind player's name, second-hand.
+    heard_pk: [-2, -3, 4, 5, 0], heard_kind: [1, 2, 0, 0, 0],
+    // Carried over a wipe (Bot/Legacy/LegacyFeelings): the last world's feeling, in broad strokes.
+    remembered_foe: [-6, -6, 10, 4, 2], remembered_friend: [4, 5, -2, 0, 2]
 });
 
 function id(value) {
