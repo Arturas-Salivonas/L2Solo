@@ -99,7 +99,7 @@ const Opcodes = {
         table[0xc2] = ClientRequest.macro;
         table[0xcd] = ClientRequest.showMap;
 
-        table[0x57] = session => invoke('GameServer/Solo/SoloBuffer').openBoard(session); // Board (solo helper, else Market Board)
+        table[0x57] = session => invoke('GameServer/Solo/SoloHelper').openBoard(session); // Board (solo helper, else Market Board)
         table[0x9d] = ClientRequest.skillCoolTime;
         table[0xb9] = ClientRequest.recommend;
         table[0x4a] = () => {}; // StartRotating

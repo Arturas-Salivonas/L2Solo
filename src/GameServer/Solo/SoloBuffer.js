@@ -1,11 +1,13 @@
 'use strict';
 
-// Solo helper buffer (fork-only, branch mine/solo-buffer).
+// Solo Buffer (fork-only, branch mine/solo-buffer): the Buffer tab of the Solo
+// Helper (SoloHelper.js, Alt+B or ".buffer").
 //
-// Alt+B or ".buffer" opens it. The real player buffs themself, and their
-// servitor, for free: one buff at a time, from a preset, or from a saved set.
-// Every buff lasts [SoloHelper] buffMinutes (default 60). Upstream's Market
-// Board, which Alt+B used to open, is one click away on the same page.
+// The real player buffs themself, and their servitor, for free: one buff at a
+// time, from a preset, or from a saved set. Every buff lasts [SoloHelper]
+// buffMinutes (default 60). Two views share one set of actions (act): the
+// full-width Community Board (boardBody) and the small chat window (chatHandle,
+// [SoloHelper] window = chat).
 //
 // Skill ids and levels come only from the catalog below, never from the link
 // the client sends back, so a crafted bypass cannot grant an arbitrary skill.
@@ -14,18 +16,22 @@ const fs = require('fs');
 const nodePath = require('path');
 
 const Html = require('../World/Generics/HtmlKit');
+const { config } = require('./SoloConfig');
 const skillTree = require('../../../data/Skills/Tree/tree.json');
 
-const DEFAULTS = Object.freeze({ enabled: true, altB: true, buffMinutes: 60 });
-const MAX_HTML = 8192;
+const MAX_CHAT_HTML = 8192;
 const MAX_TREE_LEVEL = 100; // enchanted skill levels (101+) are not C4 buffer levels
+const BOARD_WIDTH = 610;
+const BOARD_COLUMNS = 3;
 
-// Buffer-class buffs from the C4 datapack, grouped the way C4 buffers are known.
-// Names and max levels are read from data at runtime.
+// Buffer-class buffs from the C4 datapack, grouped the way players know them.
+// Names and max levels are read from data at runtime. Groups stay at 19 or fewer
+// so one board page fits the client's packet and row limits.
 const GROUPS = Object.freeze([
-    { id: 'prophet', label: 'Prophet and Elders', ids: [1204, 1086, 1068, 1040, 1077, 1242, 1240, 1062, 1268, 1045, 1048,
-        1035, 1036, 1059, 1085, 1078, 1303, 1087, 1243, 1259, 1304, 1073, 1044, 1032, 1033, 1182, 1189, 1191, 1257] },
-    { id: 'chants', label: 'Warcryer chants', ids: [1007, 1009, 1006, 1002, 1251, 1252, 1253, 1284, 1308, 1309, 1310] },
+    { id: 'prophet', label: 'Prophet', ids: [1204, 1086, 1068, 1040, 1077, 1242, 1240, 1062, 1268, 1045, 1048,
+        1035, 1036, 1059, 1085, 1078, 1303, 1087, 1243] },
+    { id: 'resist', label: 'Resists', ids: [1259, 1304, 1073, 1044, 1032, 1033, 1182, 1189, 1191, 1257] },
+    { id: 'chants', label: 'Chants', ids: [1007, 1009, 1006, 1002, 1251, 1252, 1253, 1284, 1308, 1309, 1310] },
     { id: 'paagrio', label: 'Overlord', ids: [1003, 1004, 1005, 1008, 1249, 1250, 1260, 1261, 1282] },
     { id: 'dances', label: 'Dances', ids: [271, 272, 273, 274, 275, 276, 277, 307, 309, 310, 365, 366] },
     { id: 'songs', label: 'Songs', ids: [264, 265, 266, 267, 268, 269, 270, 304, 305, 306, 308, 349, 363, 364] },
@@ -33,36 +39,23 @@ const GROUPS = Object.freeze([
 ]);
 
 // Presets reuse the admin full-buff profiles (AdminFullBuff.PROFILES), so the
-// two stay in step. 'auto' picks the profile for the player's class.
+// two stay in step. 'auto' picks the profile for the player's class. icon is the
+// skill whose icon stands for the preset on the board.
 const PRESETS = Object.freeze([
-    { id: 'tank', label: 'Tank', profile: 'tank' },
-    { id: 'fighter', label: 'Fighter', profile: 'melee' },
-    { id: 'mage', label: 'Mage', profile: 'mage' },
-    { id: 'support', label: 'Support', profile: 'support' },
-    { id: 'auto', label: 'My class', profile: null }
+    { id: 'tank', label: 'Tank', profile: 'tank', icon: 1243 },
+    { id: 'fighter', label: 'Fighter', profile: 'melee', icon: 1068 },
+    { id: 'mage', label: 'Mage', profile: 'mage', icon: 1085 },
+    { id: 'support', label: 'Support', profile: 'support', icon: 1078 },
+    { id: 'auto', label: 'My class', profile: null, icon: 1062 }
 ]);
+const MY_SET_ICON = 1045;
 
 const admin = () => invoke('GameServer/World/Generics/NpcBypasses/AdminFullBuff');
 const response = () => invoke('GameServer/Network/Response');
 const effects = () => invoke('GameServer/Effects/EffectStore');
 const ticker = () => invoke('GameServer/Effects/EffectTicker');
-
-// ---------- config ----------
-
-function flag(value, fallback) {
-    if (value === undefined || value === null || value === '') return fallback;
-    return !/^(false|0|no|off)$/i.test(String(value).trim());
-}
-
-function config() {
-    const raw = global.options?.default?.SoloHelper || {};
-    const minutes = Math.floor(Number(raw.buffMinutes));
-    return {
-        enabled: flag(raw.enabled, DEFAULTS.enabled),
-        altB: flag(raw.altB, DEFAULTS.altB),
-        buffMinutes: Number.isFinite(minutes) && minutes >= 1 ? Math.min(minutes, 24 * 60) : DEFAULTS.buffMinutes
-    };
-}
+const summonOf = (actor) => invoke('GameServer/Npc/SummonControl').activeSummon(actor);
+const iconFor = (selfId) => `icon.skill${String(Math.max(0, Number(selfId) || 0)).padStart(4, '0')}`;
 
 // ---------- catalog ----------
 
@@ -108,6 +101,8 @@ function catalog() {
     return catalogCache;
 }
 
+const groupById = (id) => catalog().groups.find((group) => group.id === id) || null;
+
 function presetEntries(preset, actor) {
     const profile = preset.profile || admin().profileForActor(actor);
     return { profile, entries: admin().PROFILES[profile] || [] };
@@ -136,9 +131,7 @@ function writeSets(sets) {
     fs.renameSync(temp, file);
 }
 
-function setKey(actor) {
-    return String(actor?.fetchId?.() ?? '');
-}
+const setKey = (actor) => String(actor?.fetchId?.() ?? '');
 
 function savedSet(actor) {
     const entry = readSets()[setKey(actor)];
@@ -218,21 +211,168 @@ function clearBuffs(session, actor) {
     return removed.length;
 }
 
-// ---------- pages ----------
+// ---------- actions (shared by both views) ----------
 
-function slotsText(actor) {
+// Runs one action and returns what the page shows next: { group, message }.
+// group is set when the action belongs to a group page; message is one status line.
+function act(session, action = '', arg = '') {
+    const actor = session.actor;
+    const deadReason = () => (actor.isDead?.() ? 'You cannot be buffed while dead.' : '');
+    switch (String(action || '')) {
+        case 'group':
+            return { group: groupById(arg) ? arg : undefined };
+        case 'one': {
+            const buff = catalog().byId.get(Number(arg));
+            if (!buff || String(Number(arg)) !== String(arg)) return {};
+            const reason = deadReason();
+            if (reason) return { group: buff.group, message: reason };
+            const applied = buffSelf(session, [[buff.selfId, buff.level]]);
+            return { group: buff.group, message: applied.length ? `${buff.name} ${buff.level} on.` : `${buff.name} did not take.` };
+        }
+        case 'preset': {
+            const preset = PRESETS.find((entry) => entry.id === arg);
+            if (!preset) return {};
+            const reason = deadReason();
+            if (reason) return { message: reason };
+            const { profile, entries } = presetEntries(preset, actor);
+            const applied = buffSelf(session, entries);
+            return { message: `${preset.label} preset${preset.profile ? '' : ` (${profile})`}: ${applied.length} buffs on.` };
+        }
+        case 'mine': {
+            const entries = savedSet(actor);
+            if (!entries?.length) return { message: 'No saved set yet. Buff up, then save it.' };
+            const reason = deadReason();
+            if (reason) return { message: reason };
+            return { message: `My set: ${buffSelf(session, entries).length} buffs on.` };
+        }
+        case 'save': {
+            const count = saveSet(actor);
+            return { message: count ? `Saved ${count} buffs as My set.` : 'You have no buffs from this window to save.' };
+        }
+        case 'pet': {
+            const summon = summonOf(actor);
+            if (!summon) return { message: 'You have no servitor out.' };
+            const applied = applyEntries(session, summon, admin().PROFILES.servitor);
+            if (applied.length) hooks.refreshSummon(session, summon);
+            return { message: `Servitor: ${applied.length} buffs on.` };
+        }
+        case 'clear':
+            return { message: `Removed ${clearBuffs(session, actor)} buffs.` };
+        default:
+            return {};
+    }
+}
+
+// ---------- board view (full width) ----------
+
+const B = (command) => `_bbssolo buff ${command}`;
+
+function iconButton(selfId, command, size = 32) {
+    const icon = iconFor(selfId);
+    return `<button action="bypass ${B(command)}" width=${size} height=${size} back="${icon}" fore="${icon}">`;
+}
+
+function minutesLeft(effect) {
+    const ms = Number(effect?.expiresAt || 0) - Date.now();
+    return ms > 0 ? `${Math.max(1, Math.ceil(ms / 60000))} min` : '';
+}
+
+function boardStatus(actor, message) {
+    const used = currentBuffs(actor).length;
+    const limit = effects().BUFF_LIMIT;
+    const count = Html.font(`${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok);
+    const note = used >= limit ? 'full - a new buff replaces your oldest' : `${config().buffMinutes} min each`;
+    return `<table width=${BOARD_WIDTH} bgcolor=222222><tr>`
+        + `<td width=6></td><td width=250 height=24>Buffs ${count} ${Html.font(note)}</td>`
+        + `<td width=348 align=right>${message ? Html.font(message, Html.COLOR.link) : ''}</td><td width=6></td>`
+        + '</tr></table>';
+}
+
+function activeStrip(actor) {
+    const active = currentBuffs(actor);
+    if (!active.length) {
+        return `<table width=${BOARD_WIDTH}><tr><td height=30>${Html.font('No buffs yet. Pick a preset or any buff below.')}</td></tr></table>`;
+    }
+    const cells = active.slice(0, 20).map((effect) => `<td width=28><img src="${iconFor(effect.id)}" width=24 height=24></td>`).join('');
+    return `<table width=${BOARD_WIDTH}><tr><td width=50 height=30>${Html.font('Active', Html.COLOR.title)}</td>${cells}<td></td></tr></table>`;
+}
+
+function heading(label) {
+    return `<br1><table width=${BOARD_WIDTH}><tr><td>${Html.font(label, Html.COLOR.title)}</td></tr></table>`
+        + `<img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1>`;
+}
+
+function presetTiles() {
+    const tiles = [
+        ...PRESETS.map((preset) => [preset.icon, `preset ${preset.id}`, preset.label]),
+        [MY_SET_ICON, 'mine', 'My set']
+    ];
+    const width = Math.floor(BOARD_WIDTH / tiles.length);
+    const cells = tiles.map(([icon, command, label]) => `<td width=${width} align=center>${iconButton(icon, command)}<br1>${label}</td>`).join('');
+    return `<table width=${BOARD_WIDTH}><tr>${cells}</tr></table>`;
+}
+
+function groupTabs(activeId) {
+    const width = Math.floor(BOARD_WIDTH / GROUPS.length);
+    const cells = catalog().groups.map((group) => {
+        const pressed = group.id === activeId;
+        const fore = pressed ? Html.TEXTURE.defaultButtonDown : Html.TEXTURE.defaultButton;
+        return `<td width=${width} align=center><button value="${group.label}" action="bypass ${B(`group ${group.id}`)}" width=${width - 4} height=21 back="${Html.TEXTURE.defaultButtonDown}" fore="${fore}"></td>`;
+    }).join('');
+    return `<table width=${BOARD_WIDTH}><tr>${cells}</tr></table><br1>`;
+}
+
+function buffGrid(group, active) {
+    const cellWidth = Math.floor(BOARD_WIDTH / BOARD_COLUMNS);
+    const rows = [];
+    for (let i = 0; i < group.buffs.length; i += BOARD_COLUMNS) {
+        const cells = group.buffs.slice(i, i + BOARD_COLUMNS).map((buff) => {
+            const effect = active.get(buff.selfId);
+            const name = effect ? Html.font(buff.name, Html.COLOR.ok) : Html.esc(buff.name);
+            const detail = Html.font(`Lv ${buff.level}`) + (effect ? ` ${Html.font(minutesLeft(effect), Html.COLOR.ok)}` : '');
+            return `<td width=38 height=38>${iconButton(buff.selfId, `one ${buff.selfId}`)}</td>`
+                + `<td width=${cellWidth - 38}><a action="bypass ${B(`one ${buff.selfId}`)}">${name}</a><br1>${detail}</td>`;
+        });
+        while (cells.length < BOARD_COLUMNS) cells.push(`<td width=38></td><td width=${cellWidth - 38}></td>`);
+        rows.push(`<tr>${cells.join('')}</tr>`);
+    }
+    return `<table width=${BOARD_WIDTH}>${rows.join('')}</table>`;
+}
+
+function boardFooter(session) {
+    const buttons = [['Save as My set', 'save'], ['Clear my buffs', 'clear']];
+    if (summonOf(session.actor)) buttons.splice(1, 0, ['Buff my servitor', 'pet']);
+    const cells = buttons.map(([label, command]) => `<td width=140 align=center>${Html.button(label, B(command), { width: 130, hide: false })}</td>`).join('');
+    return `<br><img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1><table width=${buttons.length * 140}><tr>${cells}</tr></table>`;
+}
+
+// The Buffer tab body; SoloHelper adds the window chrome and tabs.
+function boardBody(session, state = {}) {
+    const group = groupById(state.group) || groupById(session.soloBuffGroup) || catalog().groups[0];
+    session.soloBuffGroup = group.id;
+    const active = new Map(currentBuffs(session.actor).map((effect) => [Number(effect.id), effect]));
+    return boardStatus(session.actor, state.message)
+        + activeStrip(session.actor)
+        + heading('Presets') + presetTiles()
+        + heading('Pick any buff') + groupTabs(group.id) + buffGrid(group, active)
+        + boardFooter(session);
+}
+
+// ---------- chat view (270 px NPC window, [SoloHelper] window = chat) ----------
+
+function chatSlots(actor) {
     const used = currentBuffs(actor).length;
     const limit = effects().BUFF_LIMIT;
     return Html.font(`Buffs ${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok)
         + Html.font(used >= limit ? ' - a new buff replaces your oldest' : ` - each lasts ${config().buffMinutes} min`);
 }
 
-function header(actor, message) {
-    return Html.font('Solo Buffer', Html.COLOR.title) + '<br1>' + slotsText(actor) + '<br1>'
+function chatHeader(actor, message) {
+    return Html.font('Solo Buffer', Html.COLOR.title) + '<br1>' + chatSlots(actor) + '<br1>'
         + (message ? Html.font(message, Html.COLOR.link) + '<br1>' : '') + Html.line('L2UI.SquareGray');
 }
 
-function buttonGrid(items, perRow = 3) {
+function chatButtons(items, perRow = 3) {
     const rows = [];
     for (let i = 0; i < items.length; i += perRow) {
         rows.push(Html.row(items.slice(i, i + perRow).map(([label, command]) => Html.cell(Html.button(label, command), { align: 'center' }))));
@@ -240,7 +380,7 @@ function buttonGrid(items, perRow = 3) {
     return Html.table(rows);
 }
 
-function linkGrid(items, perRow = 2) {
+function chatLinks(items, perRow = 2) {
     const width = Math.floor(Html.WIDTH / perRow);
     const rows = [];
     for (let i = 0; i < items.length; i += perRow) {
@@ -249,143 +389,71 @@ function linkGrid(items, perRow = 2) {
     return Html.table(rows);
 }
 
+function chatPage(body, actions) {
+    const html = Html.page(Html.table([Html.row([Html.cell(body, { width: Html.WIDTH, align: 'left' })])]),
+        { footer: Html.actionFooter(actions) });
+    if (html.length > MAX_CHAT_HTML) throw new Error(`solo buffer page is ${html.length} chars, over ${MAX_CHAT_HTML}`);
+    return html;
+}
+
 function homePage(session, message = '') {
-    const actor = session.actor;
-    const summon = invoke('GameServer/Npc/SummonControl').activeSummon(actor);
     const presets = PRESETS.map((preset) => [preset.label, `solo-buffer preset ${preset.id}`]);
     presets.push(['My set', 'solo-buffer mine']);
-    let body = header(actor, message)
-        + Html.font('Presets', Html.COLOR.title) + '<br1>' + buttonGrid(presets)
+    let body = chatHeader(session.actor, message)
+        + Html.font('Presets', Html.COLOR.title) + '<br1>' + chatButtons(presets)
         + Html.link('Save my current buffs as My set', 'solo-buffer save') + '<br1>';
-    if (summon) body += Html.link('Buff my servitor', 'solo-buffer pet') + '<br1>';
+    if (summonOf(session.actor)) body += Html.link('Buff my servitor', 'solo-buffer pet') + '<br1>';
     body += Html.line('L2UI.SquareGray') + Html.font('Pick buffs one by one', Html.COLOR.title) + '<br1>'
-        + linkGrid(catalog().groups.map((group) => Html.link(`${group.label} (${group.buffs.length})`, `solo-buffer group ${group.id}`)));
-    return page(body, [
+        + chatLinks(catalog().groups.map((group) => Html.link(`${group.label} (${group.buffs.length})`, `solo-buffer group ${group.id}`)));
+    return chatPage(body, [
         { label: 'Clear my buffs', command: 'solo-buffer clear' },
         { label: 'Market Board', command: 'solo-buffer market' }
     ]);
 }
 
 function groupPage(session, groupId, message = '') {
-    const group = catalog().groups.find((entry) => entry.id === groupId);
+    const group = groupById(groupId);
     if (!group) return homePage(session, message);
     const active = new Set(currentBuffs(session.actor).map((effect) => Number(effect.id)));
     const links = group.buffs.map((buff) => Html.link(`${buff.name} ${buff.level}`, `solo-buffer one ${buff.selfId}`,
         { color: active.has(buff.selfId) ? Html.COLOR.ok : Html.COLOR.link }));
-    const body = header(session.actor, message) + Html.font(group.label, Html.COLOR.title)
-        + Html.font('  green = active', Html.COLOR.muted) + '<br1>' + linkGrid(links);
-    return page(body, [
+    const body = chatHeader(session.actor, message) + Html.font(group.label, Html.COLOR.title)
+        + Html.font('  green = active', Html.COLOR.muted) + '<br1>' + chatLinks(links);
+    return chatPage(body, [
         { label: 'Back', command: 'solo-buffer' },
         { label: 'Clear my buffs', command: 'solo-buffer clear' }
     ]);
 }
 
-function page(body, actions) {
-    const html = Html.page(Html.table([Html.row([Html.cell(body, { width: Html.WIDTH, align: 'left' })])]),
-        { footer: Html.actionFooter(actions) });
-    if (html.length > MAX_HTML) throw new Error(`solo buffer page is ${html.length} chars, over ${MAX_HTML}`);
-    return html;
-}
-
-function send(session, html) {
+// Bypass "solo-buffer <action> [arg]" (NpcBypasses/SoloBuffer.js): the chat view.
+function chatHandle(session, args = []) {
+    if (!session?.actor || !config().enabled) return null;
+    const [action = '', arg = ''] = args.map((value) => String(value || '').toLowerCase());
+    if (action === 'market') return invoke('GameServer/AfkTrade/PlayerBoardWindow').open(session);
+    const state = act(session, action, arg);
+    const html = state.group && action !== 'preset' ? groupPage(session, state.group, state.message)
+        : homePage(session, state.message);
     session.dataSendToMe(response().npcHtml(session.actor.fetchId(), html));
     return html;
-}
-
-function show(session, message = '') {
-    if (!session?.actor) return null;
-    return send(session, homePage(session, message));
-}
-
-// ---------- entry points ----------
-
-// Bypass "solo-buffer <action> [arg]" (NpcBypasses/SoloBuffer.js).
-function handle(session, args = []) {
-    const actor = session?.actor;
-    if (!actor) return null;
-    if (!config().enabled) return null;
-    const [action = 'home', arg = ''] = args.map((value) => String(value || '').toLowerCase());
-    const blocked = () => (actor.isDead?.() ? 'You cannot be buffed while dead.' : '');
-
-    switch (action) {
-        case 'home':
-            return show(session);
-        case 'group':
-            return send(session, groupPage(session, arg));
-        case 'one': {
-            const buff = catalog().byId.get(Number(arg));
-            if (!buff || String(Number(arg)) !== arg) return show(session);
-            const reason = blocked();
-            if (reason) return send(session, groupPage(session, buff.group, reason));
-            const applied = buffSelf(session, [[buff.selfId, buff.level]]);
-            return send(session, groupPage(session, buff.group, applied.length ? `${buff.name} ${buff.level} on.` : `${buff.name} did not take.`));
-        }
-        case 'preset': {
-            const preset = PRESETS.find((entry) => entry.id === arg);
-            if (!preset) return show(session);
-            const reason = blocked();
-            if (reason) return show(session, reason);
-            const { profile, entries } = presetEntries(preset, actor);
-            const applied = buffSelf(session, entries);
-            return show(session, `${preset.label} preset${preset.profile ? '' : ` (${profile})`}: ${applied.length} buffs on.`);
-        }
-        case 'mine': {
-            const entries = savedSet(actor);
-            if (!entries?.length) return show(session, 'No saved set yet. Buff up, then save it.');
-            const reason = blocked();
-            if (reason) return show(session, reason);
-            return show(session, `My set: ${buffSelf(session, entries).length} buffs on.`);
-        }
-        case 'save': {
-            const count = saveSet(actor);
-            return show(session, count ? `Saved ${count} buffs as My set.` : 'You have no buffs from this window to save.');
-        }
-        case 'pet': {
-            const summon = invoke('GameServer/Npc/SummonControl').activeSummon(actor);
-            if (!summon) return show(session, 'You have no servitor out.');
-            const applied = applyEntries(session, summon, admin().PROFILES.servitor);
-            if (applied.length) hooks.refreshSummon(session, summon);
-            return show(session, `Servitor: ${applied.length} buffs on.`);
-        }
-        case 'clear':
-            return show(session, `Removed ${clearBuffs(session, actor)} buffs.`);
-        case 'market':
-            return invoke('GameServer/AfkTrade/PlayerBoardWindow').open(session);
-        default:
-            return show(session);
-    }
-}
-
-// Alt+B (RequestShowBoard). Without the helper it is upstream's Market Board.
-function openBoard(session) {
-    const settings = config();
-    if (settings.enabled && settings.altB && session?.actor) return show(session);
-    return invoke('GameServer/AfkTrade/PlayerBoardWindow').open(session);
-}
-
-// Local chat ".buffer" (Speak.dispatchLocalCommand).
-function command(session, text) {
-    const line = String(text || '').trim().toLowerCase();
-    if (line !== '.buffer' || !config().enabled || !session?.actor) return false;
-    show(session);
-    return true;
 }
 
 module.exports = {
     GROUPS,
     PRESETS,
-    config,
+    BOARD_WIDTH,
+    iconFor,
     maxLevel,
     catalog,
     presetEntries,
+    currentBuffs,
     applyEntries,
     clearBuffs,
-    homePage,
-    groupPage,
-    handle,
-    openBoard,
-    command,
     savedSet,
     saveSet,
+    act,
+    boardBody,
+    homePage,
+    groupPage,
+    chatHandle,
     hooks
 };
