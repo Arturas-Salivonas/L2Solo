@@ -140,6 +140,12 @@ const DEFAULTS = {
     pkBotsEnabled: true,
     pkRate: 1,
     pkMinLevel: 20,
+    // Personal manhunts (Bot/AI/BotManhunt, Social/ManhuntPolicy): a bot a player killed may
+    // come back to that spot for them, by its persona, for manhuntMinutes. manhuntRate scales
+    // every chance (0 = none, 1 = the persona's own, at most 5).
+    manhuntEnabled: true,
+    manhuntRate: 1,
+    manhuntMinutes: 120,
     partyMinSize: 2,
     partyMaxSize: 5,
     // Dissolved party rows are operational history, not durable state. Keep

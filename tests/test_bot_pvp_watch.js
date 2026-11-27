@@ -226,11 +226,94 @@ try {
         const next = pkPlayer(38);
         assert(!Pk.intent(bot.session, next, { stay: 4 }, now + 3 * Watch.CHECK_MS), `one PK per ${Pk.COOLDOWN_MS / 60000} minutes`);
         assert(Pk.intent(bot.session, next, { stay: 4 }, now + Pk.COOLDOWN_MS + 3 * Watch.CHECK_MS), 'then it may again');
-        // A busy player is a moment too; a player with company is not.
+        // A busy player is a moment too, near enough to walk up to; farther is not.
         const busy = pkPlayer(38); busy.x = 300; busy.state.fetchHits = () => true;
         assert(Pk.moment(bot.session, busy), 'a player fighting a monster is the moment');
-        busy.x = 2000;
-        assert(!Pk.moment(bot.session, busy), 'out of reach is not');
+        busy.x = Pk.APPROACH + 200;
+        assert(!Pk.moment(bot.session, busy), 'too far to walk up to is not');
+    }
+
+    // ---------- personal manhunts (BotManhunt) ----------
+    Config.pkBotsEnabled = false;
+    const Manhunt = invoke('GameServer/Bot/AI/BotManhunt');
+    const SpotService = invoke('GameServer/Bot/AI/SpotService');
+    const Geodata = invoke('GameServer/Geodata/GeodataEngine');
+    const stubs = { spot: SpotService.findCurrentSpot, notify: Life.notifyNearFacts, height: Geodata.getHeight,
+        enabled: Config.manhuntEnabled, rate: Config.manhuntRate };
+    const posts = [];
+    SpotService.findCurrentSpot = () => ({ id: 'hunt46' });
+    Life.notifyNearFacts = (session, reason) => posts.push([session.actor.id, reason]);
+    Geodata.getHeight = (_x, _y, z) => z;
+    try {
+        // Opening at death: by persona, never for a bot killer, a clanmate, or when switched off.
+        {
+            const bot = character(), killer = character(false, 40);
+            bot.session.persona = BRAWLER;
+            World.insertUser(bot.session); World.insertUser(killer.session);
+            const before = events.length;
+            const state = Manhunt.onKilled(bot.session, { stats: { deaths: 3 } }, killer, now);
+            assert.deepStrictEqual({ ...state.stats.manhunt, until: 0 }, { targetId: killer.id, targetName: `actor_${killer.id}`,
+                spotId: 'hunt46', at: now, until: 0, kills: 1, found: 0 }, 'the killer is marked, with the spot it happened on');
+            assert.strictEqual(state.stats.manhunt.until, now + Config.manhuntMinutes * 60000);
+            assert.strictEqual(state.stats.deaths, 3, 'the rest of the row stays');
+            assert(events.slice(before).some(e => e[0] === 'chat' && e[1] === bot.id && /back for you|isn't over|my face/.test(e[2])),
+                'the bot swears it out loud');
+            const again = Manhunt.onKilled(bot.session, state, killer, now + 60000);
+            assert.strictEqual(again.stats.manhunt.kills, 2, 'a second kill while it lasts escalates');
+            const botKiller = character();
+            const untouched = { stats: {} };
+            assert.strictEqual(Manhunt.onKilled(bot.session, untouched, botKiller, now), untouched, 'bot killers are no manhunt (yet)');
+            killer.clan = bot.clan = 77;
+            assert.strictEqual(Manhunt.onKilled(bot.session, untouched, killer, now), untouched, 'a clanmate is forgiven');
+            killer.clan = bot.clan = 0;
+            Config.manhuntEnabled = false;
+            assert.strictEqual(Manhunt.onKilled(bot.session, untouched, killer, now), untouched, 'manhuntEnabled = false: none');
+            Config.manhuntEnabled = true; Config.manhuntRate = 0;
+            assert.strictEqual(Manhunt.onKilled(bot.session, untouched, killer, now), untouched, 'manhuntRate = 0: none');
+            Config.manhuntRate = 1;
+            const rolls = Tendency.roll;
+            Tendency.roll = (...key) => key[0] === 'manhunt' ? 0.9 : rolls(...key);
+            try { assert.strictEqual(Manhunt.onKilled(bot.session, untouched, killer, now), untouched, 'a roll above the odds lets it go'); }
+            finally { Tendency.roll = rolls; }
+        }
+        // The hunt: the bot sees its target from afar, walks up, goes for it, and stops looking.
+        {
+            const bot = character(), player = character(false, 40);
+            bot.session.persona = BRAWLER;
+            World.insertUser(bot.session); World.insertUser(player.session);
+            bot.session.coldLifeState = Manhunt.onKilled(bot.session, { stats: {} }, player, now - 60000);
+            const moves = [];
+            bot.moveTo = ({ to }) => moves.push(to);
+            bot.session.nearSpot = { seq: 7, spotId: 'hunt46' };
+            player.x = 2500;
+            assert.strictEqual(Revenge.playerSeen(bot, player, now), 'too_far', 'its target, seen from 2500 units');
+            assert.deepStrictEqual(Watch.list(bot.session).map(e => e.reason), ['manhunt'], 'without any revenge roll');
+            bot.session.nearSpot = { seq: 8, spotId: 'hunt46' };
+            assert.strictEqual(Watch.tick(bot.session, now + Watch.CHECK_MS), 'approaching', 'a new stay does not end a manhunt; it walks up');
+            assert(Watch.approaching(bot.session, now + Watch.CHECK_MS + 500), 'the walk owns the bot\'s ticks');
+            assert.strictEqual(moves.length, 1);
+            assert(Math.abs(moves[0].locX - (2500 - Watch.APPROACH_STOP)) <= 1, `it stops short of the player: ${moves[0].locX}`);
+            bot.x = 2000;
+            const outcome = Watch.tick(bot.session, now + 3 * Watch.CHECK_MS);
+            assert(['started', 'pending'].includes(outcome), `in reach, it goes for the player: ${outcome}`);
+            assert.strictEqual((bot.session.pvpRevenge || bot.session.pendingPvpProvocation).reason, 'manhunt');
+            assert(events.some(e => e[0] === 'chat' && e[1] === bot.id && /Found you|came back for you|My turn/.test(e[2])), 'with its line');
+            assert.strictEqual(bot.session.coldLifeState.stats.manhunt.found, now + 3 * Watch.CHECK_MS, 'the manhunt is found');
+            assert.deepStrictEqual(posts.at(-1), [bot.id, 'manhunt_found'], 'and the background thread hears it');
+            assert(!Watch.approaching(bot.session, now + 3 * Watch.CHECK_MS), 'the walk is over');
+            reset(bot.session);
+            bot.session.nearSpot = { seq: 9, spotId: 'hunt46' };
+            assert.strictEqual(Manhunt.meeting(bot.session, player, now + 5000), null, 'a found manhunt meets nobody again');
+            // Someone else is not its target.
+            const other = character(false, 40);
+            World.insertUser(other.session);
+            bot.session.coldLifeState = Manhunt.onKilled(bot.session, { stats: {} }, player, now);
+            assert.strictEqual(Manhunt.meeting(bot.session, other, now + 1000), null, 'only its killer is hunted');
+            assert(Manhunt.meeting(bot.session, player, now + 1000), 'its killer is');
+        }
+    } finally {
+        SpotService.findCurrentSpot = stubs.spot; Life.notifyNearFacts = stubs.notify; Geodata.getHeight = stubs.height;
+        Config.manhuntEnabled = stubs.enabled; Config.manhuntRate = stubs.rate;
     }
 } finally {
     utils.isInPeaceZone = original.peace; World.user = original.world; Life.rememberEnemies = original.remember;

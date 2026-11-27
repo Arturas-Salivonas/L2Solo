@@ -45,6 +45,7 @@ const ColdTrip = require('./ColdTrip');
 const PartyRequestPlanner = require('./PartyRequestPlanner');
 const EconomyDiagnostics = require('../Economy/EconomyDiagnostics');
 const WishNetwork = require('../Economy/WishNetwork');
+const Manhunt = require('../../Social/ManhuntPolicy');
 
 // The gates: a bot that may be routed now. Checked by choose and again by
 // record at every read (activity, travel and the duties move step by step).
@@ -511,6 +512,15 @@ function huntSpot(state, leaf, { spots, timestamp, owner = null }) {
         const spot = SpotIndex.spotById(spots, earning.spotId);
         return { spotId: spot && spot.raidBoss !== true ? String(spot.id) : null };
     }
+    // A personal manhunt (ManhuntPolicy) sends the bot back to where it met its killer,
+    // while it lasts and while it may hunt that ground alone; a player's command comes first.
+    if (Manhunt.active(hunter, timestamp)) {
+        const spot = SpotIndex.spotById(spots, hunter.stats.manhunt.spotId);
+        if (spot && spot.raidBoss !== true && LevelingRoutes.groundVerdict(spot, hunter, { mode: 'solo' }).allowed) {
+            EconomyDiagnostics.count('route', 'hunt_spot', 'manhunt');
+            return { spotId: String(spot.id) };
+        }
+    }
     const frame = frameFor(hunter, null, [], timestamp);
     frame.owner = owner;
     const wished = leafChoice(hunter, leaf, { spots, timestamp, frame });
@@ -550,7 +560,7 @@ function heldHuntSpot(owner, state, leaf, { spots, timestamp }) {
         + `|${planKey(stats.equipmentPlan, stats.partyRequest)}`
         + `|${stats.earning?.spotId ?? ''}|${EquipmentIncomeRoute.isCommanded(stats.earning) ? 1 : 0}`
         + `|${Number(state.level) || 0}|${state.party?.partyId || state.partyId || ''}`
-        + `|${SpotRiskPolicy.exclusionVersion(state).revision}|${state.spotId ?? ''}`;
+        + `|${SpotRiskPolicy.exclusionVersion(state).revision}|${state.spotId ?? ''}|${Manhunt.routeKey(state, timestamp)}`;
     const held = owner?.huntSpot;
     if (held?.key === key) return held.value;
     const value = huntSpot(state, leaf, { spots, timestamp, owner });

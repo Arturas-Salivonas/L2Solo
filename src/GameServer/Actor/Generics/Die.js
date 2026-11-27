@@ -97,6 +97,8 @@ function die(session, actor, context = {}) {
             // re-decides its spot on the row that carries it.
             const recorded = Life.recordNearFight(victimSession, prior, { died: true, timestamp, pvp: killerPlayable });
             victimSession.coldLifeState = { ...recorded, stats: { ...recorded.stats, ...progress } };
+            // A player who killed it may be marked: the bot comes back for them (a personal manhunt).
+            victimSession.coldLifeState = invoke('GameServer/Bot/AI/BotManhunt').onKilled(victimSession, victimSession.coldLifeState, killer, timestamp);
         });
         // The died situation reaches the worker even when the row above failed.
         killEffect('death.near_post', () => Life.notifyNearFacts(victimSession, 'death'));
