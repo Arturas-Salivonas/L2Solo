@@ -99,4 +99,25 @@ Before starting anything, check upstream's open PRs so we don't duplicate them:
 
 Ground these in [docs/C4_REFERENCE.md](docs/C4_REFERENCE.md) (section 12 has a longer list). The hooks are listed in [docs/BOT_AI_MAP.md](docs/BOT_AI_MAP.md); new planner rules go in as rows in `Situations.js`.
 
-- (to fill once the C4 reference is in, then pick with the owner)
+### Checked 2026-11-27: why bots feel less human (paths under `src/GameServer/`)
+- **Nobody picks up free items.** Only mob drops carry an owner key (`World/Generics/NpcRewards.js:35`). Unowned items, such as your drops and PK drops, are kept out of `GroundItems.byLeader` (`World/GroundItems.js:21`). A bot's loot scan reads only its party's own key (`Bot/AI/PartyCompanionService.js:394`). The scan runs only while hunting or resting, and most town bots return earlier in `BotAI.tick`.
+- **No C4 drop protection.** `World/Generics/PickupItem.js` checks no owner and no timer, and ground items never expire.
+- **Learning is narrow.** Bots learn spots, prices and people (see docs/BOT_BEHAVIOUR.md) and stalled gear routes (`AI/GearStall.js`). There is no bandit or imitation, no learning from other bots (`BotHuntEfficiency.js:218`, "No cohort median"), and persona traits never change. LLM summaries feed chat only.
+- **Dead code:**
+  - `townGossip` is only ever set to false (`AI/States/RestingState.js:202, 240`).
+  - `restlessness` isn't a trait, so `BotAmbientDirector.js:101` never fires.
+- **Thin reactions.** Bots never react to what you do, apart from being named or selected within 1,500. Emotes are arena-only.
+
+### Ideas, smallest first
+1. **Free loot with C4 protection** - small, low risk.
+   - **How:** give ground items a drop time and keep unowned items in their own set. "Claimable" = own, unowned, or older than about 15 s. Bots within about 500 roll once per item, by persona (ambition up, empathy down).
+   - **Also:** widen the loot gate to shopping, and enforce the same protection for the player in `PickupItem.js`.
+2. **Town attention** - medium.
+   - **What:** short-lived points of interest: a drop, your shout, a level-up, a fight, a PK. Idle hot bots roll once each to walk over, watch, emote, say "gz" or loot.
+   - **Where:** new `Bot/AI/TownAttention.js` next to `BotChatReactions.offerLocal`, with a 1 ms budget like `TownTraffic`. Fix the two dead bits above while there.
+3. **Your WTS/WTB shouts as market demand** - medium.
+   - **What:** parse them in `Network/Request/Speak.js` into `Economy/MarketDemand`, so crafters stock what you ask for.
+4. **Word of mouth** - medium-large.
+   - **What:** friends and clanmates share spot results, discounted by trust, when they meet in town or party.
+5. **Exploration habits** - medium, needs parity checks.
+   - **What:** a seeded exploration bonus for under-tried spots, sale towns and buyers, kept in saved stats.
