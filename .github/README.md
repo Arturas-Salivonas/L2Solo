@@ -6,6 +6,9 @@ A personal fork of **[pmbstyle/L2Solo](https://github.com/pmbstyle/L2Solo)**, th
 - `main` and `develop`: untouched mirrors of upstream
 - `fix/...`, `feat/...`: single changes. The good ones go back upstream as PRs.
 
+**Guides**
+- [Solo Helper: 1-hour buffs and Adena on Alt+B](../solo/guides/SOLO_HELPER.md). A buffer and Adena window for solo play, with install steps for any L2Solo copy.
+
 **Workflow and tools:** [solo/README.md](../solo/README.md)
 **Upstream's README** (download, setup, in-game commands): [README.md](../README.md)
 
