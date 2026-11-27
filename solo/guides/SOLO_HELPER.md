@@ -40,6 +40,37 @@ Playing [L2Solo](https://github.com/pmbstyle/L2Solo) on your own and tired of ru
 
 ## Install
 
+### Let your AI agent do it
+
+**Don't know how to install it?** Copy this into your AI coding agent (Claude Code, Cursor, Codex or similar) and fill in your folder. It checks your server is stopped, backs up your world first and tells you what it did.
+
+```text
+Please install the "Solo Helper" mod into my L2Solo server (a Lineage II C4 server, https://github.com/pmbstyle/L2Solo).
+My L2Solo folder is: <your L2Solo folder>
+Guide: https://github.com/Arturas-Salivonas/L2Solo/blob/solo/solo/guides/SOLO_HELPER.md
+
+Rules:
+- The server must be stopped first. If anything is listening on ports 2106 or 7777, ask me to stop it. Don't stop it yourself.
+- Before changing anything, copy the tmp folder (my world and characters) to a backup folder outside the L2Solo folder.
+- Don't change config/local.ini or anything inside tmp.
+- Never use the launcher's Update or Verify buttons: they put the original files back.
+
+Steps:
+1. If the folder is a git repository (it has a .git folder), run there:
+   git remote add l2mods https://github.com/Arturas-Salivonas/L2Solo.git   (skip it if l2mods already exists)
+   git fetch l2mods
+   git cherry-pick 27040e379..l2mods/mine/solo-buffer
+   git cherry-pick 27040e379..l2mods/fix/shutdown-saves-player-status   (buffs survive a server restart)
+   If git asks who I am, set user.name and user.email for this repository only.
+   If a cherry-pick says a commit is already there, run git cherry-pick --skip.
+   If a cherry-pick stops on a conflict, run git cherry-pick --abort and tell me which files conflicted. Don't guess a fix.
+2. If it's not a git repository (a launcher install), follow option C "By hand" in the guide above, and tell me exactly which files you copied and which lines you changed.
+3. Run npm run check in the L2Solo folder. A warning that bot tables are stale is fine.
+4. Tell me what you did, and that I can start the server again with npm run start.
+```
+
+### Or do it yourself
+
 Stop your server first. Then pick the way that matches how you installed L2Solo.
 
 ### A. You cloned L2Solo with git (easiest)
@@ -50,6 +81,12 @@ From your L2Solo folder:
 git remote add solo-helper https://github.com/Arturas-Salivonas/L2Solo.git
 git fetch solo-helper
 git cherry-pick 27040e379..solo-helper/mine/solo-buffer
+```
+
+Want your buffs to survive a server restart too (time left kept while you're offline, as in C4)? Add the small fix:
+
+```
+git cherry-pick 27040e379..solo-helper/fix/shutdown-saves-player-status
 ```
 
 That copies only the Solo Helper commits onto whatever L2Solo version you're on (`main` or `develop`). Start the server as usual (`npm start`).

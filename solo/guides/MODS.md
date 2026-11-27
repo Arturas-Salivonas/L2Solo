@@ -6,6 +6,39 @@ Each one was checked on both: installed alone, and all ten together. The seven b
 
 ## How to install
 
+### Let your AI agent do it
+
+**Don't know how to install it?** Copy this into your AI coding agent (Claude Code, Cursor, Codex or similar) and fill in your folder. It checks your server is stopped, backs up your world first and tells you what it did. Put the mod's branch from the list below in the second line.
+
+```text
+Please install a mod into my L2Solo server (a Lineage II C4 server, https://github.com/pmbstyle/L2Solo).
+My L2Solo folder is: <your L2Solo folder>
+The mod's branch: <branch from the list, e.g. feat/living-bots>
+Mod list: https://github.com/Arturas-Salivonas/L2Solo/blob/solo/solo/guides/MODS.md
+
+Rules:
+- The server must be stopped first. If anything is listening on ports 2106 or 7777, ask me to stop it. Don't stop it yourself.
+- Before changing anything, copy the tmp folder (my world and characters) to a backup folder outside the L2Solo folder.
+- Don't change config/local.ini or anything inside tmp.
+- Never use the launcher's Update or Verify buttons: they put the original files back.
+
+Steps:
+1. If the folder is a git repository (it has a .git folder), run there:
+   git remote add l2mods https://github.com/Arturas-Salivonas/L2Solo.git   (skip it if l2mods already exists)
+   git fetch l2mods
+   git cherry-pick 27040e379..l2mods/<branch>
+   If git asks who I am, set user.name and user.email for this repository only.
+   If a cherry-pick says a commit is already there, run git cherry-pick --skip.
+   If it stops on a conflict, run git cherry-pick --abort and tell me which files conflicted. Don't guess a fix.
+2. If it's not a git repository (a launcher install): download the mod's patch link from the mod list into the L2Solo folder,
+   run git apply --check on it and, if that passes, git apply. This needs Git installed; if it isn't, ask me to install
+   Git for Windows first. If the check fails, stop and tell me.
+3. Run npm run check in the L2Solo folder and tell me the result.
+4. Tell me what you did, and that I can start the server again with npm run start.
+```
+
+### Or do it yourself
+
 Stop your server first.
 
 **With git (a cloned L2Solo, the easiest)**, run once in your L2Solo folder:
