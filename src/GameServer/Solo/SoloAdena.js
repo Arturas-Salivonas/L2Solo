@@ -14,7 +14,8 @@ const Mutations = require('../Inventory/InventoryMutationQueue');
 const ADENA_ID = 57;
 const ADENA_ICON = 'icon.etc_adena_i00';
 const MAX_ADENA = 2147483647;
-const BOARD_WIDTH = 610;
+const Style = require('./BoardStyle');
+const BOARD_WIDTH = Style.WIDTH;
 const QUICK = Object.freeze([10000, 100000, 1000000, 10000000, 100000000, 1000000000]);
 // L2 shorthand: 500k = 500,000, 5kk (or 5m) = 5,000,000, 1kkk (or 1b) = 1,000,000,000.
 const SUFFIX = Object.freeze({ '': 1, k: 1e3, kk: 1e6, kkk: 1e9, m: 1e6, b: 1e9 });
@@ -128,8 +129,8 @@ function quickTiles() {
 function typedAmount() {
     return `<table width=${BOARD_WIDTH}><tr>`
         + '<td width=6></td><td width=170><edit var="solo_adena" width=160 height=15 length=16></td>'
-        + `<td width=110>${Html.button('Add', `${A('add')} $solo_adena`, { width: 100, hide: false })}</td>`
-        + `<td width=324>${Html.font('250000, 250k, 5kk or 1b')}</td>`
+        + `<td width=${Style.BUTTON_CELL}>${Html.button('Add', `${A('add')} $solo_adena`, { width: Style.BUTTON_WIDTH, hide: false })}</td>`
+        + `<td width=${BOARD_WIDTH - 176 - Style.BUTTON_CELL}>${Html.font('250000, 250k, 5kk or 1b')}</td>`
         + '</tr></table><br1>'
         + `<table width=${BOARD_WIDTH}><tr><td width=6></td><td>`
         + Html.font('Same from chat: .adena 5kk. One stack holds up to 2,147,483,647 in C4.')
