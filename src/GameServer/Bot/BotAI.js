@@ -681,6 +681,9 @@ const BotAI = {
                 return;
             }
         }
+        // A free item nearby (no owner, or past its owner's protection): a bot with nothing
+        // better to do may go and take it (BotFreeLoot). Its pickup owns the tick.
+        if (!isCompanion && invoke('GameServer/Bot/AI/BotFreeLoot').tick(session, bot, tickStartedAt)) return;
 
         // Reactions use the existing visible hot tick and never delay combat
         // or keep an actor seated just to finish a scripted exchange.
