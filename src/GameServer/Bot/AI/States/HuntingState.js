@@ -369,7 +369,8 @@ function findPreferredMonster(session, bot, radius, options = {}) {
     // penalties are relative preferences: a negative score must not send a
     // solo body wandering past a safe visible mob. Economic hunts may already
     // admit the wider level band, so include those candidates in recovery too.
-    if (!ranked.length && options.allowEasierTargets && isSoloHunter(session) && !session.hotBackgroundPartyId) {
+    if (!ranked.length && options.allowEasierTargets && isSoloHunter(session) && !session.hotBackgroundPartyId
+        && !greyGround(session, bot)) {
         // Any deferred errand, including consumable restocking, can leave a
         // kit unable to handle the -15 band. Keep native reward penalties and
         // the full solo survival gate when recovering on easier local mobs.
@@ -698,7 +699,28 @@ function beginSpotRelocation(session, bot, spot, BotAI, deferredOccupation = nul
 function reconcilePhysicalSpot(session, bot) {
     if (session.spotRelocation || session.currentSpot) return;
     const physical = SpotService.findCurrentSpot(botLocation(bot));
-    if (physical) SpotService.assignSpot(session, physical);
+    // Living Bots: never ground the bot outlevels (greyGround): a level-19 bot stepping out of a
+    // starter town took the level-3 field there as its spot, killed a few and only then left.
+    if (physical && !greyGround(session, bot, physical)) SpotService.assignSpot(session, physical);
+}
+
+// Ground whose strongest mobs stand more than SpotRiskPolicy.OUTLEVELED_GAP levels below the
+// bot, unless it farms an item there (its gear plan's drop): no spot to take and no recovery
+// fights on it. Read from the spot's own mob levels (its profile), else the spot table. Ground
+// the bot stands on no spot of (stranded) is not grey: its recovery fights stay, as before.
+function greyGround(session, bot, spot = session.currentSpot || spotUnder(bot)) {
+    if (!spot) return false;
+    const Risk = invoke('GameServer/Bot/Population/SpotRiskPolicy');
+    const plan = session.coldLifeState?.stats?.equipmentPlan;
+    if (plan?.status === 'active' && String(plan.next?.spotId || '') === String(spot.id)) return false;
+    const level = Number(bot.fetchLevel?.() || session.coldLifeState?.level || 1);
+    const top = Number(spot.maxLevel ?? spot.avgLevel);
+    if (Number.isFinite(top) && top > 0) return level - top > Risk.OUTLEVELED_GAP;
+    try { return Risk.outleveledGround({ level, stats: session.coldLifeState?.stats || {} }, spot.id); } catch { return false; }
+}
+
+function spotUnder(bot) {
+    try { return SpotService.findCurrentSpot(botLocation(bot)) || null; } catch { return null; }
 }
 
 function assignTarget(session, bot, target) {
@@ -782,6 +804,8 @@ module.exports = {
     sellTripDue,
     pauseSelling,
     findPreferredMonster,
+    greyGround,
+    reconcilePhysicalSpot,
     readinessProfiles,
     limitTargetCandidates,
     claimedTargetIds,
