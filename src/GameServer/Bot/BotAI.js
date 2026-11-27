@@ -444,6 +444,8 @@ const BotAI = {
         PopulationService.recordHotTick(session);
         // Its title (level and mood toward the player) refreshed when it changes (BotMoodTitles).
         invoke('GameServer/Bot/AI/BotMoodTitles').tick(session, bot, tickStartedAt);
+        // A returning bot remembers a player of the same name from the last world (LegacyFeelings).
+        invoke('GameServer/Bot/Legacy/LegacyFeelings').tick(session, bot, tickStartedAt);
         invoke('GameServer/Bot/Population/BotGlobalChat').offerReply(session, tickStartedAt);
         const botDead = bot.isDead();
         if (botDead) {
@@ -676,6 +678,8 @@ const BotAI = {
         if (!isCompanion) invoke('GameServer/Bot/AI/BotSpotTips').tick(session, bot, tickStartedAt);
         // Gossip (BotGossip): what a player did to it or to others, told to the bots around it.
         if (!isCompanion) invoke('GameServer/Bot/AI/BotGossip').tick(session, bot, tickStartedAt);
+        // A spot that killed it, told to a friend who then keeps away too (BotSpotDanger).
+        if (!isCompanion) invoke('GameServer/Bot/AI/BotSpotDanger').tick(session, bot, tickStartedAt);
 
         // Physical hot actors collect their ground drops before selecting the
         // next hunt or formation move. The queue yields to combat and support.
@@ -696,6 +700,8 @@ const BotAI = {
         // Reactions use the existing visible hot tick and never delay combat
         // or keep an actor seated just to finish a scripted exchange.
         if (lodContext.playerVisible) invoke('GameServer/Bot/AI/BotChatReactions').offerLocal(session, tickStartedAt);
+        // A bot it holds a grudge against, met nearby: words, now and then a fight (BotRivalry).
+        if (!isCompanion && invoke('GameServer/Bot/AI/BotRivalry').tick(session, bot, tickStartedAt)) return;
         // Near a player it fears it keeps away; a bold one with a grudge says so (BotNerve).
         if (!isCompanion && invoke('GameServer/Bot/AI/BotNerve').tick(session, bot, tickStartedAt)) return;
         // What happens around the bot (TownAttention): a gz, a PK warning, a fight to watch.

@@ -172,7 +172,14 @@ function choose(state, currentSpot, party, partyMembers = [], { spots, timestamp
     const objective = party?.stats?.objective, sharedSpot = objective?.spotId;
     const meeting = partyRoute && !!sharedSpot && PartyRequestPlanner.meetsAtSpot(objective);
     const shared = partyRoute && sharedSpot && !excludedSpotIds.has(String(sharedSpot)) ? SpotIndex.spotById(spots, sharedSpot) : null;
-    const objectiveEnded = meeting && !partyGround(shared, state, frame);
+    // Living Bots: any ordinary objective's spot must stand for the party too, not only a
+    // meeting's: a joint objective is often just where the first member stood when the party
+    // formed, and a level-18 party kept hunting level-7 monsters there. A clan or raid goal, a
+    // deal, a material run or a farm for a named item keeps its spot whatever its level.
+    const committed = !!objective?.clanGoalKey || objective?.sourceKind === 'raid' || !!objective?.helpDeal
+        || CraftMaterialParty.isObjective(objective) || objective?.need === 'gear_acquisition' && Number(objective?.itemId) > 0;
+    const checked = meeting || partyRoute && !!shared && !committed;
+    const objectiveEnded = checked && !partyGround(shared, state, frame);
     let selected = objectiveEnded ? null : shared || fallbackSpot;
     let materialRoute = null;
     if (!selected && partyRoute && CraftMaterialParty.isObjective(party.stats?.objective)) {

@@ -23,6 +23,8 @@ function die(session, actor, npc) {
         .catch(error => FailureLog.note('kill.soul_crystal', error));
     npc.destructor(session);
     killEffect('kill.grand_boss', () => invoke('GameServer/RaidBoss/GrandBossRuntime').died(invoke('GameServer/World/World'), npc));
+    // A mob another bot had claimed: a kill-steal it holds against the killer (BotRivalry).
+    killEffect('kill.rivalry', () => invoke('GameServer/Bot/AI/BotRivalry').mobKilled(npc, actor));
     if (npc.fetchIsRaidBoss?.() === true) {
         killEffect('kill.raid_boss', () => RaidBossMinionManager.onBossDeath(invoke('GameServer/World/World'), npc, session));
     }

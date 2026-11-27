@@ -854,10 +854,20 @@ function partyDecided(party, decision, { caller = 'party_step', subject = 0, ans
 // own deaths on the spot and whether the leader outlevels it (detectParty diffs them).
 function partySpotAnswer(party, answer, at, { deaths = 0, leaderLevel = 1 } = {}) {
     return { spotId: answer?.spotId ?? null, at, objective: partyObjectiveKey(party.stats?.objective), roster: rosterOf(party),
-        deaths, outleveled: answer?.spotId == null ? 0 : outleveledSpot(answer.spotId, leaderLevel) };
+        deaths, outleveled: answer?.spotId == null ? 0 : outleveledSpot(answer.spotId, leaderLevel),
+        unfit: answer?.spotId == null ? 0 : unfitSpot(answer.spotId, leaderLevel) };
 }
 let SpotTable = null;
 const outleveledSpot = (spotId, level) => (SpotTable ||= invoke('GameServer/Bot/AI/SpotValueTable')).outleveled(spotId, level) ? 1 : 0;
+// Living Bots: a party whose leader stands more than PARTY_UNFIT_GAP levels above its held spot
+// (the floor of the leveling band, SpotService's -7) re-decides it once, long before the
+// deep-blue gap would: 1 or 0, 0 for no spot or one the table lacks.
+const PARTY_UNFIT_GAP = 7;
+function unfitSpot(spotId, level) {
+    if (spotId == null) return 0;
+    const spotLevel = (SpotTable ||= invoke('GameServer/Bot/AI/SpotValueTable')).spotLevel(spotId);
+    return spotLevel == null ? 0 : Number(level) - Number(spotLevel) > PARTY_UNFIT_GAP ? 1 : 0;
+}
 // The party step's situations against its held answer (one function, the worker's
 // step for every far party): a member joined or left (the roster), its own deaths on
 // the spot rose (spot_dangerous), the leader outlevels the spot past the deep-blue gap
@@ -872,6 +882,7 @@ function detectParty(party, held, { deaths = 0, leaderLevel = 1, marks = [] } = 
     if ((held.roster || []).some(id => !roster.includes(id))) names.push('member_left');
     if (deaths > Number(held.deaths || 0)) names.push('spot_dangerous');
     if (!held.outleveled && held.spotId != null && outleveledSpot(held.spotId, leaderLevel)) names.push('spot_outleveled');
+    else if (!held.unfit && !held.outleveled && held.spotId != null && unfitSpot(held.spotId, leaderLevel)) names.push('spot_outleveled');
     for (const mark of marks) {
         if (String(mark.spotId) === String(held.spotId) && PARTY_WAKES[mark.reason] && !names.includes(mark.reason)) names.push(mark.reason);
     }
@@ -879,7 +890,7 @@ function detectParty(party, held, { deaths = 0, leaderLevel = 1, marks = [] } = 
 }
 
 module.exports = {
-    PARTY_DECISIONS, partyHeld, partyWoken, raiseParty, partyDecided, partySpotAnswer, detectParty, outleveledSpot,
+    PARTY_DECISIONS, partyHeld, partyWoken, raiseParty, partyDecided, partySpotAnswer, detectParty, outleveledSpot, unfitSpot, PARTY_UNFIT_GAP,
     buffFact, FIELD_ACTIVITIES, OPEN, REST, place, bodyPlace, gated, field, reactive, onVisit, readsFacts, arrivesInTown,
     DECISIONS, ALL, FIRST, raise, offerWoke, stepMind, landMind, delta, forgets, withOwnFacts, earningTaken, planes, took, leftParty, applyFacts, spotAsk, counted, note, stop, woken, raised, anyWoken, decided, counts, COUNT_KEYS,
     placeName: where => NAMES.get(where), SITUATIONS, BITS, detect, factNames, roundFacts, roundCrossing, movesSpot };
