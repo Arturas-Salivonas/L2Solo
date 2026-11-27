@@ -61,7 +61,12 @@ function tick(session, bot, Generics, BotAI, { now = Date.now(), rng = Math.rand
     // warning can be sent: flushed here, never scanned for.
     if (session.pendingPvpProvocation) Revenge.flushPending(session, now);
     // A meeting decided while the player was out of reach, tried again as they come close.
-    else if (session.pvpWatch && !session.pvpDefense && !session.pvpRevenge) invoke('GameServer/Bot/AI/BotPvpWatch').tick(session, now);
+    else if (session.pvpWatch && !session.pvpDefense && !session.pvpRevenge) {
+        const Watch = invoke('GameServer/Bot/AI/BotPvpWatch');
+        Watch.tick(session, now);
+        // A bot walking up to a watched target owns the tick: no hunting plan turns it away.
+        if (Watch.approaching(session, now)) return true;
+    }
     if (!session.pvpAggressors?.size && !session.pvpDefense && !session.pvpRevenge) return false;
     if (!Threats.alive(bot)) { clear(session, { dead: true }); return false; }
     const context = Threats.context(session, now);

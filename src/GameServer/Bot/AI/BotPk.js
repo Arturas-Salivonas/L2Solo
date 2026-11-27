@@ -12,9 +12,9 @@
 //   levels below the bot and LEVEL_ABOVE above it, alone (no party), never one the bot
 //   counts as a friend.
 // - When: once a stay, at first sight (BotRevenge.playerSeen), a seeded roll decides the
-//   intent. The bot then waits (BotPvpWatch) for its moment: the player within reach,
-//   busy fighting or sitting, or hurt, and a fight the bot thinks it can win by what it
-//   sees (BotPvpRisk, patient: it waits out worse odds). The fight itself is a revenge
+//   intent. The bot then waits (BotPvpWatch) for its moment: the player near, busy
+//   fighting or sitting, or hurt; it walks up the rest of the way, and fights if it thinks
+//   it can win by what it sees (BotPvpRisk, patient: it waits out worse odds). The fight itself is a revenge
 //   objective of reason 'pk' (BotRevenge.meet), so every native guard still applies.
 // - After: C4 does the rest. A kill makes the bot red (PvpRules); a red bot starts no
 //   fight until it has washed its karma (RevengePolicy.startsNoFight, ColdKarmaPolicy);
@@ -38,7 +38,8 @@ const OWN_HP = 0.7;
 const COOLDOWN_MS = 30 * 60 * 1000;
 // How long an intent waits for its moment on one stay.
 const WATCH_MS = 20 * 60 * 1000;
-const NOTICE_RADIUS = require('../../Social/RevengePolicy').NOTICE_RADIUS;
+// The moment comes within this distance: a PK walks the rest (BotPvpWatch approach).
+const APPROACH = 1800;
 
 const clamp = (n, low = 0, high = 1) => Math.max(low, Math.min(high, Number(n) || 0));
 const isBot = session => String(session?.accountId || '').startsWith('bot_');
@@ -74,12 +75,12 @@ function targetFits(bot, player, minLevel) {
         && theirs >= own - LEVEL_BELOW && theirs <= own + LEVEL_ABOVE;
 }
 
-// The moment a PK waits for: the player in reach, still white and alone, busy or hurt, and
-// the bot fit to fight.
+// The moment a PK waits for: the player near (APPROACH), still white and alone, busy or hurt,
+// and the bot fit to fight.
 function moment(session, target) {
     const bot = session.actor;
     if (!targetFits(bot, target, settings().minLevel) || !alone(target.session)) return false;
-    if (Threats.distance(bot, target) > NOTICE_RADIUS) return false;
+    if (Threats.distance(bot, target) > APPROACH) return false;
     if (Number(bot.fetchHp?.()) / Math.max(1, Number(bot.fetchMaxHp?.())) < OWN_HP) return false;
     const hurt = Number(target.fetchHp?.()) / Math.max(1, Number(target.fetchMaxHp?.())) <= HURT;
     const busy = !!(target.state?.fetchHits?.() || target.state?.fetchCasts?.() || target.state?.fetchSeated?.());
@@ -106,7 +107,7 @@ function intent(session, player, { stay = 0, relation = null } = {}, now = Date.
     if (roll >= odds) return null;
     Situations.note('pk:intent');
     return { reason: 'pk', roll: 0, key: `pk:${botId}:${playerId}:${stay}`, fightKey: ['pk_fight', botId, playerId, Number(stay) || 0],
-        patient: true, watchMs: WATCH_MS, ready: moment, done };
+        patient: true, approach: APPROACH, watchMs: WATCH_MS, ready: moment, done };
 }
 
-module.exports = { intent, chance, moment, settings, LEVEL_BELOW, LEVEL_ABOVE, HURT, OWN_HP, COOLDOWN_MS, WATCH_MS };
+module.exports = { intent, chance, moment, settings, LEVEL_BELOW, LEVEL_ABOVE, HURT, OWN_HP, COOLDOWN_MS, WATCH_MS, APPROACH };
