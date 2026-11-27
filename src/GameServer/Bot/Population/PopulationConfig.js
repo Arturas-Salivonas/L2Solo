@@ -134,6 +134,18 @@ const DEFAULTS = {
     coldCompetitionConflictsEnabled: true,
     coldCompetitionPvpEnabled: true,
     pvpAggression: 0.5,
+    // PK bots (Bot/AI/BotPk): a solo bot whose persona leans to PvP may, once a stay, pick
+    // on a white player near it at level pkMinLevel or more. pkRate scales every PK intent
+    // (0 = none, 1 = the persona's own odds, at most 5).
+    pkBotsEnabled: true,
+    pkRate: 1,
+    pkMinLevel: 20,
+    // Personal manhunts (Bot/AI/BotManhunt, Social/ManhuntPolicy): a bot a player killed may
+    // come back to that spot for them, by its persona, for manhuntMinutes. manhuntRate scales
+    // every chance (0 = none, 1 = the persona's own, at most 5).
+    manhuntEnabled: true,
+    manhuntRate: 1,
+    manhuntMinutes: 120,
     partyMinSize: 2,
     partyMaxSize: 5,
     // Dissolved party rows are operational history, not durable state. Keep

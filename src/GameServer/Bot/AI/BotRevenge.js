@@ -128,12 +128,14 @@ function warAlly(member, initiator, target) {
         && Threats.distance(initiator.actor, member.actor) <= Threats.PARTY_RADIUS;
 }
 
-function request(session, target, reason, lines, attack = true, now = Date.now(), rng = Math.random, revengeRoll = null) {
+// key: the fight's decision key (decisionKey's by default); a watched meeting passes its own,
+// so retries read its one roll (BotPvpWatch).
+function request(session, target, reason, lines, attack = true, now = Date.now(), rng = Math.random, revengeRoll = null, key = null) {
     if (session.pendingPvpProvocation || session.pvpDefense || session.pvpRevenge || !eligible(session, target)) return false;
     // A war fight takes no participation vote: the clan's war decides who joins (warAlly).
     const participation = attack && reason !== 'clan_war' ? Participation.prepare(session, target, now, rng) : null;
     session.pendingPvpProvocation = { target, reason, attack: attack && !participation?.blocked && !participation?.deescalated,
-        participation, revengeRoll, text: lines[Math.floor(rng() * lines.length)], key: decisionKey(session, target, reason, now),
+        participation, revengeRoll, text: lines[Math.floor(rng() * lines.length)], key: key || decisionKey(session, target, reason, now),
         expiresAt: now + ENCOUNTER_MS };
     const started = flushPending(session, now);
     if (started || session.pendingPvpProvocation) invoke('GameServer/Bot/BotAI').promoteForPlayerInteraction(session, reason);
@@ -154,7 +156,11 @@ const LINES = {
     revenge: name => [`${name}, we still have a score to settle.`, `I remember what you did, ${name}.`,
         `Remember me, ${name}? I haven't forgotten.`],
     // Ours: a war enemy met in the field.
-    clan_war: name => [`${name}, your clan picked this war.`, `For the clan, ${name}!`]
+    clan_war: name => [`${name}, your clan picked this war.`, `For the clan, ${name}!`],
+    // Ours: a PK-minded bot picking on a player (BotPk).
+    pk: name => [`Nothing personal, ${name}.`, `Wrong place, wrong time, ${name}.`, `This spot is mine now, ${name}.`],
+    // Ours: a bot that came back for the player who killed it (BotManhunt).
+    manhunt: name => [`Found you, ${name}.`, `${name}! I came back for you.`, `Remember me, ${name}? My turn.`]
 };
 // An enemy met near a player (enemy_met): the bot starts the fight its rule
 // decided (reason revenge | clan_war, roll: the meeting's seeded roll, key: the meeting's)
@@ -162,15 +168,16 @@ const LINES = {
 // sees (BotPvpRisk); seeded by the meeting, never re-rolled. Returns what happened
 // (counted enemy_met:<it> on main): started | pending | not_ready | not_eligible | too_far
 // | no_war | outmatched | refused. rng: the meeting's own draws (seeded by its key; a
-// test may pass its own).
-function meet(session, target, { reason, roll, key, rng = seeded(String(key)) }, now = Date.now()) {
+// test may pass its own). fightKey: the can-I-win roll's key (decisionKey's by default); a
+// watched meeting (BotPvpWatch) keeps one, so a retry is never a new roll.
+function meet(session, target, { reason, roll, key, fightKey = null, rng = seeded(String(key)) }, now = Date.now()) {
     if (!ready(session, reason)) return 'not_ready';
     if (!eligible(session, target)) return 'not_eligible';
     if (Threats.distance(session.actor, target) > NOTICE_RADIUS) return 'too_far';
     if (reason === 'clan_war' && !invoke('GameServer/Clan/ClanWarRuntime').between(session.actor, target).mutual) return 'no_war';
-    if (Risk.defenseDecision(session, [target], { key: decisionKey(session, target, reason, now) }).action !== 'fight') return 'outmatched';
+    if (Risk.defenseDecision(session, [target], { key: fightKey || decisionKey(session, target, reason, now) }).action !== 'fight') return 'outmatched';
     const name = String(target.fetchName?.() || '').replace(/[\x00-\x1f]/g, '').slice(0, 24);
-    return request(session, target, reason, LINES[reason](name), true, now, rng, roll) ? 'started'
+    return request(session, target, reason, LINES[reason](name), true, now, rng, roll, fightKey) ? 'started'
         : session.pendingPvpProvocation ? 'pending' : 'refused';
 }
 const counted = outcome => { Situations.note(`enemy_met:${outcome}`); return outcome; };
@@ -189,7 +196,9 @@ function fromSpot(command, now = Date.now()) {
 // a re-entry into view on the same stay (a teleport, a DeleteObject, a body swap) rolls nothing
 // new and does nothing (session.playersMet, at most PLAYERS_A_STAY a stay, more counted). Cost:
 // one memory lookup per first CharInfo of a bot to a player; the persona and the standings only
-// with a grievance or a war.
+// with a grievance or a war. A client receives a bot up to 6000 units away and a fight starts
+// within NOTICE_RADIUS, so a meeting decided out of reach is watched (BotPvpWatch) until the
+// player comes close, with its roll kept, instead of being spent as too_far.
 const PLAYERS_A_STAY = 32;
 function playerSeen(bot, player, now = Date.now()) {
     const session = bot?.session;
@@ -201,12 +210,22 @@ function playerSeen(bot, player, now = Date.now()) {
     if (judged.has(playerId)) return null;
     if (judged.size >= PLAYERS_A_STAY) { Situations.note('enemy_met:player_capped'); return null; }
     judged.add(playerId);
+    // A bot hunting this player down (BotManhunt) goes for them wherever it meets them.
+    const hunt = invoke('GameServer/Bot/AI/BotManhunt').meeting(session, player, now);
+    if (hunt) return counted(invoke('GameServer/Bot/AI/BotPvpWatch').start(session, player, hunt, now));
     const relation = relationTo(session, player, now);
-    if (!relation?.ready || !relation.personal && relation.war?.mutual !== true) return null;
-    const met = EnemyMet.player({ botId: bot.fetchId(), playerId, stay, social: assessment(session, player, now, relation) });
-    if (!met) return null;
+    if (!relation?.ready) return null;
+    const met = relation.personal || relation.war?.mutual === true
+        ? EnemyMet.player({ botId: bot.fetchId(), playerId, stay, social: assessment(session, player, now, relation) }) : null;
+    if (!met) {
+        // No grudge acted on: a PK-minded bot may still pick on the player (BotPk), at its moment.
+        const pk = invoke('GameServer/Bot/AI/BotPk').intent(session, player, { stay, relation }, now);
+        return pk ? counted(invoke('GameServer/Bot/AI/BotPvpWatch').start(session, player, pk, now)) : null;
+    }
     Situations.note(`enemy_met:${met.reason}`);
-    return counted(meet(session, player, { ...met, key: `enemy_met:player:${bot.fetchId()}:${playerId}:${stay}` }, now));
+    const meeting = { ...met, key: `enemy_met:player:${bot.fetchId()}:${playerId}:${stay}`,
+        fightKey: [`enemy_met_fight:${met.reason}`, Number(bot.fetchId()), playerId, stay] };
+    return counted(invoke('GameServer/Bot/AI/BotPvpWatch').start(session, player, meeting, now));
 }
 
 // Party commitment begins with an actual hostile action, including a miss or

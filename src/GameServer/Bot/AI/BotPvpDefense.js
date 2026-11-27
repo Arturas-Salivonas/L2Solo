@@ -48,7 +48,10 @@ function clear(session, { dead = false } = {}) {
     delete session.pvpHealClaims;
     delete session.pvpControlClaims;
     delete session.pvpFocus;
-    if (dead) delete session.pvpAggressors;
+    if (dead) {
+        delete session.pvpAggressors;
+        invoke('GameServer/Bot/AI/BotPvpWatch').clear(session);
+    }
 }
 
 function tick(session, bot, Generics, BotAI, { now = Date.now(), rng = Math.random } = {}) {
@@ -57,6 +60,13 @@ function tick(session, bot, Generics, BotAI, { now = Date.now(), rng = Math.rand
     // A fight met at a spot or by a player (enemy_met) waits as a provocation until its
     // warning can be sent: flushed here, never scanned for.
     if (session.pendingPvpProvocation) Revenge.flushPending(session, now);
+    // A meeting decided while the player was out of reach, tried again as they come close.
+    else if (session.pvpWatch && !session.pvpDefense && !session.pvpRevenge) {
+        const Watch = invoke('GameServer/Bot/AI/BotPvpWatch');
+        Watch.tick(session, now);
+        // A bot walking up to a watched target owns the tick: no hunting plan turns it away.
+        if (Watch.approaching(session, now)) return true;
+    }
     if (!session.pvpAggressors?.size && !session.pvpDefense && !session.pvpRevenge) return false;
     if (!Threats.alive(bot)) { clear(session, { dead: true }); return false; }
     const context = Threats.context(session, now);
