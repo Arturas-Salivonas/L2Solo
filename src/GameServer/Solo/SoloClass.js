@@ -158,10 +158,7 @@ function icon(classId, command) {
     return `<button action="bypass ${C(command)}" width=${ICON} height=${ICON} back="${texture}" fore="${texture}">`;
 }
 
-function heading(label) {
-    return `<br1><table width=${BOARD_WIDTH}><tr><td>${Html.font(label, Html.COLOR.title)}</td></tr></table>`
-        + `<img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1>`;
-}
+const heading = (label) => Style.heading(label);
 
 function status(actor, message) {
     const classId = Number(actor.fetchClassId());

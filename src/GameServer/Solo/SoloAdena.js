@@ -113,10 +113,7 @@ function status(actor, message) {
         + '</tr></table>';
 }
 
-function heading(label) {
-    return `<br1><table width=${BOARD_WIDTH}><tr><td>${Html.font(label, Html.COLOR.title)}</td></tr></table>`
-        + `<img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1>`;
-}
+const heading = (label) => Style.heading(label);
 
 function quickTiles() {
     const width = Math.floor(BOARD_WIDTH / QUICK.length);
