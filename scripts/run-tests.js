@@ -324,6 +324,7 @@ const tests = [
     'tests/test_skill_auto_attack.js',
     'tests/test_giran_arena.js',
     'tests/test_last_hero.js',
+    'tests/test_last_hero_settlement.js',
     'tests/test_armor_stats.js',
     'tests/test_bot_ai_visibility.js',
     'tests/test_hot_actor_lod_policy.js',

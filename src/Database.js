@@ -12300,6 +12300,13 @@ for (const name of ['refreshRecommendations', 'giveRecommendation', 'fetchRecomm
 }
 Object.assign(Database, require('./GameServer/Clan/ClanAllianceRepository')({ one, all, write, inTransaction, withCharacterFlushes, ClanLevelSp, recordClanGoalEventUnsafe }));
 Object.assign(Database, require('./GameServer/Clan/ClanAmbitionRepository')({ one, all, write, inTransaction, withCharacterFlushes, ClanLevelSp }));
+// A prize for a cold bot (Events/LastHero): it waits as a board settlement and lands at the
+// bot's next save, as a sale it made while away. Only a cold bot: anyone else resolves null
+// and nothing is written (a live bag is the main thread's). item: { selfId, name, enchant, slot, stackable }.
+Database.settleColdCharacter = function settleColdCharacter(characterId, item, amount) {
+    return withCharacterFlush(Number(characterId), () => inTransaction(() => (settlesLaterUnsafe(Number(characterId))
+        ? creditRecordOwnerUnsafe(Number(characterId), item, amount) : null), 'last-hero:settle'));
+};
 
 Object.assign(Database, require('./GameServer/ClanHall/Repository')({
     one, all, write, inTransaction, inPreparedTransaction, inPreparedTransactionBatch, withCharacterFlush, updateColdInventorySnapshotUnsafe,
