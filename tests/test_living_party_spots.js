@@ -32,6 +32,14 @@ try {
     const fit = Situations.partySpotAnswer(party, { spotId: 'fit' }, 3000, { leaderLevel: 18 });
     assert.deepStrictEqual(Situations.detectParty(party, fit, { leaderLevel: 18 }), [], 'a fitting spot stays');
     assert.ok(Situations.detectParty(party, fit, { leaderLevel: 23 }).includes('spot_outleveled'), 'until the leader outgrows it');
+    // A party that settled on easy ground under the old rule (its answer has no unfitRule, and
+    // it was already unfit then) is woken once; an answer under the new rule is not woken again.
+    const old = { ...Situations.partySpotAnswer(party, { spotId: 'low' }, 4000, { leaderLevel: 18 }) };
+    delete old.unfitRule;
+    assert.strictEqual(old.unfit, 1, 'the old answer was unfit when taken');
+    assert.ok(Situations.detectParty(party, old, { leaderLevel: 18 }).includes('spot_outleveled'), 'an old easy-ground answer is woken');
+    const renewed = Situations.partySpotAnswer(party, { spotId: 'low' }, 5000, { leaderLevel: 18 });
+    assert.deepStrictEqual(Situations.detectParty(party, renewed, { leaderLevel: 18 }), [], 'once: the renewed answer is not');
 } finally {
     SpotTable.spotLevel = saved.spotLevel; SpotTable.outleveled = saved.outleveled;
 }
