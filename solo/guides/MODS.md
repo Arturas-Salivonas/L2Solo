@@ -83,7 +83,7 @@ Each mod's guide lives in its own branch, with screenshots, a copy-paste prompt 
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/living-bots.diff>
 
 ### Last Hero: a 100-fighter free-for-all at the Coliseum
-- **What:** an automatic PvP event every 2 hours (or Start now): you and up to 99 bot fighters on the C4 Coliseum floor, everyone for themselves, no parties. The last one standing wins 10kk Adena and the C4 Hero aura. No EXP loss, drops or karma. Alt+B > Last Hero with the Solo Helper, or `.lasthero`.
+- **What:** an automatic PvP event every 2 hours (or Start now): you and up to 99 bot fighters on the C4 Coliseum floor, everyone for themselves, no parties. Everyone gets the same base buffs and picks 3 of 10 random ones. The last one standing wins 10kk Adena (or your own prize) and the C4 Hero aura; the top 5 by kills are announced. No EXP loss, drops or karma. Alt+B > Last Hero with the Solo Helper, or `.lasthero`.
 - **Guide:** [LAST_HERO.md](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/last-hero/solo/guides/LAST_HERO.md)
 - **Install:** `git cherry-pick 27040e379..l2mods/feat/last-hero`
 - **Patch:** <https://github.com/Arturas-Salivonas/L2Solo/compare/27040e379...feat/last-hero.diff>

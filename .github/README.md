@@ -73,8 +73,9 @@ Bots that feel like people: [guide, screenshots and one install](https://github.
 ### 3. Last Hero: a 100-fighter free-for-all at the Coliseum (`feat/last-hero`)
 An automatic PvP event. [Guide and install](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/last-hero/solo/guides/LAST_HERO.md).
 - **Every 2 hours** (or Start now): you and bot fighters, up to 100, land on random spots of the C4 Coliseum floor. No parties.
-- **30 seconds to buff,** then everyone fights for themselves. Bots are copies of real bots near your level, with their gear and skills.
-- **The last one standing** wins 10kk Adena and the C4 Hero aura, announced server-wide. No EXP loss, drops or karma; everyone goes back after.
+- **Buff draft:** all buffs off, everyone gets Wind Walk, Haste and Acumen, then you pick 3 of 10 random buffs in a dialog; every bot gets 3 at random.
+- **Everyone for themselves** after 30 seconds. Bots are copies of real bots near your level (every class gets places), with their gear and skills.
+- **The last one standing** wins 10kk Adena (you set the prize: Adena and items) and the C4 Hero aura. The winner's kills and the top 5 by kills are announced, and the crowd reacts in chat. No EXP loss, drops or karma; everyone goes back after.
 - **Alt+B > Last Hero** (with the Solo Helper) or `.lasthero` in chat. Settings in `[LastHero]`.
 
 ### 4. Starter villages sell the C4 robe set (`fix/starter-village-robes`)
@@ -98,7 +99,7 @@ Double-click it to open the browser launcher and start the server at your last r
 ## Changelog
 
 ### 2026-11-27
-- **Last Hero:** a 100-fighter free-for-all at the Coliseum every 2 hours, with the Hero aura and 10kk for the winner; a Last Hero tab in Alt+B.
+- **Last Hero:** a 100-fighter free-for-all at the Coliseum every 2 hours: buff draft (pick 3 of 10), top 5 by kills, crowd chatter, the Hero aura and a prize you set; a Last Hero tab in Alt+B.
 - **Solo Helper:** Class tab - change class at 20, 40 and 76 from the C4 class tree, or `.class` in chat.
 - **Fix:** same-kind buffs (Focus and Chant of Predator, Death Whisper and Chant of Rage, Vampiric Rage and Chant of Vampire...) replace each other, as in C4.
 - **Living Bots:** bots hunt within 5 levels below them (parties up to 5 above), leave grey ground, and take no spot or easy fights on it; WTB/WTS demand removed; all the bot mods in one place, guides in each mod's branch.
