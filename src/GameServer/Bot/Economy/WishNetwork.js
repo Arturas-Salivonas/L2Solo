@@ -130,6 +130,21 @@ const paysFloor = (wish, floor, value = flooredValue(wish, floor)) => value / wi
 // stood behind gear the bot saves for, the first gap cut it off, it had no funded row and
 // the bot made no trip for the shots its reserve already paid.
 const reservePaid = wish => cashCharge(wish) === 0;
+// Living Bots: money is worth less to a bot that has plenty of it. The floor a wish must
+// pay (its hours saved per Adena against the bot's hourly income, 1 / hourAdena) holds for a
+// bot with up to WEALTH_CALM_HOURS of income in its bag; past that it falls with the wallet
+// (calm hours / hours held), never below WEALTH_MIN_FACTOR of it. A level-20 bot that comes
+// into 100kk on a 500k-an-hour income (200 hours held) buys the upgrades a poor bot would
+// call too dear, instead of sitting on the money. The kit reserve is kept whatever the floor.
+const WEALTH_CALM_HOURS = 24;
+const WEALTH_MIN_FACTOR = 0.15;
+function wealthFloor(hourAdena, wallet) {
+    if (!(hourAdena > 0)) return 0;
+    const heldHours = nonnegative(wallet) / hourAdena;
+    const factor = heldHours > WEALTH_CALM_HOURS ? Math.max(WEALTH_MIN_FACTOR, WEALTH_CALM_HOURS / heldHours) : 1;
+    return factor / hourAdena;
+}
+
 function moneyQueue(wishes, wallet, refillReserve = 0, floor = 0) {
     let available = Math.max(0, nonnegative(wallet) - nonnegative(refillReserve));
     const queue = wishes.filter(wish => wish.valueHours > 0 && wish.price > 0)
@@ -877,10 +892,11 @@ class WishNetwork {
         }
         const weighted = wishes.map(wish => ({ ...wish,
             valueHours: wish.valueHours * (wish === focused || wish.key.startsWith('stock:') ? 1 : 1 - loyalty) }));
-        const { queue, moneyPrice, available, gap } = moneyQueue(weighted, wallet, refillReserve, hourAdena > 0 ? 1 / hourAdena : 0);
+        const moneyFloor = wealthFloor(hourAdena, wallet);
+        const { queue, moneyPrice, available, gap } = moneyQueue(weighted, wallet, refillReserve, moneyFloor);
         const fundingReason = wish => wish.funded ? 'funded' : wish === gap ? 'first_funding_gap'
             : wish.supported === false ? 'unsupported_path' : wish.resolved === false ? 'unresolved_path'
-                : wish.ratio < (hourAdena > 0 ? 1 / hourAdena : 0) ? 'below_money_floor' : 'priority_held';
+                : wish.ratio < moneyFloor ? 'below_money_floor' : 'priority_held';
         if (diagnostic) for (const wish of queue) {
             Diagnostics.count('network', 'wish_funding', fundingReason(wish));
         }
@@ -1128,4 +1144,4 @@ class WishNetwork {
     }
 }
 
-module.exports = { WishNetwork, leafId, rootItem, rootSlot, buildScratch, createSolver, admitRoots, moneyQueue, remainingQuantity, craftMaterialLoss, fundable, cashCharge, remember, NEEDS, MAX_NODES, MAX_ROOTS, MAX_DEPTH, ACTOR_LIMIT };
+module.exports = { WishNetwork, leafId, rootItem, rootSlot, buildScratch, createSolver, admitRoots, moneyQueue, wealthFloor, WEALTH_CALM_HOURS, WEALTH_MIN_FACTOR, remainingQuantity, craftMaterialLoss, fundable, cashCharge, remember, NEEDS, MAX_NODES, MAX_ROOTS, MAX_DEPTH, ACTOR_LIMIT };
