@@ -21,13 +21,17 @@ const Config = require('../Population/PopulationConfig');
 const SCAN_MS = 5 * 60000;
 const MAX_GIFTS = 3;                 // patronage gifts per scan
 const MAX_HAND_ME_DOWNS = 3;         // items per scan
-const PATRON_MIN_WALLET = 10e6;      // a patron holds at least this much
-const KEEP_HOURS = 24;               // and keeps a day of its own income besides
-const KEEP_MIN = 5e6;
-const SHARE = 0.3;                   // of its surplus at most, per gift
+// Sized on a C4 x1 world's bots (Nov 2026: a level 20-29 bot earns about 250k an hour and
+// holds about an hour of it; one in a hundred holds 9 hours): a patron is the rare bot far
+// past that, an event winner or a lucky drop, fully geared itself.
+const PATRON_MIN_WALLET = 3e6;       // a patron holds at least this much
+const KEEP_HOURS = 8;                // and keeps 8 hours of its own income besides
+const KEEP_MIN = 1.5e6;
+const SHARE = 0.4;                   // of its surplus at most, per gift
 const GIFT_MAX = 20e6;
-const GIFT_MIN = 1e6;
-const NEED_HOURS = 10;               // a gift covers about this much of the taker's income
+const GIFT_MIN = 500000;
+const NEED_HOURS = 6;                // a gift covers about this much of the taker's income
+const NEED_MIN = 1e6;
 const PATRON_COOLDOWN_MS = 6 * 3600000;
 const TAKER_COOLDOWN_MS = 3 * 3600000;
 const TAKER_MIN_LEVEL = 10;
@@ -63,7 +67,7 @@ function bondOf(giver, taker, now) {
 }
 const BOND_RANK = Object.freeze({ clan: 3, friend: 2, friendly: 1 });
 
-// The Adena a patron can spare: beyond a day of its income (at least KEEP_MIN).
+// The Adena a patron can spare: beyond 8 hours of its income (at least KEEP_MIN).
 function surplus(state) {
     return Number(state.adena || 0) - Math.max(KEEP_MIN, KEEP_HOURS * income(state));
 }
@@ -71,11 +75,15 @@ function surplus(state) {
 // How much a taker is struggling: 0 = not; more = poorer and with more gear missing.
 function struggle(state) {
     if (Number(state.level || 1) < TAKER_MIN_LEVEL) return 0;
-    const wallet = Number(state.adena || 0), poor = wallet < Math.max(1e6, 4 * income(state));
-    let gaps = 0;
-    try { gaps = invoke('GameServer/Bot/AI/PersonalGearProgression').assess(state).gaps?.size || 0; } catch { gaps = 0; }
+    const wallet = Number(state.adena || 0), poor = wallet < Math.max(300000, 2 * income(state));
+    const gaps = gearGaps(state);
     if (!poor && !gaps) return 0;
-    return (poor ? 2 : 0) + gaps + (wallet < 300000 ? 1 : 0);
+    return (poor ? 2 : 0) + gaps + (wallet < 100000 ? 1 : 0);
+}
+
+// The pieces of gear a bot misses for its level (PersonalGearProgression), 0 when unknown.
+function gearGaps(state) {
+    try { return invoke('GameServer/Bot/AI/PersonalGearProgression').assess(state).gaps?.size || 0; } catch { return 0; }
 }
 
 const Memory = () => invoke('GameServer/Social/InteractionMemoryRuntime');
@@ -129,8 +137,11 @@ function publish(rows) {
 // ---------- patronage ----------
 
 function patrons(states, now, random) {
+    // Its own gear first: a bot still missing a piece for its level spends on itself (its windfall
+    // wakes that plan), and helps once it has nothing left to buy.
     return states.filter((state) => usable(state) && Number(state.level || 1) >= 15 && Number(state.adena || 0) >= PATRON_MIN_WALLET
-        && surplus(state) >= GIFT_MIN && now - (recently.patron.get(state.characterId) || 0) >= PATRON_COOLDOWN_MS)
+        && surplus(state) >= GIFT_MIN && now - (recently.patron.get(state.characterId) || 0) >= PATRON_COOLDOWN_MS
+        && !gearGaps(state))
         .filter((state) => {
             // A generous bot gives more often: empathy draws it, ambition holds it back a little.
             const traits = Persona().of(state)?.traits || {};
@@ -141,7 +152,7 @@ function patrons(states, now, random) {
 }
 
 function giftAmount(giver, taker) {
-    const amount = Math.min(GIFT_MAX, surplus(giver) * SHARE, Math.max(2e6, NEED_HOURS * income(taker)));
+    const amount = Math.min(GIFT_MAX, surplus(giver) * SHARE, Math.max(NEED_MIN, NEED_HOURS * income(taker)));
     return Math.floor(amount / 100000) * 100000;
 }
 
@@ -164,7 +175,7 @@ async function patronage(states, indexes, now, random) {
         publish(result.rows);
         recently.patron.set(giver.characterId, now);
         recently.taker.set(pick.taker.characterId, now);
-        remember(giver, pick.taker, `${(amount / 1e6).toFixed(1).replace(/\.0$/, '')}kk Adena`, now);
+        remember(giver, pick.taker, `${amount >= 1e6 ? `${(amount / 1e6).toFixed(1).replace(/\.0$/, '')}kk` : `${amount / 1000}k`} Adena`, now);
         given += 1;
     }
     return given;

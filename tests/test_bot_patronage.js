@@ -93,11 +93,11 @@ const lifeAdena = async (id) => Number((await Database.execute(['SELECT adena FR
 
     // ---------- the rules ----------
     const state = (fields) => ({ characterId: 1, level: 30, adena: 0, inventory: {}, stats: { earning: { income: 300000 } }, ...fields });
-    assert.strictEqual(Patronage.surplus(state({ adena: 40e6 })), 40e6 - 24 * 300000, 'it keeps a day of its own income');
-    assert.strictEqual(Patronage.surplus(state({ adena: 6e6, stats: { earning: { income: 10000 } } })), 1e6, 'at least 5kk');
-    assert.strictEqual(Patronage.giftAmount(state({ adena: 200e6 }), state({ stats: { earning: { income: 300000 } } })), 3e6,
-        'a gift covers about ten hours of the taker\'s income');
-    assert.strictEqual(Patronage.giftAmount(state({ adena: 13e6 }), state()), 1.7e6, 'never more than 30% of the surplus (5.8kk spare: 1.74kk, in 100k steps)');
+    assert.strictEqual(Patronage.surplus(state({ adena: 40e6 })), 40e6 - 8 * 300000, 'it keeps 8 hours of its own income');
+    assert.strictEqual(Patronage.surplus(state({ adena: 6e6, stats: { earning: { income: 10000 } } })), 4.5e6, 'and at least 1.5kk');
+    assert.strictEqual(Patronage.giftAmount(state({ adena: 200e6 }), state()), 1.8e6, 'a gift covers about six hours of the taker\'s income');
+    assert.strictEqual(Patronage.giftAmount(state({ adena: 5.17e6 }), state()), 1.1e6,
+        'a 5kk event winner: 40% of its 2.77kk spare, in 100k steps');
     assert.strictEqual(Patronage.giftAmount(state({ adena: 2e9 }), state({ stats: { earning: { income: 9e6 } } })), Patronage.GIFT_MAX,
         'and never more than 20kk at once');
     assert.strictEqual(Patronage.struggle(state({ level: 8, adena: 0 })), 0, 'a newbie below level 10 is not a charity case');
@@ -109,13 +109,25 @@ const lifeAdena = async (id) => Number((await Database.execute(['SELECT adena FR
         items: [{ selfId: 1, name: 'Short Sword', slot: 7 }] });
     const member = await bot('bot_patron_clan_poor', { adena: 80000, level: 14, clanId: clan });
     const outsider = await bot('bot_patron_other_poor', { adena: 80000, level: 14, clanId: 0 });
+    // The patron is fully geared (its own gear first: a bot still missing a piece buys it itself).
+    const Progression = invoke('GameServer/Bot/AI/PersonalGearProgression'), realAssess = Progression.assess;
+    let patronGaps = 1;
+    Progression.assess = (subject) => Number(subject.characterId) === patron
+        ? { required: [], gaps: new Map(Array.from({ length: patronGaps }, (_, index) => [index, {}])) } : realAssess(subject);
     Patronage._reset();
     const states = LifeState.everyState().filter((entry) => [patron, member, outsider].includes(Number(entry.characterId)));
+    const Config = invoke('GameServer/Bot/Population/PopulationConfig');
+    Config.handMeDownsEnabled = false;
+    assert.strictEqual((await Patronage.scan(Date.now(), { random: () => 0, states })).patronage, 0,
+        'a rich bot still missing gear of its own gives no Adena');
+    Config.handMeDownsEnabled = true;
+    patronGaps = 0;
+    Patronage._reset();
     assert.strictEqual(states.length, 3, 'the three bots are cached');
     const result = await Patronage.scan(Date.now(), { random: () => 0, states });
     assert.strictEqual(result.patronage, 1, 'the rich bot helps one clanmate');
     const gained = await adenaOf(member);
-    assert.ok(gained >= 80000 + Patronage.GIFT_MIN, `the clanmate got at least 1kk (now ${gained})`);
+    assert.ok(gained >= 80000 + Patronage.GIFT_MIN, `the clanmate got at least 500k (now ${gained})`);
     assert.strictEqual(await adenaOf(outsider), 80000, 'a stranger gets nothing');
     assert.strictEqual(await adenaOf(patron), 60e6 + 80000 - gained, 'what one bag lost the other gained');
     assert.strictEqual(result.handMeDowns, 1, 'the spare Short Sword goes to the clanmate who wears it');
@@ -128,12 +140,12 @@ const lifeAdena = async (id) => Number((await Database.execute(['SELECT adena FR
     assert.strictEqual(again.patronage, 0, 'one gift per patron per few hours');
 
     // Off by config.
-    const Config = invoke('GameServer/Bot/Population/PopulationConfig');
     Patronage._reset();
     Config.patronageEnabled = false; Config.handMeDownsEnabled = false;
     assert.deepStrictEqual(await Patronage.scan(Date.now(), { random: () => 0, states }), { patronage: 0, handMeDowns: 0 }, 'switched off');
     Config.patronageEnabled = true; Config.handMeDownsEnabled = true;
 
+    Progression.assess = realAssess;
     clean();
     console.log('Bot patronage checks passed');
     process.exit(0);
