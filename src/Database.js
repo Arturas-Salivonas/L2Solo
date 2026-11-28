@@ -12298,6 +12298,9 @@ const Recommendations = require('./DatabaseRecommendations').create({ one, all, 
 for (const name of ['refreshRecommendations', 'giveRecommendation', 'fetchRecommendationEvents', 'recommendationHead', 'pruneRecommendations']) {
     Database[name] = Recommendations[name];
 }
+// Living Bots: gifts between background bots (patronage, hand-me-downs).
+Object.assign(Database, require('./GameServer/Bot/Economy/BotGiftRepository')({ one, inTransaction, withCharacterFlushes,
+    fenceColdInventoryUnsafe, afkTradeTakeItemUnsafe, afkTradeCreditAdenaUnsafe, afkTradeCreditItemUnsafe }));
 Object.assign(Database, require('./GameServer/Clan/ClanAllianceRepository')({ one, all, write, inTransaction, withCharacterFlushes, ClanLevelSp, recordClanGoalEventUnsafe }));
 Object.assign(Database, require('./GameServer/Clan/ClanAmbitionRepository')({ one, all, write, inTransaction, withCharacterFlushes, ClanLevelSp }));
 

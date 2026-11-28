@@ -997,6 +997,10 @@ const PopulationService = {
             .catch(error => utils.infoWarn('BotRaid', 'startup failed: %s', error.message));
         Promise.resolve(this.lifeReadyPromise).then(() => this.startClanWars())
             .catch(error => utils.infoWarn('ClanWar', 'startup failed: %s', error.message));
+        // Living Bots: rich background bots help struggling friends; spare gear goes to who wears it.
+        Promise.resolve(this.lifeReadyPromise).then(() => {
+            if (this.started && Config.backgroundResolverEnabled !== false) require('../Economy/BotPatronage').start();
+        }).catch(error => utils.infoWarn('BotPatronage', 'startup failed: %s', error.message));
 
         Promise.resolve(this.lifeReadyPromise).then(() => {
             if (!this.started) return;
@@ -1032,6 +1036,7 @@ const PopulationService = {
 
     stop() {
         require('./GrandBossRaidLifecycle').stop();
+        require('../Economy/BotPatronage').stop();
         this.opportunisticRaids?.stop();
         this.clanWars?.stop();
         this.clanWars = null;

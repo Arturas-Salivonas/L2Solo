@@ -55,6 +55,11 @@ const DEFAULTS = {
     // Free loot (Bot/AI/BotFreeLoot): bots near the player take items that are nobody's
     // (a discard, a PK's drop, a party drop past its 15 s protection).
     freeLootEnabled: true,
+    // Patronage (Bot/Economy/BotPatronage): a background bot with far more Adena than it needs
+    // gives a share to a struggling clanmate or friend. Hand-me-downs: unworn spare gear goes
+    // to a clanmate or friend who would wear it.
+    patronageEnabled: true,
+    handMeDownsEnabled: true,
     opportunisticRaidExpeditionMs: 45 * 60000,
     phasePolicyEnabled: true,
     summaryIntervalMs: 30000,
