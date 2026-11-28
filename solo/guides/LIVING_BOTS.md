@@ -51,12 +51,18 @@ It's one mod, `feat/living-bots`, and it keeps growing.
 - **Hand-me-downs.** Gear a bot carries but doesn't wear goes to a clanmate or friend who would wear it now, instead of a shop.
 - **The party waits.** When a party member's bag is full, it goes to town to sell and restock while the party keeps its place for up to 15 minutes, then it comes back. Before, it left the party for good.
 
+**They party up when it pays.**
+- **Solo or party, by what earns more.** A bot that does well alone keeps hunting alone. When a party on stronger ground (up to 5 levels above) would bring it to its next level and its next piece of gear sooner, counting the exp, the Adena and the drops, it looks for a party there.
+- **LFP in trade chat.** A bot looking for a party says so: "LF healer for Cruma Tower, 31+", "healer 34 LFP Ant Nest". At most once in 10 minutes a bot, on the same pace as the trade ads.
+- **They learn which mix works.** Every hour a background party hunts is remembered: its spot, its level and its class mix, with the exp, Adena and deaths it got. Parties then recruit the class that made the best mix there, skip a support class a spot clearly does better without, and one time in ten try something new. What they learn survives restarts and bot wipes.
+- **Lone wolves.** About one bot in five is a loner. With no clan it hunts alone unless a party is far better, and joining a clan brings it in.
+
 **They get smarter.**
 - **Smarter party spots.** A party now hunts where its level fits. Before, a party took the spot where its first member happened to stand and kept it, so a level-18 party could farm level-7 monsters until it was 9 levels over them. Now it moves on as soon as the spot drops more than 5 levels below its leader, and parties that settled on easy ground under the old rule move too.
 - **Hunting at their level.** Bots hunt monsters from 5 levels below them to 3 above; parties may go up to 5 above, for stronger mobs together. A bot on grey ground (more than 5 below) leaves for the spot it chose, and takes no spot or easy fights there on its way out of town, unless it farms an item there or is a spoiler. Before, a level-19 bot that came out of a starter town could hunt the level-3 field beside it for hours, losing money. A bot that finds no fitting spot alone now looks for a party, whatever its class.
 - **Better gear sense.** Live and background bots score gear the same way, counting enchant, attack speed and critical rate, so a +4 weapon beats a plain one and a fast dagger isn't judged on P.Atk alone.
 - **Smarter looting.** A bot goes for loot that's worth something to it: a piece it would wear first, then anything it can sell. One that would wear a drop takes it over a bot that only wants to sell it.
-- **They spend like people.** A big windfall wakes a bot's shopping plan at once, and a rich bot buys the dear upgrades a poor one saves for.
+- **They spend like people.** A big windfall wakes a bot's shopping plan at once, and it buys all it can afford in one town visit: a Last Hero winner came back from town with a whole D-grade jewel set, helmet, shirt and gloves. A rich bot buys the dear upgrades a poor one saves for.
 - **Spots that killed them.** A bot that died at a spot twice already stays away from it for a while. Now it also warns its friends in town ("stay away from Cruma, I died there twice"), and they keep away too until their next trip back to town.
 - **After a wipe.** A bot wipe first saves what the world learned. The next world's bots are the same people, with the same names, personalities and know-how, at level 1. What they earned on each spot corrects their spot guesses, and when they meet a player of the same name again, they remember how they felt: "Arturas... I remember you".
 
@@ -133,6 +139,9 @@ freeLootEnabled = true
 patronageEnabled = true         ; rich bots help struggling clanmates and friends with Adena
 handMeDownsEnabled = true       ; spare gear goes to a clanmate or friend who would wear it
 partyShoppingTrips = true       ; a party keeps its place while a member goes to town
+lfpShoutsEnabled = true         ; bots looking for a party say so in trade chat
+partyMixLessons = true          ; bots learn which class mix earns most at each spot and level
+partyMixExplore = 0.1           ; how often a party tries another mix (0..1)
 townAttentionEnabled = true
 wordOfMouthEnabled = true
 worldLegacyEnabled = true
@@ -141,7 +150,7 @@ worldLegacyEnabled = true
 ## What's next
 
 - Greetings and body language: bots that know you wave and say hi, bow after a res, cheer a level-up.
-- Parties that pick the most profitable spot, not only one that fits.
+- More bots around wherever you hunt.
 - Bots that learn from what works for them, so each world's bots play a little better than the last.
 
 **Ideas and bugs:** tell me on Discord, or open an issue on <https://github.com/Arturas-Salivonas/L2Solo>. What would make the bots feel more alive to you?
