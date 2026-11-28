@@ -64,6 +64,10 @@ const DEFAULTS = {
     partyShoppingTrips: true,
     // LFP shouts (Bot/AI/BotLfpShout): a bot that looks for a party says so in trade chat.
     lfpShoutsEnabled: true,
+    // Party mix lessons (Population/PartyMixLessons): bots learn which class mix earns most at a
+    // spot and level, recruit by it, and try another mix one choice in partyMixExplore.
+    partyMixLessons: true,
+    partyMixExplore: 0.1,
     handMeDownsEnabled: true,
     opportunisticRaidExpeditionMs: 45 * 60000,
     phasePolicyEnabled: true,

@@ -1006,6 +1006,8 @@ const PopulationService = {
             .catch(error => utils.infoWarn('BotRaid', 'startup failed: %s', error.message));
         Promise.resolve(this.lifeReadyPromise).then(() => this.startClanWars())
             .catch(error => utils.infoWarn('ClanWar', 'startup failed: %s', error.message));
+        // Living Bots: what party mixes earned where, kept across restarts (PartyMixLessons).
+        require('./PartyMixLessons').start();
         // Living Bots: rich background bots help struggling friends; spare gear goes to who wears it.
         Promise.resolve(this.lifeReadyPromise).then(() => {
             if (this.started && Config.backgroundResolverEnabled !== false) require('../Economy/BotPatronage').start();
@@ -1046,6 +1048,7 @@ const PopulationService = {
     stop() {
         require('./GrandBossRaidLifecycle').stop();
         require('../Economy/BotPatronage').stop();
+        require('./PartyMixLessons').stop();
         this.opportunisticRaids?.stop();
         this.clanWars?.stop();
         this.clanWars = null;
@@ -2380,7 +2383,10 @@ const PopulationService = {
                 ));
                 const recruits = PartyComposition.selectRecruits(members, nearby, {
                     maxSize: partyLimits.maxSize,
-                    levelRange: partyLimits.levelRange
+                    levelRange: partyLimits.levelRange,
+                    // Living Bots: the party mixes learned at its spot and level (PartyMixLessons).
+                    mix: require('./PartyMixLessons').reader({ spotId: party.spotId,
+                        level: Math.max(...members.map(member => Number(member.level) || 1)) })
                 });
                 if (!recruits.length) return null;
                 return hydratePartyCandidates(recruits).then((hydratedRecruits) => {

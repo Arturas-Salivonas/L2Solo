@@ -345,6 +345,7 @@ const tests = [
     'tests/test_bot_windfall.js',
     'tests/test_bot_patronage.js',
     'tests/test_living_party_ask.js',
+    'tests/test_party_mix_lessons.js',
     'tests/test_bot_movement_goal.js',
     'tests/test_town_transit_policy.js',
     'tests/test_town_navigation.js',

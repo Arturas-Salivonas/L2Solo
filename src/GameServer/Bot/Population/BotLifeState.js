@@ -77,6 +77,9 @@ cache.subscribePublications(({ state, previousState }) => {
     // Living Bots: a newly opened party request is shouted in trade chat (BotLfpShout).
     if (previousState.stats?.partyRequest !== state.stats?.partyRequest)
         invoke('GameServer/Bot/AI/BotLfpShout').committed(previousState, state);
+    // Living Bots: a party member's hour, to the lessons of its party's mix (PartyMixLessons).
+    if (state.party?.partyId || state.partyId || previousState.party?.partyId || previousState.partyId)
+        invoke('GameServer/Bot/Population/PartyMixLessons').committed(previousState, state);
     if (!Trace.on()) return;
     invoke('GameServer/Bot/Population/PartyRequestPlanner').traceCommitted(previousState, state);
     invoke('GameServer/Clan/ClanPurchaseCredit').traceCommitted(previousState, state);

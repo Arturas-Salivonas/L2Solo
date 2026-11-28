@@ -96,9 +96,15 @@ function evaluate({ solo, party, remaining = 0, cash = null, spendable = 0, fee 
 // The persona's weight on a party's hours: 1.5 - sociability (BotPersona traits,
 // 0.18 for a lone wolf .. 0.82 for a party regular): a social bot takes a party up
 // to ~1.5x slower than its solo hunt, a loner only one ~1.3x faster. Our choice.
+// Living Bots: a lone wolf (sociability under LONE_WOLF, about one bot in five) with no clan
+// hunts on its own unless a party is far better (LONE_WOLF_LEAN more on its lean: ~1.6x
+// faster); a clan brings it in, as clanmates call it to their parties.
+const LONE_WOLF = 0.35, LONE_WOLF_LEAN = 0.3;
 function partyLean(state) {
     const sociability = Number(invoke('GameServer/Bot/AI/BotPersona').of(state)?.traits?.sociability);
-    return 1.5 - (Number.isFinite(sociability) ? sociability : 0.5);
+    const social = Number.isFinite(sociability) ? sociability : 0.5;
+    const clan = Number(state?.stats?.clanId ?? state?.clanId ?? 0) > 0;
+    return 1.5 - social + (social < LONE_WOLF && !clan ? LONE_WOLF_LEAN : 0);
 }
 
 // The exp still missing to the next level (DataCache.experience: the total exp at
