@@ -337,7 +337,7 @@ async function jointPartyGoals(party, members, timestamp, options = {}) {
     return result.ok && PartyGoalCalculation.matches(members, result.sources) ? result.joint : null;
 }
 
-// The trips the worker's party_stay answered for members of a clan duty party
+// The trips the worker's party_stay answered for members of a clan duty party or an ordinary hunt (PartyMarketBreak.ordinaryTrip)
 // (ColdSimulationKernel.partyStay: one at a time, none behind another member's
 // absence): main starts each with the party's return ticket
 // (PartyMarketBreak.departure) and the member leaves until it comes back
@@ -355,8 +355,14 @@ async function applyPartyStayTrips(party, trips = [], timestamp = Date.now()) {
         const goal = PartyMarketBreak.goal(party, member, timestamp, need);
         const travel = goal && GoalExecutor.beginMarketTravel(member, goal, timestamp);
         const departure = travel && PartyMarketBreak.departure(party, member, travel, timestamp, need);
-        if (!departure) { Situations.note('party:stay_trip:refused'); continue; }
-        const left = await LifeState.leaveParty(departure, 'market_break', { ownerHandoff: true });
+        // An ordinary hunt's member whose bag trip cannot start leaves, as it did before the
+        // party waited for it: its own build takes the bag to town (a full bag never sits
+        // in a party that cannot let it go).
+        const ordinary = !departure && !!need && PartyMarketBreak.ordinaryTrip(party);
+        if (!departure && !ordinary) { Situations.note('party:stay_trip:refused'); continue; }
+        if (ordinary) Situations.note('party:stay_trip:left');
+        const left = departure ? await LifeState.leaveParty(departure, 'market_break', { ownerHandoff: true })
+            : await LifeState.leaveParty(member, 'bag_full', { ownerHandoff: true });
         if (!left) continue;
         departed.push(left);
         party = BackgroundPartyState.find(party.partyId) || party;
@@ -379,10 +385,13 @@ async function resumePartyMarketBreak(state, timestamp) {
     const party = BackgroundPartyState.find(token.partyId);
     const warehouse = token.cleanupReason === 'craft_warehouse';
     const meeting = token.cleanupReason === 'trade_meeting';
+    // An ordinary hunt's member back from town (PartyMarketBreak.ordinaryTrip): no clan duty to wait on.
+    const ordinary = token.ordinary === true;
+    const own = warehouse || meeting || ordinary;
     const matching = PartyMarketBreak.sameObjective(party, token);
     const prepared = { ...state, activity: 'party_wait', stats: { ...state.stats,
-        partyMarketReturn: null, clanPartyObjective: warehouse || meeting ? state.stats.clanPartyObjective : token.objective,
-        partyRequest: warehouse || meeting ? state.stats.partyRequest : token.objective } };
+        partyMarketReturn: null, clanPartyObjective: own ? state.stats.clanPartyObjective : token.objective,
+        partyRequest: own ? state.stats.partyRequest : token.objective } };
     if (meeting && party?.status === 'hot') {
         const waiting = { ...state, timing: { ...state.timing, nextResolveAt: timestamp + 30000 } };
         const saved = await LifeState.upsertState(waiting, 'meeting_party_return_wait');
@@ -413,11 +422,11 @@ async function resumePartyMarketBreak(state, timestamp) {
         return { ok: !!result.party, state: LifeState.cachedState(state.characterId) || state,
             reason: result.party ? 'returned_to_clan_party' : 'party_return_retry' };
     }
-    if (warehouse || meeting) {
+    if (own) {
         // An ordinary party may fill or dissolve while its member shops. It
         // has no clan request to wait on, so resume the personal route.
         const solo = { ...prepared, activity: 'hunting', timing: { ...(prepared.timing || {}), nextResolveAt: timestamp + 30000 } };
-        const reason = meeting ? 'meeting_party_unavailable' : 'craft_warehouse_party_unavailable';
+        const reason = meeting ? 'meeting_party_unavailable' : ordinary ? 'stay_trip_party_unavailable' : 'craft_warehouse_party_unavailable';
         const saved = await LifeState.upsertState(solo, reason);
         return { ok: !!saved, state: saved || state, reason };
     }
@@ -997,6 +1006,10 @@ const PopulationService = {
             .catch(error => utils.infoWarn('BotRaid', 'startup failed: %s', error.message));
         Promise.resolve(this.lifeReadyPromise).then(() => this.startClanWars())
             .catch(error => utils.infoWarn('ClanWar', 'startup failed: %s', error.message));
+        // Living Bots: rich background bots help struggling friends; spare gear goes to who wears it.
+        Promise.resolve(this.lifeReadyPromise).then(() => {
+            if (this.started && Config.backgroundResolverEnabled !== false) require('../Economy/BotPatronage').start();
+        }).catch(error => utils.infoWarn('BotPatronage', 'startup failed: %s', error.message));
 
         Promise.resolve(this.lifeReadyPromise).then(() => {
             if (!this.started) return;
@@ -1032,6 +1045,7 @@ const PopulationService = {
 
     stop() {
         require('./GrandBossRaidLifecycle').stop();
+        require('../Economy/BotPatronage').stop();
         this.opportunisticRaids?.stop();
         this.clanWars?.stop();
         this.clanWars = null;

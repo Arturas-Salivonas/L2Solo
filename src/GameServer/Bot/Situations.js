@@ -852,10 +852,14 @@ function partyDecided(party, decision, { caller = 'party_step', subject = 0, ans
 }
 // The party spot's held answer and the facts it stands on: the roster, the party's
 // own deaths on the spot and whether the leader outlevels it (detectParty diffs them).
+// unfitRule: the party-ground rule the answer was taken under (UNFIT_RULE). An answer from
+// before the 5-level rule (BotRoute.partyGround) that stands on ground it now outlevels is woken
+// once (detectParty), so a party that settled on easy ground under the old rule decides again.
+const UNFIT_RULE = 2;
 function partySpotAnswer(party, answer, at, { deaths = 0, leaderLevel = 1 } = {}) {
     return { spotId: answer?.spotId ?? null, at, objective: partyObjectiveKey(party.stats?.objective), roster: rosterOf(party),
         deaths, outleveled: answer?.spotId == null ? 0 : outleveledSpot(answer.spotId, leaderLevel),
-        unfit: answer?.spotId == null ? 0 : unfitSpot(answer.spotId, leaderLevel) };
+        unfit: answer?.spotId == null ? 0 : unfitSpot(answer.spotId, leaderLevel), unfitRule: UNFIT_RULE };
 }
 let SpotTable = null;
 const outleveledSpot = (spotId, level) => (SpotTable ||= invoke('GameServer/Bot/AI/SpotValueTable')).outleveled(spotId, level) ? 1 : 0;
@@ -883,6 +887,7 @@ function detectParty(party, held, { deaths = 0, leaderLevel = 1, marks = [] } = 
     if (deaths > Number(held.deaths || 0)) names.push('spot_dangerous');
     if (!held.outleveled && held.spotId != null && outleveledSpot(held.spotId, leaderLevel)) names.push('spot_outleveled');
     else if (!held.unfit && !held.outleveled && held.spotId != null && unfitSpot(held.spotId, leaderLevel)) names.push('spot_outleveled');
+    else if (Number(held.unfitRule || 0) < UNFIT_RULE && held.spotId != null && unfitSpot(held.spotId, leaderLevel)) names.push('spot_outleveled');
     for (const mark of marks) {
         if (String(mark.spotId) === String(held.spotId) && PARTY_WAKES[mark.reason] && !names.includes(mark.reason)) names.push(mark.reason);
     }

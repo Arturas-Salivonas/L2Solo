@@ -107,6 +107,8 @@ function moneyCrossings(wallet, baseline, bag = wallet) {
     // row saved with an older kind reads as focus).
     if (afford?.at > 0 && wallet >= afford.at) names.push(afford.kind === 'potions' ? 'goal_affordable:potions' : 'goal_affordable:focus');
     if (baseline.bagAt > 0 && bag >= baseline.bagAt && !names.includes('goal_affordable:focus')) names.push('goal_affordable:focus');
+    // Living Bots: a windfall (an event prize, a lucky drop, a friend's gift) wakes the build too.
+    if (baseline.windfallAt > 0 && wallet >= baseline.windfallAt && !names.includes('goal_affordable:focus')) names.push('goal_affordable:focus');
     if (baseline.fundedAt > 0 && wallet < baseline.fundedAt) names.push('out_of_money');
     return names;
 }
@@ -116,11 +118,13 @@ function moneyCrossings(wallet, baseline, bag = wallet) {
 function unspent(baseline, wallet, bag = wallet) {
     const reached = baseline?.affordAt?.at > 0 && wallet >= baseline.affordAt.at, short = baseline?.fundedAt > 0 && wallet < baseline.fundedAt;
     const paid = baseline?.bagAt > 0 && bag >= baseline.bagAt;
-    if (!reached && !short && !paid) return baseline;
+    const windfall = baseline?.windfallAt > 0 && wallet >= baseline.windfallAt;
+    if (!reached && !short && !paid && !windfall) return baseline;
     const kept = { ...baseline };
     if (reached) delete kept.affordAt;
     if (short) delete kept.fundedAt;
     if (paid) delete kept.bagAt;
+    if (windfall) delete kept.windfallAt;
     return kept;
 }
 // What the wallet waits to reach, the first of: a broke
@@ -172,11 +176,21 @@ function incomeError(state, persona) {
 // network.bagShort, kind focus), its income error (the party forming's), the facts it
 // decided on (the step's diff compares against them) and its kit lines. facts: the build's
 // semanticFacts(state) when its caller already has them.
+// Living Bots: windfallAt, the wallet past which the money is news whatever the build waited
+// for: the next power of two above twice the wallet, at least WINDFALL_MIN. A bot that comes
+// into a fortune plans its spending at once instead of sitting on it until some other event;
+// a bot that saves slowly re-plans once per doubling. Rounded so a few Adena more or less is
+// the same baseline.
+const WINDFALL_MIN = 2 ** 20;
+function windfallAtOf(wallet) {
+    const held = Math.max(1, Number(wallet) || 0);
+    return Math.max(WINDFALL_MIN, 2 ** (Math.ceil(Math.log2(held)) + 1));
+}
 function snapshot(state, context, money = null, facts = null) {
     const wallet = PurchaseFunding.budget(state, money?.buyOrderEscrow || 0);
     const afford = affordAtOf(context, wallet);
     const bagAt = Number(context.network?.bagShort) || 0;
-    return { at: Number(context.timestamp), ...(afford ? { affordAt: afford } : {}),
+    return { at: Number(context.timestamp), ...(afford ? { affordAt: afford } : {}), windfallAt: windfallAtOf(wallet),
         ...(bagAt > PurchaseFunding.budget(state) ? { bagAt } : {}),
         ...(context.leafBudget > 0 && context.leafBudget <= wallet ? { fundedAt: context.leafBudget } : {}),
         ...(facts || semanticFacts(state)), ...supplyFacts(state, context.statsPacket.kitRates, context.earning),
@@ -416,5 +430,5 @@ function sameSpot(spotId, planned) {
 function kitMoved(before, after) {
     return (before?.stats?.wishSections?.build ?? null) !== (after?.stats?.wishSections?.build ?? null);
 }
-module.exports = { FIELD_ACTIVITIES, partyIdOf, routedSourceOf, moneyCrossings, unspent, LINK_INPUTS, routeVersions, movedInput, stateView, roundView, kit, kitMoved, incomeError,
+module.exports = { FIELD_ACTIVITIES, partyIdOf, routedSourceOf, moneyCrossings, unspent, windfallAtOf, WINDFALL_MIN, LINK_INPUTS, routeVersions, movedInput, stateView, roundView, kit, kitMoved, incomeError,
     baselineIdentity, snapshot, semanticFacts, factsOf, relationTargetIds, LINE_BELOW, LINE_OUT, lineAt, supplyOf, linesOf, occupationPlanned, leafVisit, leafTrip, hash, decisionRefusal };

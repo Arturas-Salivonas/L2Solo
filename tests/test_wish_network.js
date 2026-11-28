@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const Packet = require('../src/GameServer/Bot/Economy/StatsPacket');
-const { WishNetwork, moneyQueue } = require('../src/GameServer/Bot/Economy/WishNetwork');
+const WishNetworkModule = require('../src/GameServer/Bot/Economy/WishNetwork');
+const { WishNetwork, moneyQueue } = WishNetworkModule;
 
 const queue = moneyQueue([
     { key: 'sword', price: 100, valueHours: 10 },
@@ -188,9 +189,15 @@ assert.equal(overpriced.moneyPrice, .001);
     assert.deepEqual([farmed.activity?.rootKey, farmed.activity?.kind, farmed.activity?.price], ['power:852:1', 'drop', 0],
         'an unsupported craft keeps its farm step');
 }
+// Living Bots: money is worth less to a bot that holds plenty of it. Up to a day of income in
+// the bag the floor is 1 / hourAdena; a fortune (1e8 on 1000 an hour) lowers it to its minimum
+// share, so the rich bot buys what a poor one would call too dear.
 const wealthy = network.build({ ...input, inputKey: 'wealthy-hour', wallet: 1e8, hourAdena: 1000 });
 assert.equal(wealthy.hourAdena, 1000);
-assert.equal(wealthy.moneyPrice, .001);
+assert.ok(Math.abs(wealthy.moneyPrice - WishNetworkModule.WEALTH_MIN_FACTOR / 1000) < 1e-12, 'a fortune: the floor at its minimum share');
+const saver = network.build({ ...input, inputKey: 'saver-hour', wallet: 20000, hourAdena: 1000 });
+assert.equal(saver.moneyPrice, .001, 'a day of income or less: the full floor');
+assert.ok(Math.abs(WishNetworkModule.wealthFloor(1000, 48000) - 0.0005) < 1e-12, 'two days of income: half the floor');
 
 const eventInput = { actorKey: 'character:77', characterId: 77, inputKey: 'event:1', decisionSeq: 1,
     activityLeaf: 0, wallet: 10000, hourAdena: 100, persona: { traits: { commitment: 0 } },

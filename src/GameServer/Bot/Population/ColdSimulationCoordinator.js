@@ -1833,7 +1833,7 @@ class ColdSimulationCoordinator {
                     // hunt commit writes that row through createOrUpdate ->
                     // saveBackgroundParty, a blind statsJson upsert. The ack then carries
                     // the leader state after the table changes (handleCommitResults).
-                    // The worker's party_stay answered trip for a member of a clan or war duty
+                    // The worker's party_stay answered trip for a member of a clan duty or an ordinary hunt
                     // party: main starts it with its return ticket (PopulationService).
                     const trips = entry.proposal.partyResolution.stayTrips;
                     if (trips?.length && this.population?.applyPartyStayTrips) {

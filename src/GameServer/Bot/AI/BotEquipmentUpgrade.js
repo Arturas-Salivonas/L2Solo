@@ -2,6 +2,7 @@ const ServerResponse = invoke('GameServer/Network/Response');
 const BotRoles = invoke('GameServer/Bot/AI/BotRoles');
 const BotEquipmentCompatibility = invoke('GameServer/Bot/AI/BotEquipmentCompatibility');
 const BotWeaponCompatibility = invoke('GameServer/Bot/AI/BotWeaponCompatibility');
+const GearScore = invoke('GameServer/Bot/AI/GearScore');
 const ArmorPolicy = invoke('GameServer/Bot/AI/BotArmorPolicy');
 const { gradeForLevel, GRADES: RANK_ORDER } = invoke('GameServer/Bot/AI/GearGradeRule');
 const Diagnostics = invoke('GameServer/Bot/Economy/EconomyDiagnostics');
@@ -100,23 +101,23 @@ function isSuitableItem(actor, item, includeEquipped = false) {
     return false;
 }
 
+// Living Bots: the shared GearScore (the background simulation's planner reads the same), plus
+// this item's own enchant: a weapon's speed and crit count for a fighter, and a +6 piece beats
+// its +0 copy.
 function scoreItem(actor, item) {
     const role = BotRoles.inferRole(actor);
     const kind = item.fetchKind();
     const slot = Number(item.fetchSlot());
 
     if (item.isWeapon()) {
-        return BotWeaponCompatibility.scoreWeapon(
-            item.fetchPAtk(),
-            item.fetchMAtk(),
-            role,
-            actor.fetchClassId()
-        );
+        return GearScore.weapon({ pAtk: item.fetchPAtk(), mAtk: item.fetchMAtk(), atkSpd: item.fetchAtkSpd?.(),
+            crit: item.fetchCritical?.() }, role, actor.fetchClassId(),
+        { pAtk: GearScore.enchantBonus(item, 'pAtk'), mAtk: GearScore.enchantBonus(item, 'mAtk') });
     }
 
-    if (kind === 'Armor.Jewel') return item.fetchMDef();
-    if (slot === ARMOR_SLOTS.shield) return item.fetchPDef();
-    return item.fetchPDef() + item.fetchBonusMp();
+    if (kind === 'Armor.Jewel') return GearScore.jewel({ mDef: item.fetchMDef() }, GearScore.enchantBonus(item, 'mDef'));
+    if (slot === ARMOR_SLOTS.shield) return item.fetchPDef() + GearScore.enchantBonus(item, 'pDef');
+    return GearScore.armour({ pDef: item.fetchPDef(), mp: item.fetchBonusMp() }, GearScore.enchantBonus(item, 'pDef'));
 }
 
 function currentItemForSlot(backpack, slot) {
@@ -481,7 +482,16 @@ function applyCandidate(session, itemId, options = {}) {
     };
 }
 
+// Living Bots: would this actor wear the item now (an item lying on the ground, offered in a
+// trade, or a friend's spare)? Suitable for its class and level, and better than what it
+// wears in that slot. Free loot and hand-me-downs ask it before they move anything.
+function wouldEquip(actor, item) {
+    if (!actor?.backpack || !item?.isWearable?.() || !isSuitableItem(actor, item, true)) return false;
+    return !!bestUpgradeSlot(actor, item, new Map());
+}
+
 module.exports = {
+    wouldEquip,
     applyCandidate,
     applyBestUpgrades,
     findBestUpgrades,

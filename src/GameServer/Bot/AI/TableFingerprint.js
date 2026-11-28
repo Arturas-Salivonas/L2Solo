@@ -55,6 +55,7 @@ const CATALOGUE = ['src/GameServer/World/Generics/SpawnNpcs.js', 'src/GameServer
 const GAME_DATA = ['data/Npcs', 'data/Items', 'data/Skills', 'data/Templates', 'data/RaidBoss'];
 // Gear ladders, item sources and hennas (hunt gear/sources/henna; the spot table's kit surface reads gear.json).
 const GEAR_LADDERS = ['src/GameServer/Bot/AI/GearAcquisitionPlanner.js', 'src/GameServer/Bot/AI/BotEquipmentCompatibility.js',
+    'src/GameServer/Bot/AI/GearScore.js', 'src/GameServer/Bot/AI/BotWeaponCompatibility.js',
     'src/GameServer/World/Generics/NpcShopBuyLists.js', 'src/GameServer/Bot/Economy/BotLuxuryExchange.js',
     'src/GameServer/Henna/HennaRules.js', 'data/Recipes', 'data/Henna'];
 // The generators themselves (the spot generator shares the hunt model's helpers; the hunt build runs the spot
