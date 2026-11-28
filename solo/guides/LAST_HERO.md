@@ -12,8 +12,9 @@ An automatic PvP event for [L2Solo](https://github.com/pmbstyle/L2Solo). Every t
 6. **FIGHT!** Every fighter is flagged (purple), so you attack with a plain click. Bots pick the nearest fighter, or whoever just hit them, and fight with the server's own bot PvP brain: their skills, their gear, their shots.
 7. **When you fall, you're out.** You get your place and kills, stand up at the west gate a few seconds later, and can watch from there. Leaving the floor for 3 seconds also counts as out.
 8. **The last one standing wins.** If time runs out (10 minutes), the fighter with the most kills (then the most HP) wins.
-9. **The crowd reacts:** a couple of dozen lines in normal, shout and trade chat. Gz, gg, "rigged", "share the 10kk?" and the like, from the fallen fighters and the rest of the server.
-10. **Ten seconds later everyone goes back** where they came from, with full HP, MP and CP and the buffs they had before the event.
+9. **The results are announced:** the winner with their kills, then the five fighters with the most kills, one per line. The Last Hero tab keeps that list until the next event.
+10. **The crowd reacts:** a couple of dozen lines in normal, shout and trade chat. Gz, gg, "rigged", "share the 10kk?" and the like, from the fallen fighters and the rest of the server.
+11. **Ten seconds later everyone goes back** where they came from, with full HP, MP and CP and the buffs they had before the event.
 
 **Nothing is lost.** No EXP loss, no item drops, no karma, no PvP count. Outsiders can't touch fighters, and fighters can't touch outsiders.
 

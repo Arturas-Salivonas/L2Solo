@@ -224,6 +224,14 @@ const options = (values) => { global.options.default.LastHero = values; };
         'a fallen bot is never drawn again at the end (it would stand up on the floor)');
     assert.strictEqual(b2.fetchPvpFlag(), 0, 'its flag is gone all the same');
     assert.ok(texts(player).includes('You go back where you were in 10 seconds'), 'you are told when you go back');
+    assert.ok(texts(player).includes('is the last one standing with 0 kills'), 'the winner line says the kills');
+    const said = texts(player);
+    const list = said.slice(said.indexOf('Last Hero - most kills:'));
+    assert.ok(said.includes('Last Hero - most kills:'), 'then the most kills, as a list');
+    assert.ok(/1\. Bot\d+ - 1 kill/.test(list) && /2\. Arturas - 1 kill/.test(list),
+        'one per row: same kills, the one who lasted longer first; nobody without a kill');
+    assert.ok(!/3\. Bot/.test(list), 'only fighters with kills are listed');
+    assert.deepStrictEqual(Store.read().history[0].topKills.map((entry) => entry.kills), [1, 1], 'and the list is kept');
     assert.strictEqual(run.state, 'ending', 'one left: the fight is over');
     const store = Store.read();
     assert.strictEqual(store.hero.name, b5.fetchName(), 'the last one standing is the Last Hero');
@@ -237,6 +245,7 @@ const options = (values) => { global.options.default.LastHero = values; };
 
     const board = Window.boardBody(player);
     assert.ok(board.includes('Return now'), 'out: the window offers Return now');
+    assert.ok(board.includes('Most kills - last event') && board.includes('Arturas'), 'the window lists the most kills');
     assert.ok(board.includes(b5.fetchName()) && board.includes('#5, 1 kills'), 'the window shows the hero and your result');
 
     run.endsAt = Date.now() - 1;
@@ -288,11 +297,15 @@ const options = (values) => { global.options.default.LastHero = values; };
     const background = LastHero._state().run;
     assert.strictEqual(background?.mode, 'simulated', 'nobody joined: it runs in the background');
     assert.ok(texts(player).includes('Last Hero has begun at the Coliseum'));
+    const before = texts(player).length;
     background.startedAt = Date.now() - 200000;
     LastHero.schedulerTick();
     assert.strictEqual(LastHero._state().run, null, 'it ends on its own');
     const drawn = Store.read().hero;
     assert.ok(drawn && drawn.name.startsWith('Bot'), 'a bot wins it');
+    assert.ok(texts(player).slice(before).includes('Last Hero - most kills:'), 'a background event has its most kills too');
+    assert.ok(Store.read().history[0].topKills.length >= 2 && Store.read().history[0].topKills[0].kills >= Store.read().history[0].topKills.at(-1).kills,
+        'sorted, most first');
     assert.ok(Store.read().prizes[drawn.id]?.adena >= 10000000, 'and is owed the prize');
 
     // The prize lands when that bot is active.
