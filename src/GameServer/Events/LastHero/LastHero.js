@@ -900,22 +900,65 @@ function giveAdena(session, amount) {
 }
 
 // A bot winner's prize waits until the bot is active (near you), then lands in its bag.
+// A bot winner's prize: into its bag at once when it is live near you; when it lives in
+// the background simulation, as a settlement the simulation merges at the bot's next save
+// (Database.settleColdCharacter, the way a sale it made while away reaches it). A bot
+// between the two keeps its prize owed for the next scan.
+const paying = new Set();
 function payBotPrizes() {
     const owed = Store.read().prizes;
     const ids = Object.keys(owed || {});
     if (!ids.length) return;
     const sessions = invoke('GameServer/Bot/BotManager').sessions || [];
     for (const id of ids) {
-        const session = sessions.find((entry) => !entry.arenaEphemeral && Number(entry.actor?.fetchId?.()) === Number(id));
-        if (!session || session.paying) continue;
-        session.paying = true;
+        if (paying.has(id)) continue;
         const prize = owedPrize(owed[id]);
-        // Owed once: the debt is cleared before the bag is filled, so a second scan cannot pay it twice.
-        Store.update((state) => { delete state.prizes[id]; });
-        givePrize(session, prize.adena, prize.items)
-            .catch((error) => invoke('FailureLog')?.note?.('last_hero.bot_prize', error))
-            .finally(() => { session.paying = false; });
+        const session = sessions.find((entry) => !entry.arenaEphemeral && Number(entry.actor?.fetchId?.()) === Number(id));
+        // Owed once: the debt is cleared before anything is paid, so a second scan cannot pay it twice.
+        const clear = () => Store.update((state) => { delete state.prizes[id]; });
+        paying.add(id);
+        const done = () => paying.delete(id);
+        if (session?.actor?.backpack) {
+            clear();
+            givePrize(session, prize.adena, prize.items)
+                .catch((error) => invoke('FailureLog')?.note?.('last_hero.bot_prize', error)).finally(done);
+            continue;
+        }
+        clear();
+        const restore = () => Store.update((state) => {
+            const again = owedPrize(state.prizes[id]);
+            state.prizes[id] = { adena: again.adena + prize.adena, items: [...again.items, ...prize.items] };
+        });
+        settleBackground(Number(id), prize).then((settled) => { if (!settled) restore(); }).finally(done);
     }
+}
+
+// The prize as settlements. false = nothing was written (the bot is not in the background,
+// or the database refused): the prize stays owed. The Adena goes first; an item that fails
+// after it is logged and dropped, so nothing is ever paid twice.
+async function settleBackground(characterId, prize) {
+    const Database = invoke('Database');
+    if (typeof Database.settleColdCharacter !== 'function') return false;
+    try {
+        const state = await invoke('GameServer/Bot/Population/BotLifeState').findByCharacterId?.(characterId);
+        if (state?.phase && state.phase !== 'cold') return false;
+        if (prize.adena > 0 && !(await Database.settleColdCharacter(characterId, { selfId: 57, name: 'Adena', stackable: 1 }, prize.adena))) return false;
+    } catch (error) {
+        invoke('FailureLog')?.note?.('last_hero.bot_settle', error);
+        return false;
+    }
+    if (prize.adena > 0) utils.infoSuccess('LastHero', 'paid %s Adena to background bot %d (lands at its next save)', format(prize.adena), characterId);
+    for (const [selfId, count] of prize.items || []) {
+        try {
+            const definition = require('../../Item/ItemTemplateIndex').find(invoke('GameServer/DataCache').items, selfId);
+            if (!definition) continue;
+            await Database.settleColdCharacter(characterId, { selfId, name: definition.template?.name, enchant: 0,
+                slot: Number(definition.etc?.slot || 0), stackable: definition.etc?.stackable ? 1 : 0 }, count);
+        } catch (error) {
+            invoke('FailureLog')?.note?.('last_hero.bot_settle_item', error);
+        }
+    }
+    return true;
 }
 
 // ---------- what the window shows ----------

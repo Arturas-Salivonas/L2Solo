@@ -274,8 +274,10 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.strictEqual(LastHero.heroAura(b5), true, 'and glows');
     assert.strictEqual(LastHero.heroAura(me), false, 'you do not');
     assert.ok(texts(player).includes(`${b5.fetchName()} (Lv 20`) && texts(player).includes('10,000,000 Adena and the Hero aura'), 'the winner is announced');
-    assert.deepStrictEqual(store.prizes[run.fighters.find((fighter) => fighter.actor === b5).sourceId], { adena: 10000000, items: [] },
-        'a bot winner is owed its prize');
+    // The payout tries at once; with no database here it cannot settle, so the prize stays owed.
+    for (let i = 0; i < 5; i++) await new Promise((resolve) => setImmediate(resolve));
+    assert.deepStrictEqual(Store.read().prizes[run.fighters.find((fighter) => fighter.actor === b5).sourceId], { adena: 10000000, items: [] },
+        'a bot winner the payout cannot reach stays owed its prize');
     assert.deepStrictEqual(store.history[0].you, { name: 'Arturas', place: 5, kills: 1 }, 'your result is kept');
     assert.ok(store.nextAt > Date.now() + 119 * 60000, 'the next one is in two hours');
 
@@ -346,7 +348,8 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.ok(texts(player).slice(before).includes('Last Hero - most kills:'), 'a background event has its most kills too');
     assert.ok(Store.read().history[0].topKills.length >= 2 && Store.read().history[0].topKills[0].kills >= Store.read().history[0].topKills.at(-1).kills,
         'sorted, most first');
-    assert.ok(Store.read().prizes[drawn.id]?.adena >= 10000000, 'and is owed the prize');
+    for (let i = 0; i < 5; i++) await new Promise((resolve) => setImmediate(resolve));
+    assert.ok(Store.read().prizes[drawn.id]?.adena >= 10000000, 'and is owed the prize while no payout can reach it');
 
     // The prize lands when that bot is active.
     const hot = actorFor(drawn.id, drawn.name);

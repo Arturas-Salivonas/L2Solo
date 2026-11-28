@@ -36,7 +36,7 @@ An automatic PvP event for [L2Solo](https://github.com/pmbstyle/L2Solo). Every t
 
 **The Hero aura** is the C4 hero glow. The winner keeps it until the next event has a new winner, across restarts. It's only the glow: no hero skills or hero chat.
 
-**The bots** are copies of real bots from your world: same name, class, level, gear and skills, and nothing extra (no buff set, no bonus stats). They're picked near your level (within 10 levels when there are enough), and the classes take turns so every class and race near your level gets places: mages, healers, buffers, summoners, dwarves as well as fighters. Nothing that happens to a copy touches the real bot. A bot winner gets its 10kk the next time it's active near you, and the real bot glows.
+**The bots** are copies of real bots from your world: same name, class, level, gear and skills, and nothing extra (no buff set, no bonus stats). They're picked near your level (within 10 levels when there are enough), and the classes take turns so every class and race near your level gets places: mages, healers, buffers, summoners, dwarves as well as fighters. Nothing that happens to a copy touches the real bot. A bot winner gets its prize straight away: in its bag if it's near you, otherwise through the game's settlement queue, so it lands at the bot's next save even while it lives in the background. The real bot glows.
 
 **When you don't join,** the event still runs, in the background. The server announces the start, the countdown of fighters and the winner. The winner is drawn by level (stronger bots win more often) and gets the aura and the prize all the same. So when you meet a glowing bot, it really won.
 
@@ -201,7 +201,7 @@ draftPicks = 3          ; how many you pick (bots get this many at random), 0 = 
 lockBuffer = false      ; true = no Solo Helper buffer or Full HP/MP/CP during the event
 ```
 
-The state lives in `tmp/solo/last-hero.json`: the current hero, when the next event is, the last 10 results and any prize a bot is still owed (paid the next time that bot is active near you).
+The state lives in `tmp/solo/last-hero.json`: the current hero, when the next event is, the last 10 results and any prize a bot is still owed (only while it is switching between near you and the background; the next try pays it).
 
 ## Good to know
 
