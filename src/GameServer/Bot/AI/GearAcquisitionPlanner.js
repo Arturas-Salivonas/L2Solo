@@ -12,6 +12,7 @@ const LevelingRoutes = invoke('GameServer/Bot/AI/LevelingRoutes');
 const HuntEfficiency = invoke('GameServer/Bot/AI/BotHuntEfficiency');
 const BotEquipmentCompatibility = invoke('GameServer/Bot/AI/BotEquipmentCompatibility');
 const BotWeaponCompatibility = invoke('GameServer/Bot/AI/BotWeaponCompatibility');
+const GearScore = invoke('GameServer/Bot/AI/GearScore');
 const { GRADES: RANKS, rankOf: rankIndex, gradeForLevel } = invoke('GameServer/Bot/AI/GearGradeRule');
 const CraftShopService = invoke('GameServer/Bot/Economy/CraftShopService');
 // Common materials have hundreds of sources. Retain only their sorted index
@@ -191,12 +192,16 @@ function missingRequiredDualSword(state = {}, role = roleFor(state), classId = c
     return !equippedInventoryItems(state.inventory).some((item) => item.template?.kind === 'Weapon.Dual');
 }
 
+// Living Bots: the shared GearScore (the live body's equip reads the same): a fighter's weapon
+// counts its speed and crit too. A template is +0.
 function itemScore(item, role, classId) {
     const stats = item.stats || {};
     const slot = Number(item.etc?.slot || 0);
-    if (BotEquipmentCompatibility.isWeaponSlot(slot)) return BotWeaponCompatibility.scoreWeapon(stats.pAtk, stats.mAtk, role, classId);
-    if (JEWEL_SLOTS.has(slot)) return Number(stats.mDef || 0);
-    return Number(stats.pDef || 0) + Number(item.etc?.mp || 0);
+    if (BotEquipmentCompatibility.isWeaponSlot(slot)) {
+        return GearScore.weapon({ pAtk: stats.pAtk, mAtk: stats.mAtk, atkSpd: stats.atkSpd, crit: stats.crit }, role, classId);
+    }
+    if (JEWEL_SLOTS.has(slot)) return GearScore.jewel({ mDef: stats.mDef });
+    return GearScore.armour({ pDef: stats.pDef, mp: item.etc?.mp });
 }
 
 // A failed route's wake: the inputs whose move makes it worth trying again
