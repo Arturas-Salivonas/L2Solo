@@ -106,17 +106,14 @@ const A = (command) => `_bbssolo adena ${command}`;
 
 function status(actor, message) {
     const have = Number(actor?.backpack?.fetchTotalAdena?.() || 0);
-    return `<table width=${BOARD_WIDTH} bgcolor=222222><tr>`
+    return `<table width=${BOARD_WIDTH}><tr>`
         + `<td width=6></td><td width=34 height=34><img src="${ADENA_ICON}" width=32 height=32></td>`
         + `<td width=230>You carry ${Html.font(format(have), Html.COLOR.ok)} Adena</td>`
         + `<td width=334 align=right>${message ? Html.font(Html.esc(message), Html.COLOR.link) : ''}</td><td width=6></td>`
         + '</tr></table>';
 }
 
-function heading(label) {
-    return `<br1><table width=${BOARD_WIDTH}><tr><td>${Html.font(label, Html.COLOR.title)}</td></tr></table>`
-        + `<img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1>`;
-}
+const heading = (label) => Style.heading(label);
 
 function quickTiles() {
     const width = Math.floor(BOARD_WIDTH / QUICK.length);
@@ -130,10 +127,10 @@ function typedAmount() {
     return `<table width=${BOARD_WIDTH}><tr>`
         + '<td width=6></td><td width=170><edit var="solo_adena" width=160 height=15 length=16></td>'
         + `<td width=${Style.BUTTON_CELL}>${Html.button('Add', `${A('add')} $solo_adena`, { width: Style.BUTTON_WIDTH, hide: false })}</td>`
-        + `<td width=${BOARD_WIDTH - 176 - Style.BUTTON_CELL}>${Html.font('250000, 250k, 5kk or 1b')}</td>`
+        + `<td width=${BOARD_WIDTH - 176 - Style.BUTTON_CELL}>${Html.font('250000, 250k, 5kk or 1b', Style.SOFT)}</td>`
         + '</tr></table><br1>'
         + `<table width=${BOARD_WIDTH}><tr><td width=6></td><td>`
-        + Html.font('Same from chat: .adena 5kk. One stack holds up to 2,147,483,647 in C4.')
+        + Html.font('Same from chat: .adena 5kk. One stack holds up to 2,147,483,647 in C4.', Style.SOFT)
         + '</td></tr></table>';
 }
 

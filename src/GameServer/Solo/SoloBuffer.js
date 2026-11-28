@@ -316,16 +316,13 @@ function boardStatus(actor, message) {
     const limit = slotsOf(actor);
     const count = Html.font(`${used}/${limit}`, used >= limit ? Html.COLOR.warn : Html.COLOR.ok);
     const note = used >= limit ? 'full - a new buff replaces your oldest' : `${config().buffMinutes} min each`;
-    return `<table width=${BOARD_WIDTH} bgcolor=222222><tr>`
-        + `<td width=6></td><td width=250 height=24>Buffs ${count} ${Html.font(note)}</td>`
+    return `<table width=${BOARD_WIDTH}><tr>`
+        + `<td width=6></td><td width=250 height=24>Buffs ${count} ${Html.font(note, Style.SOFT)}</td>`
         + `<td width=348 align=right>${message ? Html.font(message, Html.COLOR.link) : ''}</td><td width=6></td>`
         + '</tr></table>';
 }
 
-function heading(label) {
-    return `<br1><table width=${BOARD_WIDTH}><tr><td>${Html.font(label, Html.COLOR.title)}</td></tr></table>`
-        + `<img src="L2UI.SquareGray" width=${BOARD_WIDTH} height=1><br1>`;
-}
+const heading = (label) => Style.heading(label);
 
 function presetTiles() {
     const tiles = [
@@ -354,7 +351,7 @@ function buffGrid(group, active) {
         const cells = group.buffs.slice(i, i + BOARD_COLUMNS).map((buff) => {
             const effect = active.get(buff.selfId);
             const name = effect ? Html.font(buff.name, Html.COLOR.ok) : Html.esc(buff.name);
-            const detail = Html.font(`Lv ${buff.level}`) + (effect ? ` ${Html.font(minutesLeft(effect), Html.COLOR.ok)}` : '');
+            const detail = Html.font(`Lv ${buff.level}`, Style.SOFT) + (effect ? ` ${Html.font(minutesLeft(effect), Html.COLOR.ok)}` : '');
             return `<td width=38 height=38>${iconButton(buff.selfId, `one ${buff.selfId}`)}</td>`
                 + `<td width=${cellWidth - 38}><a action="bypass ${B(`one ${buff.selfId}`)}">${name}</a><br1>${detail}</td>`;
         });
