@@ -128,11 +128,22 @@ function historyTable(view) {
     return `<table width=${WIDTH}>${head}${rows}</table>`;
 }
 
+// The last event's most kills, one per row: rank, name (you in green), kills.
+function topTable(view) {
+    const top = view.history?.[0]?.topKills || [];
+    const rows = top.map((entry, index) => `<tr><td width=6></td><td width=30 align=left height=18>${Html.font(`${index + 1}.`, Html.COLOR.title)}</td>`
+        + `<td width=300 align=left>${Html.font(entry.name, entry.kind === 'player' ? Html.COLOR.ok : 'FFFFFF')}</td>`
+        + `<td width=274 align=left>${soft(`${entry.kills} kill${entry.kills === 1 ? '' : 's'}`)}</td></tr>`).join('');
+    return `<table width=${WIDTH}>${rows}</table>`;
+}
+
 function boardBody(session, state = {}) {
     const view = LastHero.status(session);
+    const top = view.history?.[0]?.topKills?.length ? heading('Most kills - last event') + topTable(view) : '';
     return statusRow(view, state.message)
         + heading('How it works') + tiles(view)
         + heading('The Hero') + heroRow(view)
+        + top
         + heading('Last results') + historyTable(view);
 }
 

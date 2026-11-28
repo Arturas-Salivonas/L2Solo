@@ -510,17 +510,37 @@ function finish(winner, reason) {
         if (fighter.alive || fighter.kind === 'player') clearFlag(fighter);
         else quietFlag(fighter);
     }
+    const top = topKills(run.fighters);
     if (winner) {
         winner.place = 1;
         Fighters.social(winner, 3); // Victory
-        crown(winner, reason);
+        crown(winner, reason, top);
     } else {
         announce('Last Hero ended with no one standing.');
+        announceTop(top);
     }
     for (const fighter of run.fighters) {
         if (fighter.kind === 'player' && !fighter.returned) tell(fighter.session, `You go back where you were in ${Math.round(END_HOLD_MS / 1000)} seconds.`);
     }
-    record(winner, reason);
+    record(winner, reason, top);
+}
+
+const killWord = (count) => `${count} kill${count === 1 ? '' : 's'}`;
+
+// The five with the most kills: more kills first, then whoever lasted longer (the winner's
+// place is 1). Nobody without a kill. [{ name, kills, kind, place }]
+function topKills(fighters, size = 5) {
+    return fighters.filter((fighter) => Number(fighter.kills) > 0)
+        .sort((a, b) => b.kills - a.kills || (a.place ?? 0) - (b.place ?? 0))
+        .slice(0, size)
+        .map((fighter) => ({ name: fighter.name, kills: fighter.kills, kind: fighter.kind, place: fighter.place ?? 1 }));
+}
+
+// One announcement per row, so the list reads as a list.
+function announceTop(top) {
+    if (!top.length) return;
+    announce('Last Hero - most kills:');
+    top.forEach((entry, index) => announce(`${index + 1}. ${entry.name} - ${killWord(entry.kills)}`));
 }
 
 function itemName(selfId) {
@@ -558,12 +578,13 @@ async function givePrize(session, adena, items) {
 }
 
 // The winner: announced, the Hero aura, the prize. Works for a live fighter or a drawn one.
-function crown(winner, reason) {
+function crown(winner, reason, top = []) {
     const settings = config();
     const what = `${winner.name} (Lv ${winner.level} ${className(winner.classId)})`;
     announce(reason === 'time'
-        ? `Last Hero: time is up! ${what} wins with ${winner.kills || 0} kills: ${prizeText(settings)}!`
-        : `Last Hero: ${what} is the last one standing and wins ${prizeText(settings)}!`);
+        ? `Last Hero: time is up! ${what} wins with ${killWord(winner.kills || 0)}: ${prizeText(settings)}!`
+        : `Last Hero: ${what} is the last one standing with ${killWord(winner.kills || 0)} and wins ${prizeText(settings)}!`);
+    announceTop(top);
     if (settings.winnerChat) {
         try {
             Chatter.afterWin({ winner, live: run?.mode === 'live', prize: shortAmount(settings.prizeAdena),
@@ -625,14 +646,15 @@ function refreshAura(characterId) {
     }
 }
 
-function record(winner, reason) {
+function record(winner, reason, top = []) {
     const you = run.fighters.find((fighter) => fighter.kind === 'player');
     const settings = config();
     Store.update((state) => {
         state.history.unshift({
             at: now(), mode: run.mode, reason, fighters: run.total || run.fighters.length,
             winner: winner ? { name: winner.name, classId: winner.classId, level: winner.level, kind: winner.kind, kills: winner.kills || 0 } : null,
-            you: you ? { name: you.name, place: you.place, kills: you.kills } : null
+            you: you ? { name: you.name, place: you.place, kills: you.kills } : null,
+            topKills: top
         });
         state.nextAt = settings.everyMinutes > 0 ? now() + settings.everyMinutes * 60000 : 0;
     });
@@ -738,24 +760,33 @@ function startSimulated() {
     const weights = entries.map((entry) => Math.pow(Math.max(1, entry.level), 4));
     let roll = Math.random() * weights.reduce((sum, weight) => sum + weight, 0);
     run.simulated = entries.find((entry, index) => (roll -= weights[index]) <= 0) || entries[0];
-    run.simulated.kills = 1 + Math.floor(Math.random() * 8);
+    run.simulated.kills = 3 + Math.floor(Math.random() * 8);
+    run.simulated.place = 1;
+    // The rest of the most-kills list is drawn the same way, among the others.
+    const others = entries.filter((entry) => entry !== run.simulated).sort(() => Math.random() - 0.5).slice(0, 4);
+    others.forEach((entry, index) => {
+        entry.place = 2 + index;
+        entry.kills = 1 + Math.floor(Math.random() * (run.simulated.kills + 2));
+    });
+    run.simulatedTop = topKills([run.simulated, ...others]);
     announce(`Last Hero has begun at the Coliseum: ${run.total} fighters, everyone for themselves.`);
     return true;
 }
 
 function simulatedTick(at) {
     const elapsed = at - run.startedAt;
-    if (elapsed >= SIMULATED_MS.half && !run.said.has('half')) {
+    // Counted down only when there is room to count: half, then 3 (a small event skips them).
+    if (elapsed >= SIMULATED_MS.half && !run.said.has('half') && run.total >= 8) {
         run.said.add('half');
-        announce(`Last Hero: ${Math.max(2, Math.round(run.total / 2))} fighters left.`);
+        announce(`Last Hero: ${Math.round(run.total / 2)} fighters left.`);
     }
-    if (elapsed >= SIMULATED_MS.last && !run.said.has('last')) {
+    if (elapsed >= SIMULATED_MS.last && !run.said.has('last') && run.total >= 5) {
         run.said.add('last');
         announce('Last Hero: 3 fighters left.');
     }
     if (elapsed >= SIMULATED_MS.end) {
-        crown(run.simulated, 'last');
-        record({ ...run.simulated }, 'last');
+        crown(run.simulated, 'last', run.simulatedTop || []);
+        record({ ...run.simulated }, 'last', run.simulatedTop || []);
         run = null;
     }
 }
