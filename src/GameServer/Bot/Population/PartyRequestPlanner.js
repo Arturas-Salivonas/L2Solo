@@ -102,13 +102,39 @@ function progressObjective(state, { spots, timestamp, economy = null, memo = nul
         const Progress = require('./PartyProgressComparison'); // lazy: its chain loads this planner
         const partner = Progress.partnerFor(asked);
         const verdict = partner && Progress.compare(asked, [partner], { spots, timestamp, objective: { spotId } });
-        held = { key, spots, accept: !!verdict?.accept };
+        // Living Bots: the stronger ground a party of its level takes (higherGround), weighed the
+        // same way against its solo hunt: its level and the piece it saves for (the income and
+        // the drops of each side) sooner, its persona's lean on a party. A bot that does well
+        // solo stays solo; one that would do better with a party up there asks for one there.
+        const higher = partner ? higherGround(asked, spots, timestamp, spotId) : null;
+        const up = higher && Progress.compare(asked, [partner], { spots, timestamp, objective: { spotId: higher } });
+        const sooner = row => (row?.accept ? Number(row.partyHours ?? Infinity) : Infinity);
+        const climbs = !!up?.accept && sooner(up) <= sooner(verdict);
+        held = { key, spots, accept: !!verdict?.accept || climbs, spotId: climbs ? higher : spotId };
         if (memo) memo.progressAsk = held;
-        Diagnostics.count('party_ask', 'decided', verdict?.reason || 'no_partner');
+        Diagnostics.count('party_ask', 'decided', climbs ? `${up.reason}:higher` : verdict?.reason || 'no_partner');
     }
     if (!held.accept) return null;
-    return { status: 'open', priority: 'preferred', objectiveKey: `spot:${spotId}`, reason: PARTY_PROGRESS,
-        spotId, npcId: null, itemId: null, targetId: null };
+    const asks = held.spotId || spotId;
+    return { status: 'open', priority: 'preferred', objectiveKey: `spot:${asks}`, reason: PARTY_PROGRESS,
+        spotId: asks, npcId: null, itemId: null, targetId: null };
+}
+// The ground a party of the bot's level would take (the party search, mode party: up to
+// its party window above it, the group's matchup, not its solo gate), when it stands above
+// the bot's solo spot; else null. Spot levels: the spot table's (SpotValueTable.spotLevel).
+function higherGround(state, spots, timestamp, soloSpotId) {
+    const level = id => {
+        try { const value = invoke('GameServer/Bot/AI/SpotValueTable').spotLevel(id); return Number.isFinite(value) ? value : null; }
+        catch { return null; }
+    };
+    // lazy: cycle SpotProfiles' chain loads this planner
+    const found = invoke('GameServer/Bot/Population/SpotProfiles').findForState({ ...state, spotId: null,
+        stats: Object.fromEntries(Object.entries(state.stats || {}).filter(([name]) => name !== 'equipmentPlan')) },
+    { profiles: spots, mode: 'party', timestamp });
+    const id = found?.id;
+    if (!id || String(id) === String(soloSpotId)) return null;
+    const up = level(id), here = level(soloSpotId);
+    return up !== null && here !== null && up > here ? String(id) : null;
 }
 const seeksProgress = state => state?.stats?.partyRequest?.status === 'open' && state.stats.partyRequest.reason === PARTY_PROGRESS;
 
