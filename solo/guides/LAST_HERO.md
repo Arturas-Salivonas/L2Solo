@@ -9,7 +9,7 @@ An automatic PvP event for [L2Solo](https://github.com/pmbstyle/L2Solo). Every t
 3. **Everyone is teleported** to a random spot on the Coliseum floor. Your party is broken up, and nobody can make one: it's everyone for themselves.
 4. **All buffs are cancelled,** yours and your servitor's: everyone starts clean. Then **everyone gets Wind Walk, Haste and Acumen** at their highest C4 level.
 5. **The buff draft:** a dialog shows you **10 random buffs** from the buffer classes: Prophet, chants, Overlord, dances, songs and the 3rd class prophecies. **Pick 3.** The third pick buffs you and closes the dialog; click a picked one again to put it back. None of the 10 would replace Wind Walk, Haste or Acumen, and no two of them replace each other. Every bot gets 3 random buffs of its own, so no two fights feel the same. Closed the dialog? Alt+B > Last Hero > Pick buffs opens it again. Not done when the fight starts? The rest are picked for you.
-6. **30 seconds before the fight.** Nobody can attack yet. Bots also cast their own class buffs, and you can cast yours. The Solo Helper buffer and its Full HP/MP/CP are locked while you're in the event (`lockBuffer`). Walk off the floor and you're put back.
+6. **30 seconds before the fight.** Nobody can attack yet. Bots also cast their own class buffs, and you can cast yours. The Solo Helper buffer still works by default; `lockBuffer = true` locks it and its Full HP/MP/CP during the event, so the draft is all you get. Walk off the floor and you're put back.
 7. **FIGHT!** Every fighter is flagged (purple), so you attack with a plain click. Bots pick the nearest fighter, or whoever just hit them, and fight with the server's own bot PvP brain: their skills, their gear, their shots.
 8. **When you fall, you're out.** You get your place and kills, stand up at the west gate a few seconds later, and can watch from there. Leaving the floor for 3 seconds also counts as out.
 9. **The last one standing wins.** If time runs out (10 minutes), the fighter with the most kills (then the most HP) wins.
@@ -183,7 +183,7 @@ winnerChat = true       ; false = no gz chatter after the winner
 baseBuffs = 1204, 1086, 1085   ; everyone's buffs on the floor (skill ids): Wind Walk, Haste, Acumen
 draftChoices = 10       ; random buffs offered in the draft
 draftPicks = 3          ; how many you pick (bots get this many at random), 0 = no draft
-lockBuffer = true       ; no Solo Helper buffer or Full HP/MP/CP during the event
+lockBuffer = false      ; true = no Solo Helper buffer or Full HP/MP/CP during the event
 ```
 
 The state lives in `tmp/solo/last-hero.json`: the current hero, when the next event is, the last 10 results and any prize a bot is still owed (paid the next time that bot is active near you).

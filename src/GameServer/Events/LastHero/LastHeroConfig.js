@@ -16,12 +16,12 @@
 //   baseBuffs       = 1204, 1086, 1085   everyone's buffs on the floor (Wind Walk, Haste, Acumen), highest level
 //   draftChoices    = 10        random buffs offered to you on the floor
 //   draftPicks      = 3         how many of them you pick (bots get this many at random); 0 = no draft
-//   lockBuffer      = true      no Solo Helper buffer or Full HP/MP/CP while you are in Last Hero
+//   lockBuffer      = false     true = no Solo Helper buffer or Full HP/MP/CP while you are in Last Hero
 
 const DEFAULTS = Object.freeze({ enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
     fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: Object.freeze([]), botBuffs: 'self',
     levelGap: 10, winnerChat: true, baseBuffs: Object.freeze([1204, 1086, 1085]), draftChoices: 10, draftPicks: 3,
-    lockBuffer: true });
+    lockBuffer: false });
 const MAX_FIGHTERS = 136; // LastHeroArena.SPAWNS
 const MAX_ADENA = 2147483647;
 

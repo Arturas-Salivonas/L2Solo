@@ -131,7 +131,7 @@ const options = (values) => { global.options.default.LastHero = values; };
     options({});
     assert.deepStrictEqual(Config.config(), { enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
         fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: [], botBuffs: 'self', levelGap: 10, winnerChat: true,
-        baseBuffs: [1204, 1086, 1085], draftChoices: 10, draftPicks: 3, lockBuffer: true },
+        baseBuffs: [1204, 1086, 1085], draftChoices: 10, draftPicks: 3, lockBuffer: false },
         'defaults: bots cast only their own buffs');
     options({ prize: '5,000,000' });
     assert.strictEqual(Config.config().prizeAdena, 5000000, 'the old key prize still works, with commas');
@@ -171,7 +171,9 @@ const options = (values) => { global.options.default.LastHero = values; };
     const someBot = run.fighters.find((fighter) => fighter.kind === 'bot').actor;
     assert.strictEqual(someBot.fakeEffects.length, 6, 'a bot gets the same base and 3 random buffs');
     assert.deepStrictEqual(someBot.fakeEffects.slice(0, 3).map((effect) => effect.id), [1204, 1086, 1085]);
-    assert.strictEqual(LastHero.buffsLocked(me), true, 'the Solo Helper buffer is locked for you');
+    assert.strictEqual(LastHero.buffsLocked(me), false, 'Alt+B stays open by default');
+    global.options.default.LastHero = { ...global.options.default.LastHero, lockBuffer: 'true' };
+    assert.strictEqual(LastHero.buffsLocked(me), true, 'lockBuffer = true locks the Solo Helper buffer for you');
 
     // The draft: 10 random buffs, pick 3, the last pick closes the dialog and buffs you.
     const dialog = player.sent.filter((packet) => packet[0] === 0x0f && packet.html?.includes('pick 3 buffs')).at(-1);
