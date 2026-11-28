@@ -132,9 +132,14 @@ function higherGround(state, spots, timestamp, soloSpotId) {
         stats: Object.fromEntries(Object.entries(state.stats || {}).filter(([name]) => name !== 'equipmentPlan')) },
     { profiles: spots, mode: 'party', timestamp });
     const id = found?.id;
-    if (!id || String(id) === String(soloSpotId)) return null;
+    if (!id || String(id) === String(soloSpotId)) {
+        Diagnostics.count('party_ask', 'higher_ground', id ? 'same' : 'none');
+        return null;
+    }
     const up = level(id), here = level(soloSpotId);
-    return up !== null && here !== null && up > here ? String(id) : null;
+    const above = up !== null && here !== null && up > here;
+    Diagnostics.count('party_ask', 'higher_ground', above ? 'found' : 'not_above');
+    return above ? String(id) : null;
 }
 const seeksProgress = state => state?.stats?.partyRequest?.status === 'open' && state.stats.partyRequest.reason === PARTY_PROGRESS;
 
