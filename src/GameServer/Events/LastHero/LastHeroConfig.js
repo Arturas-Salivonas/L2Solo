@@ -5,7 +5,7 @@
 //   enabled         = true      false turns the event off
 //   everyMinutes    = 120       an event starts this long after the last one ended (0 = only with Start now)
 //   registerMinutes = 5         registration is open this long before an event
-//   prepareSeconds  = 30        time to buff on the Coliseum floor before the fight
+//   prepareSeconds  = 60        time on the Coliseum floor to pick and cast buffs before the fight
 //   fightMinutes    = 10        when time runs out, most kills (then most HP) wins
 //   fighters        = 100       fighters in one event, you included (2-136)
 //   prizeAdena      = 10000000  Adena for the winner (0 = none). The old key "prize" still works.
@@ -18,7 +18,7 @@
 //   draftPicks      = 3         how many of them you pick (bots get this many at random); 0 = no draft
 //   lockBuffer      = false     true = no Solo Helper buffer or Full HP/MP/CP while you are in Last Hero
 
-const DEFAULTS = Object.freeze({ enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
+const DEFAULTS = Object.freeze({ enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 60,
     fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: Object.freeze([]), botBuffs: 'self',
     levelGap: 10, winnerChat: true, baseBuffs: Object.freeze([1204, 1086, 1085]), draftChoices: 10, draftPicks: 3,
     lockBuffer: false });

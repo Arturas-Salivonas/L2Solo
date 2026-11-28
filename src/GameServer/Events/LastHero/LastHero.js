@@ -5,7 +5,7 @@
 // Every [LastHero] everyMinutes (default 120) registration opens for registerMinutes, with
 // an announcement. At the start you (if you joined) and bot fighters, up to 100 in all, are
 // put on random spots of the Coliseum floor. Parties are broken up and none can be made.
-// After prepareSeconds (30) to buff, everyone fights for themselves. The last one standing
+// After prepareSeconds (60) to buff, everyone fights for themselves. The last one standing
 // wins prizeAdena (10,000,000) and any prizeItems, plus the Hero aura, and the server announces it. The aura
 // stays until the next winner. Nobody loses anything: no EXP loss, no drops, no karma.
 // You can also start one by hand (Alt+B > Last Hero > Start now, or the .lasthero window).
@@ -37,7 +37,7 @@ const REMOVE_BODY_MS = 4000;
 const END_HOLD_MS = 10000;
 const OUTSIDE_GRACE_MS = 3000;
 const MILESTONES = Object.freeze([50, 25, 10, 5, 3, 2]);
-const PREPARE_COUNTDOWN = Object.freeze([20, 10, 5, 3, 2, 1]);
+const PREPARE_COUNTDOWN = Object.freeze([30, 20, 10, 5, 3, 2, 1]);
 const SIMULATED_MS = Object.freeze({ half: 60000, last: 120000, end: 150000 });
 const GOOD_LUCK = Object.freeze(['gl', 'gl hf', 'gg', 'come at me', 'not today', 'lets go', 'o/']);
 
