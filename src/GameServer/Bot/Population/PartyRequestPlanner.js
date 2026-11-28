@@ -17,9 +17,17 @@ const Trace = require('../DecisionTrace');
 // against its solo hunt (PartyProgressComparison.heldSoloRoute: forming's verdict, its
 // stay). earning, plan: the ones to read (the build's when it took them); no answer
 // held yet: not known.
+// Living Bots: not only a healer or buffer. Any bot from level SEEK_MIN_LEVEL whose solo
+// answer is grey ground (more than the leveling window below it: BotRoute.soloLevelFits)
+// or none at all asks for a party, as a player who cannot solo his level looks for one,
+// instead of farming monsters far below him for good. A spoiler keeps its low ground (its
+// trade is their materials).
 const NO_SOLO_GROUND = 'no_solo_ground';
+const SEEK_MIN_LEVEL = 10;
 function supportWithoutGround(state, spots, earning = state?.stats?.earning, plan = state?.stats?.equipmentPlan) {
-    if (!earning || !(Roles.isHealer(state) || Roles.canBuff(state))) return false;
+    if (!earning) return false;
+    const support = Roles.isHealer(state) || Roles.canBuff(state);
+    if (!support && (Roles.isSpoiler(state) || Number(state?.level || 1) < SEEK_MIN_LEVEL)) return false;
     if (plan?.status === 'active' && plan.next?.spotId) return false;
     const spot = earning.spotId ? invoke('GameServer/Bot/AI/SpotIndex').spotById(spots, earning.spotId) : null;
     return !spot || !invoke('GameServer/Bot/Population/BotRoute').soloLevelFits(state, spot, // lazy: BotRoute's chain loads this planner

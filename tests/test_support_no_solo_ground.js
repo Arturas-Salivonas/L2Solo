@@ -49,19 +49,25 @@ async function run() {
         { accept: true, reason: 'no_solo_ground' }, 'the fact forces the seeking');
     const kept = Request.partyRequestForPlan(seeker, null, at + 1000, { spots });
     assert.strictEqual(kept.requestedAt, request.requestedAt, 'the open request keeps its window and spot');
-    // A Shillien Elder (a healer) is a seeker too; a DPS on the same ground is not.
+    // A Shillien Elder (a healer) is a seeker too, and (Living Bots) so is a DPS on the same
+    // grey ground: a player who cannot solo his level looks for a group. A spoiler keeps its
+    // low ground (its trade is their materials), and a bot below level 10 needs no group yet.
     assert.strictEqual(Request.supportWithoutGround(bot(9002, 43, 76, 'grey65', 'healer'), spots), true);
-    assert.strictEqual(Request.supportWithoutGround(bot(9003, 2, 76, 'grey65', 'dps'), spots), false,
-        'only a healer or buffer seeks by this rule');
-    // A support with a real solo hunt has ground: its gear plan's source, or grey ground
-    // it farms for gain (an economic hunt within 15 levels below).
+    assert.strictEqual(Request.supportWithoutGround(bot(9003, 2, 76, 'grey65', 'dps'), spots), true,
+        'a DPS on grey ground seeks a party too');
+    assert.strictEqual(Request.supportWithoutGround({ ...bot(9004, 55, 76, 'grey65', 'spoiler'), stats: { ...bot(9004, 55, 76, 'grey65', 'spoiler').stats, role: 'spoiler' } }, spots), false,
+        'a spoiler keeps its low ground');
+    assert.strictEqual(Request.supportWithoutGround(bot(9005, 0, 8, 'grey65', 'dps'), spots), false, 'a level 8 bot does not seek by this rule');
+    // A support with a real solo hunt has ground: its gear plan's source. Grey ground farmed
+    // for gain is no longer one (Living Bots: an economic hunt stays within the 5-level
+    // window too; only a spoiler keeps its 15).
     assert.strictEqual(Request.supportWithoutGround({ ...prophet, stats: { ...prophet.stats,
         equipmentPlan: { status: 'active', next: { spotId: 'grey65' } } } }, spots), false, 'a gear plan source is its solo hunt');
     const Progression = invoke('GameServer/Bot/AI/PersonalGearProgression'), adventurer = Progression.adventurer;
     Progression.adventurer = () => true;
     try {
-        assert.strictEqual(Request.supportWithoutGround({ ...prophet, stats: { ...prophet.stats, wishFocus: ['resale:57'] } }, spots), false,
-            'grey ground farmed for gain is solo ground');
+        assert.strictEqual(Request.supportWithoutGround({ ...prophet, stats: { ...prophet.stats, wishFocus: ['resale:57'] } }, spots), true,
+            'grey ground 11 levels below, farmed for gain, is no solo ground: it seeks a party');
     } finally { Progression.adventurer = adventurer; }
 
     // Rule 2: recruitment across spots: a party of its level that hunts

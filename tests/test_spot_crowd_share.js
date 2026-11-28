@@ -96,7 +96,7 @@ try {
         const Hunt = invoke('GameServer/Bot/AI/BotHuntEfficiency');
         const now = Date.now();
         Table.useSpots([]);
-        const held = Route.spotList(state).ids(true, 30, -15)[0];
+        const held = Route.spotList(state).ids(true, 30, -invoke('GameServer/Bot/Population/SpotRiskPolicy').OUTLEVELED_GAP)[0];
         const [, rows, min, max] = offline.rows.find(row => row[0] === held);
         Table.useSpots([{ id: held, npcEntries: rows.map(([selfId, count]) => ({ selfId, count, production: count * 60 })),
             rewards: { adenaMin: min, adenaMax: max } }]);
@@ -120,7 +120,7 @@ try {
                 cycleMs: 3600000, exp: 0.6 * own.exp, adena: 0.6 * own.income, loot: 0, costs: 0, kills: 0.6 * own.kills }) } };
             return { bot, options: { spots: catalog, timestamp: now, required: true } };
         };
-        const other = Route.spotList(state).ids(true, 30, -15).find(id => id !== held
+        const other = Route.spotList(state).ids(true, 30, -invoke('GameServer/Bot/Population/SpotRiskPolicy').OUTLEVELED_GAP).find(id => id !== held
             && Route.search(fixture(id).bot, fixture(id).options).route?.spot.id === held);
         assert(other, 'fixture: a second spot below the held one');
         const { bot, options } = fixture(other);

@@ -222,10 +222,13 @@ function choose(state, currentSpot, party, partyMembers = [], { spots, timestamp
 // excluded by its marks or deaths (the party's risk exclusions), its level fits the
 // party (SpotService.isSuitable at the party's target level) and its leader has not
 // outleveled it (the spot_outleveled fact: monsters past the deep-blue gap).
+// Living Bots: a party's ground stays within Situations.PARTY_UNFIT_GAP (5) levels of the
+// party, where it used to be kept down to where its kills give no EXP at all (deep blue, 9).
 function partyGround(spot, state, frame) {
     return !!spot && spot.raidBoss !== true && !frame.excludedSpotIds.has(String(spot.id))
         && SpotService.isSuitable(spot, LevelingRoutes.targetLevelForState(state, { mode: 'party' }), frame.options)
-        && !Situations.outleveledSpot(spot.id, Number(state.level) || 1);
+        && !Situations.outleveledSpot(spot.id, Number(state.level) || 1)
+        && !Situations.unfitSpot(spot.id, Number(state.level) || 1);
 }
 
 // No suitable field: a detached party member must not poll a blocked dungeon
@@ -274,9 +277,17 @@ function leafFitReader(state, { spots, timestamp, frame = null }) {
 // support's ground (PartyRequestPlanner.supportWithoutGround): the spot suits the level
 // (SpotService.isSuitable), or the bot hunts for gain (EquipmentIncomeRoute.economicHunt)
 // on monsters at most 15 levels below its own.
+// Living Bots: a bot hunting for money (EquipmentIncomeRoute.economicHunt) used to take ground
+// up to 15 levels below it, so level-20 bots farmed level-5 monsters for their Adena. Now
+// only a spoiler keeps that reach (its trade is low monsters' materials); everyone else
+// stays within SpotRiskPolicy.OUTLEVELED_GAP, measured as the outleveled rule measures it.
+const ECONOMIC_REACH_SPOILER = 15;
 function soloLevelFits(state, spot, level, options = {}) {
-    return SpotService.isSuitable(spot, level, options)
-        || EquipmentIncomeRoute.economicHunt(state) && Number(spot.avgLevel || spot.minLevel || 1) >= Number(state.level || 1) - 15;
+    if (SpotService.isSuitable(spot, level, options)) return true;
+    if (!EquipmentIncomeRoute.economicHunt(state)) return false;
+    const spotLevel = Number(spot.avgLevel || spot.minLevel || 1);
+    const reach = invoke('GameServer/Bot/AI/BotRoles').isSpoiler(state) ? ECONOMIC_REACH_SPOILER : SpotRiskPolicy.OUTLEVELED_GAP;
+    return spotLevel >= Number(state.level || 1) - reach && !SpotRiskPolicy.outleveledGround(state, spot.id);
 }
 
 // The spot a solo bot's own hunting leaf names, as a choice for record, when
@@ -514,14 +525,57 @@ function farmsPlan(leaf, plan) {
 // take the bot now (a clan party wait, a crystal exchange ready) or its search threw
 // (nothing kept: asked again at the next read). Worker-only: the catalogue
 // (spots) is the trip's.
-function huntSpot(state, leaf, { spots, timestamp, owner = null }) {
+// Living Bots: the last word on a solo bot's hunt. Whatever named the spot (an earning answer
+// held from a lower level, an economy leaf, the bot's habit), ground more than
+// SpotRiskPolicy.OUTLEVELED_GAP levels below it is searched again inside the leveling window,
+// that ground left out (up to three tries). When nothing in the window takes the bot, it keeps
+// its ground and asks for a party meanwhile (PartyRequestPlanner, no solo ground), as a player
+// who cannot solo his level looks for a group. Exempt (outleveledGround's own rules and the
+// callers'): a spoiler, a player's command, a manhunt, a gear plan's own source or item hunt.
+const LEVEL_GATE_TRIES = 3;
+function levelGate(hunter, value, spots, frame, timestamp) {
+    if (!value?.spotId || !SpotRiskPolicy.outleveledGround(hunter, value.spotId)) return value;
+    const excludedSpotIds = new Set([...frame.excludedSpotIds, String(value.spotId)]);
+    for (let tries = 0; tries < LEVEL_GATE_TRIES; tries++) {
+        const gated = { ...frame, excludedSpotIds, options: { ...frame.options, excludedSpotIds } };
+        const picked = choose({ ...hunter, spotId: null }, null, null, [], { spots, timestamp, frame: gated });
+        if (!picked?.spotId) break;
+        if (!SpotRiskPolicy.outleveledGround(hunter, picked.spotId)) {
+            EconomyDiagnostics.count('route', 'hunt_spot', 'level_gate_moved');
+            return { spotId: String(picked.spotId), ...(picked.npcId ? { npcId: picked.npcId } : {}) };
+        }
+        excludedSpotIds.add(String(picked.spotId));
+    }
+    EconomyDiagnostics.count('route', 'hunt_spot', 'level_gate_kept');
+    return value;
+}
+
+function huntSpot(state, leaf, options) {
+    const value = huntSpotChoice(state, leaf, options);
+    if (!value?.spotId || value.exempt) {
+        if (value?.exempt) delete value.exempt;
+        return value;
+    }
+    if (!SpotRiskPolicy.outleveledGround(state, value.spotId)) return value; // most bots: in the window already
+    try {
+        const hunter = { ...state, phase: 'cold', activity: 'hunting', stats: { ...state.stats, travel: null } };
+        const frame = frameFor(hunter, null, [], options.timestamp);
+        frame.owner = options.owner || null;
+        return levelGate(hunter, value, options.spots, frame, options.timestamp);
+    } catch (error) {
+        FailureLog.note('route.level_gate', error);
+        return value;
+    }
+}
+
+function huntSpotChoice(state, leaf, { spots, timestamp, owner = null }) {
     if (!state || state.party?.partyId || state.partyId) return null;
     const hunter = { ...state, phase: 'cold', activity: 'hunting', stats: { ...state.stats, travel: null } };
     if (!routable(hunter, null, [])) return undefined;
     const earning = hunter.stats.earning;
     if (EquipmentIncomeRoute.isCommanded(earning)) {
         const spot = SpotIndex.spotById(spots, earning.spotId);
-        return { spotId: spot && spot.raidBoss !== true ? String(spot.id) : null };
+        return { spotId: spot && spot.raidBoss !== true ? String(spot.id) : null, exempt: true }; // a player's command
     }
     // A personal manhunt (ManhuntPolicy) sends the bot back to where it met its killer,
     // while it lasts and while it may hunt that ground alone; a player's command comes first.
@@ -529,7 +583,7 @@ function huntSpot(state, leaf, { spots, timestamp, owner = null }) {
         const spot = SpotIndex.spotById(spots, hunter.stats.manhunt.spotId);
         if (spot && spot.raidBoss !== true && LevelingRoutes.groundVerdict(spot, hunter, { mode: 'solo' }).allowed) {
             EconomyDiagnostics.count('route', 'hunt_spot', 'manhunt');
-            return { spotId: String(spot.id) };
+            return { spotId: String(spot.id), exempt: true };
         }
     }
     const frame = frameFor(hunter, null, [], timestamp);
@@ -544,12 +598,12 @@ function huntSpot(state, leaf, { spots, timestamp, owner = null }) {
         return { spotId: String(tip.id) };
     }
     const wished = leafChoice(hunter, leaf, { spots, timestamp, frame });
-    if (wished) return { spotId: String(wished.spotId) };
+    if (wished) return { spotId: String(wished.spotId), ...(farmsPlan(leaf, hunter.stats.equipmentPlan) ? { exempt: true } : {}) };
     // A protected starter keeps its field and a party waiter its fallback before a plan's source (choose).
     const plan = hunter.stats.equipmentPlan;
     const source = !farmsPlan(leaf, plan) || SpotProfiles.isProtectedStarterCohort(hunter)
         || PartyWaitFallback.waiting(hunter, plan, hunter.stats.partyRequest) ? null : planSource(hunter, spots, frame);
-    if (source) return { spotId: String(source.id) };
+    if (source) return { spotId: String(source.id), exempt: true }; // the gear plan's own source
     let chosen = heldChoice(hunter, spots, frame);
     // On a spot its marks exclude (a contest lost, danger, deaths there) while its earning answer
     // names none: the leveling goal decides (choose, which never keeps excluded ground), as for a

@@ -166,7 +166,10 @@ function find(state, { spots = [], timestamp = Date.now(), price, required = fal
     const foreign = spot => Routes.localityPenaltyForSpot(spot, state, { level: state.level }, Routes.tagsForSpot(spot));
     const fits = (candidate, spot) => {
         let fit = fitting.get(spot);
+        // Living Bots: measured as the outleveled rule measures it too (the table's spot level), so a
+        // spot just past the window by that measure is not the bot's best income one level-up later.
         if (fit === undefined) fitting.set(spot, fit = Number(spot.avgLevel || spot.minLevel || 1) - state.level >= minGap
+            && !invoke('GameServer/Bot/Population/SpotRiskPolicy').outleveledGround(state, spot.id)
             && survives(spot) && !foreign(spot));
         return fit;
     };
