@@ -46,9 +46,17 @@ It's one mod, `feat/living-bots`, and it keeps growing.
 - Bots pick up items nobody owns: your drops, PK drops, loot left on the ground.
 - Two bots that trust each other share their best hunting spot when they meet in town.
 
+**They look after each other.**
+- **Rich friends help.** A bot that comes into far more Adena than it needs (an event prize, a lucky drop) gives a share to a clanmate or friend who is struggling: broke, or missing gear for its level. The gift wakes the friend's own shopping plan, so it buys its gear. Both remember it.
+- **Hand-me-downs.** Gear a bot carries but doesn't wear goes to a clanmate or friend who would wear it now, instead of a shop.
+- **The party waits.** When a party member's bag is full, it goes to town to sell and restock while the party keeps its place for up to 15 minutes, then it comes back. Before, it left the party for good.
+
 **They get smarter.**
-- **Smarter party spots.** A party now hunts where its level fits. Before, a party took the spot where its first member happened to stand and kept it, so a level-18 party could farm level-7 monsters until it was 9 levels over them. Now it moves on as soon as the spot drops more than 5 levels below its leader.
-- **Hunting at their level.** Bots hunt monsters from 5 levels below them to 3 above; parties may go up to 5 above, for stronger mobs together. A bot on grey ground (more than 5 below) leaves for the spot it chose, and takes no spot or easy fights there on its way out of town, unless it farms an item there or is a spoiler. Before, a level-19 bot that came out of a starter town could hunt the level-3 field beside it for hours, losing money.
+- **Smarter party spots.** A party now hunts where its level fits. Before, a party took the spot where its first member happened to stand and kept it, so a level-18 party could farm level-7 monsters until it was 9 levels over them. Now it moves on as soon as the spot drops more than 5 levels below its leader, and parties that settled on easy ground under the old rule move too.
+- **Hunting at their level.** Bots hunt monsters from 5 levels below them to 3 above; parties may go up to 5 above, for stronger mobs together. A bot on grey ground (more than 5 below) leaves for the spot it chose, and takes no spot or easy fights there on its way out of town, unless it farms an item there or is a spoiler. Before, a level-19 bot that came out of a starter town could hunt the level-3 field beside it for hours, losing money. A bot that finds no fitting spot alone now looks for a party, whatever its class.
+- **Better gear sense.** Live and background bots score gear the same way, counting enchant, attack speed and critical rate, so a +4 weapon beats a plain one and a fast dagger isn't judged on P.Atk alone.
+- **Smarter looting.** A bot goes for loot that's worth something to it: a piece it would wear first, then anything it can sell. One that would wear a drop takes it over a bot that only wants to sell it.
+- **They spend like people.** A big windfall wakes a bot's shopping plan at once, and a rich bot buys the dear upgrades a poor one saves for.
 - **Spots that killed them.** A bot that died at a spot twice already stays away from it for a while. Now it also warns its friends in town ("stay away from Cruma, I died there twice"), and they keep away too until their next trip back to town.
 - **After a wipe.** A bot wipe first saves what the world learned. The next world's bots are the same people, with the same names, personalities and know-how, at level 1. What they earned on each spot corrects their spot guesses, and when they meet a player of the same name again, they remember how they felt: "Arturas... I remember you".
 
@@ -122,6 +130,9 @@ manhuntEnabled = true           ; bots you kill may come back for you
 manhuntRate = 1                 ; 0 = never, up to 5
 manhuntMinutes = 120
 freeLootEnabled = true
+patronageEnabled = true         ; rich bots help struggling clanmates and friends with Adena
+handMeDownsEnabled = true       ; spare gear goes to a clanmate or friend who would wear it
+partyShoppingTrips = true       ; a party keeps its place while a member goes to town
 townAttentionEnabled = true
 wordOfMouthEnabled = true
 worldLegacyEnabled = true
@@ -130,7 +141,7 @@ worldLegacyEnabled = true
 ## What's next
 
 - Greetings and body language: bots that know you wave and say hi, bow after a res, cheer a level-up.
-- More reasons to party up, and parties that pick the most profitable spot, not only one that fits.
+- Parties that pick the most profitable spot, not only one that fits.
 - Bots that learn from what works for them, so each world's bots play a little better than the last.
 
 **Ideas and bugs:** tell me on Discord, or open an issue on <https://github.com/Arturas-Salivonas/L2Solo>. What would make the bots feel more alive to you?
