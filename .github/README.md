@@ -68,9 +68,10 @@ Bots that feel like people: [guide, screenshots and one install](https://github.
 - **Free loot, word of mouth:** bots pick up ownerless items, and trusted bots share their best spots.
 - **Smarter hunting:** bots hunt monsters within 5 levels below them (parties up to 5 above too), leave grey ground for the spot they chose, look for a party when no spot fits them alone, and a bot that died at a spot twice warns its friends.
 - **They look after each other:** a rich bot helps a struggling clanmate or friend with Adena, spare gear goes to a clanmate or friend who would wear it, and a party keeps its place while a member goes to town to sell.
+- **Party when it pays:** a bot that does well alone stays solo; one that would do better in a party on stronger ground asks for one there and shouts its LFP in trade chat. Parties learn which class mix earns most at each spot and level and recruit by it, trying a new mix now and then. Lone wolves hunt alone until a clan brings them in.
 - **Gear and money sense:** live and background bots score gear the same way (enchant, attack speed, crit), loot goes to the bot that would wear it, and a windfall wakes a bot's shopping plan.
 - **World legacy:** a bot wipe saves what the world learned; the same bots come back and remember players by name.
-- **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces`, `botMoments`, `allyDefenseEnabled`, `allyDefenseRate`, `gossipEnabled`, `nerveEnabled`, `rivalriesEnabled`, `spotDangerEnabled`, `legacyFeelingsEnabled`, `pkBotsEnabled`, `pkRate`, `pkMinLevel`, `manhuntEnabled`, `manhuntRate`, `manhuntMinutes`, `freeLootEnabled`, `patronageEnabled`, `handMeDownsEnabled`, `partyShoppingTrips`, `townAttentionEnabled`, `wordOfMouthEnabled`, `worldLegacyEnabled`.
+- **Settings** (`[BotPopulation]`): `botMoodTitles`, `moodTitleFaces`, `botMoments`, `allyDefenseEnabled`, `allyDefenseRate`, `gossipEnabled`, `nerveEnabled`, `rivalriesEnabled`, `spotDangerEnabled`, `legacyFeelingsEnabled`, `pkBotsEnabled`, `pkRate`, `pkMinLevel`, `manhuntEnabled`, `manhuntRate`, `manhuntMinutes`, `freeLootEnabled`, `patronageEnabled`, `handMeDownsEnabled`, `partyShoppingTrips`, `lfpShoutsEnabled`, `partyMixLessons`, `partyMixExplore`, `townAttentionEnabled`, `wordOfMouthEnabled`, `worldLegacyEnabled`.
 
 ### 3. Last Hero: a 100-fighter free-for-all at the Coliseum (`feat/last-hero`)
 An automatic PvP event. [Guide and install](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/last-hero/solo/guides/LAST_HERO.md).
@@ -101,6 +102,7 @@ Double-click it to open the browser launcher and start the server at your last r
 ## Changelog
 
 ### 2026-11-28
+- **Living Bots:** bots weigh a party on stronger ground against their solo hunt and ask for one when it pays, with an LFP shout in trade chat; parties learn which class mix works at each spot and level; lone wolves stay solo until they join a clan.
 - **Last Hero:** a background bot that wins is paid too (its prize waits for its next save), and prizes owed from earlier events are paid.
 - **Living Bots:** bots stop farming monsters far below them and look for a party instead, whatever their class; parties that settled on easy ground move on.
 - **Living Bots:** rich bots help struggling clanmates and friends with Adena, spare gear goes to a clanmate or friend who would wear it, and a party keeps its place while a member goes to town.
