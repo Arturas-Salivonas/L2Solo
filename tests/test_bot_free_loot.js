@@ -16,8 +16,9 @@ const Automation = invoke('GameServer/Automation');
 const Generics = invoke(path.actor);
 const Config = invoke('GameServer/Bot/Population/PopulationConfig');
 
-const item = (id, x, y, { selfId = 1060, owner = 0 } = {}) => ({ id, x, y, selfId, partyLootLeaderId: owner,
-    fetchId: () => id, fetchSelfId: () => selfId, fetchLocX: () => x, fetchLocY: () => y, fetchLocZ: () => 0 });
+const item = (id, x, y, { selfId = 1060, owner = 0, price = 10 } = {}) => ({ id, x, y, selfId, partyLootLeaderId: owner,
+    fetchId: () => id, fetchSelfId: () => selfId, fetchLocX: () => x, fetchLocY: () => y, fetchLocZ: () => 0,
+    fetchPrice: () => price, isWearable: () => false });
 
 // ---------- the cell index ----------
 {
@@ -111,6 +112,43 @@ try {
     attackers = 1;
     assert.strictEqual(FreeLoot.tick(second, second.actor, now + 6000), false, 'a fight ends the pickup');
     assert(!second.freeLoot && !other.freeLootClaim && second.freeLootSkipped.has(41), 'and the item is left');
+    attackers = 0;
+
+    // Living Bots: what the item is to the bot. Junk with no price and nothing it wears is
+    // left for others; armour goes to the bot that would wear it, even if another bot that
+    // only wanted to sell it was already on its way.
+    const Upgrade = invoke('GameServer/Bot/AI/BotEquipmentUpgrade');
+    const savedWould = Upgrade.wouldEquip;
+    try {
+        // The wearer would wear the armour (item 43) only.
+        Upgrade.wouldEquip = (actor, it) => actor.wears === true && Number(it.fetchId()) === 43;
+        World.items = { spawns: [], nextId: 1 }; // clean ground for these
+        const junk = item(42, 100, 0, { price: 0 });
+        GroundItems.put(World.items, junk, now - 10000);
+        const seller = bot(9003, 10), wearer = bot(9004, 400);
+        wearer.actor.wears = true;
+        assert.strictEqual(FreeLoot.worth(seller.actor, junk), null, 'no price and nothing it wears: worth nothing to it');
+        assert.strictEqual(FreeLoot.worth(wearer.actor, item(43, 0, 0, { price: 500 })), 'upgrade', 'to a bot that would wear it, an upgrade');
+        assert.strictEqual(FreeLoot.worth(seller.actor, item(1, 0, 0, { selfId: 57, price: 0 })), 'value', 'Adena is always worth something');
+
+        execs.length = 0;
+        assert.strictEqual(FreeLoot.tick(seller, seller.actor, now + 7000), false, 'the seller does not run for junk');
+        const armour = item(43, 60, 0, { price: 500 });
+        GroundItems.put(World.items, armour, now - 10000);
+        seller.freeLootScanAt = 0;
+        assert.strictEqual(FreeLoot.tick(seller, seller.actor, now + 8000), true, 'the seller goes for armour it can sell');
+        assert.strictEqual(armour.freeLootClaim.botId, 9003);
+        TendencyRoll.roll = () => 0.6; // above a seller's interest, below a wearer's
+        assert(FreeLoot.interest({ traits: { ambition: 0.5, empathy: 0.9 } }, armour, 'upgrade') > 0.6,
+            'an upgrade draws even a kind bot');
+        assert.strictEqual(FreeLoot.tick(wearer, wearer.actor, now + 8500), true, 'the wearer takes it over');
+        assert.strictEqual(armour.freeLootClaim.botId, 9004, "the claim is the wearer's now");
+        assert.strictEqual(FreeLoot.tick(seller, seller.actor, now + 9000), false, 'the seller gives way');
+        assert(!seller.freeLoot && seller.freeLootSkipped.has(43), 'and leaves it');
+        assert.strictEqual(armour.freeLootClaim.botId, 9004, "without taking the wearer's claim away");
+    } finally {
+        Upgrade.wouldEquip = savedWould;
+    }
 } finally {
     World.items = saved.items; Awareness.npcsAttackingActor = saved.attacking; Automation.pickupRun = saved.run;
     Generics.pickupExec = saved.exec; Generics.stopAutomation = saved.stop; Party.canPickupLoot = saved.can;

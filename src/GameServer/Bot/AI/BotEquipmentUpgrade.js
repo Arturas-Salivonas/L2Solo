@@ -481,7 +481,16 @@ function applyCandidate(session, itemId, options = {}) {
     };
 }
 
+// Living Bots: would this actor wear the item now (an item lying on the ground, offered in a
+// trade, or a friend's spare)? Suitable for its class and level, and better than what it
+// wears in that slot. Free loot and hand-me-downs ask it before they move anything.
+function wouldEquip(actor, item) {
+    if (!actor?.backpack || !item?.isWearable?.() || !isSuitableItem(actor, item, true)) return false;
+    return !!bestUpgradeSlot(actor, item, new Map());
+}
+
 module.exports = {
+    wouldEquip,
     applyCandidate,
     applyBestUpgrades,
     findBestUpgrades,

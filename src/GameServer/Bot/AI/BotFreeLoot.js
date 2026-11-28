@@ -11,9 +11,15 @@
 // - Who: a hot bot of its own: no player's companion, no store or service, alive, not
 //   fighting (no PvP, swing, cast or monster on it), not already collecting, in a field
 //   or town plan.
-// - Whether: one seeded roll per (bot, item) by persona (TendencyRoll): ambition draws
-//   it, empathy holds it back, Adena tempts more. One bot goes for an item at a time
-//   (a claim on the item for CLAIM_MS).
+// - Whether: what the item is to the bot (worth): an upgrade it would wear now
+//   (BotEquipmentUpgrade.wouldEquip), something of value (Adena, anything a shop pays
+//   for), or nothing (left for others: a mage does not run for heavy armour it cannot
+//   wear and cannot sell). Then one seeded roll per (bot, item) by persona
+//   (TendencyRoll): ambition draws it, empathy holds it back, Adena tempts more; an
+//   upgrade draws almost anyone, and empathy holds it back only a little.
+// - Who: one bot goes for an item at a time (a claim on it for CLAIM_MS), but a bot
+//   that needs the item (an upgrade) takes over the claim of a bot that only values it,
+//   so the armour goes to the bot that wears it.
 // - How: the native pickup (Generics.pickupExec: the run, PickupItem's atomic claim and
 //   its bag checks). The bot's tick is owned until the pickup ends; anything that needs
 //   the bot (a fight) ends it first.
@@ -45,16 +51,30 @@ function free(item, session, now) {
     return age >= PROTECT_MS;
 }
 
-// How much this bot wants a free item (the roll's chance), by persona.
-function interest(persona, item) {
+// What a free item is to this bot: 'upgrade' (it would wear it now), 'value' (Adena or
+// anything a shop pays for), or null (nothing to it). NEED ranks them for the claim.
+const NEED = Object.freeze({ upgrade: 2, value: 1 });
+function worth(bot, item) {
+    if (Number(item?.fetchSelfId?.()) === 57) return 'value';
+    try {
+        if (invoke('GameServer/Bot/AI/BotEquipmentUpgrade').wouldEquip(bot, item)) return 'upgrade';
+    } catch (error) {
+        invoke('FailureLog')?.note?.('free_loot.worth', error);
+    }
+    return Number(item?.fetchPrice?.() || 0) > 0 ? 'value' : null;
+}
+
+// How much this bot wants a free item (the roll's chance), by persona and what it is to it.
+function interest(persona, item, need = 'value') {
     const t = key => clamp(persona?.traits?.[key] ?? 0.5);
+    if (need === 'upgrade') return clamp(0.7 + 0.25 * t('ambition') - 0.15 * t('empathy'), 0.5, 0.97);
     const adena = Number(item?.fetchSelfId?.()) === 57;
     return clamp(0.2 + 0.5 * t('ambition') - 0.35 * t('empathy') + (adena ? 0.2 : 0), 0.02, 0.9);
 }
 
-function wants(session, item) {
+function wants(session, item, need) {
     const persona = invoke('GameServer/Bot/AI/BotChatVoice').profile(session);
-    return TendencyRoll.roll('free_loot', Number(session.actor.fetchId()), Number(item.fetchId())) < interest(persona, item);
+    return TendencyRoll.roll('free_loot', Number(session.actor.fetchId()), Number(item.fetchId())) < interest(persona, item, need);
 }
 
 // Is the bot free to wander off for an item?
@@ -82,23 +102,30 @@ function release(session, item) {
     delete session.freeLoot;
 }
 
-// The nearest free item this bot wants and can run straight to, or null.
+// The free item this bot wants most (an upgrade before mere value, then the nearest) and
+// can run straight to, or null. Another bot's live claim stands unless this bot needs the
+// item more (start takes the claim over). Returns { item, need }.
 function pick(session, bot, now) {
     const botId = Number(bot.fetchId());
     const loc = { locX: bot.fetchLocX(), locY: bot.fetchLocY() };
     const Automation = invoke('GameServer/Automation');
+    const distance = item => Math.hypot(item.fetchLocX() - loc.locX, item.fetchLocY() - loc.locY);
     return GroundItems.near(world().items, loc, RADIUS)
-        .filter(item => !(item.freeLootClaim?.until > now && item.freeLootClaim.botId !== botId)
-            && !session.freeLootSkipped?.has(Number(item.fetchId())) && Math.abs(item.fetchLocZ() - bot.fetchLocZ()) <= 300
-            && free(item, session, now) && wants(session, item))
-        .sort((a, b) => Math.hypot(a.fetchLocX() - loc.locX, a.fetchLocY() - loc.locY)
-            - Math.hypot(b.fetchLocX() - loc.locX, b.fetchLocY() - loc.locY) || Number(a.fetchId()) - Number(b.fetchId()))
-        .find(item => Automation.pickupRun(bot, item).inReach) || null;
+        .filter(item => !session.freeLootSkipped?.has(Number(item.fetchId())) && Math.abs(item.fetchLocZ() - bot.fetchLocZ()) <= 300
+            && free(item, session, now))
+        .map(item => ({ item, need: worth(bot, item) }))
+        .filter(({ item, need }) => need
+            && !(item.freeLootClaim?.until > now && item.freeLootClaim.botId !== botId && Number(item.freeLootClaim.need || 1) >= NEED[need])
+            && wants(session, item, need))
+        .sort((a, b) => NEED[b.need] - NEED[a.need] || distance(a.item) - distance(b.item)
+            || Number(a.item.fetchId()) - Number(b.item.fetchId()))
+        .find(({ item }) => Automation.pickupRun(bot, item).inReach) || null;
 }
 
-function start(session, bot, item, now) {
+function start(session, bot, item, now, need = 'value') {
     const botId = Number(bot.fetchId()), itemId = Number(item.fetchId());
-    item.freeLootClaim = { botId, until: now + CLAIM_MS };
+    item.freeLootClaim = { botId, until: now + CLAIM_MS, need: NEED[need] || 1 };
+    if (need === 'upgrade') Situations.note('free_loot:upgrade');
     const attempt = Number(session.freeLootAttempt || 0) + 1;
     session.freeLootAttempt = attempt;
     session.freeLoot = { itemId, attempt, until: now + CLAIM_MS };
@@ -128,7 +155,9 @@ function tick(session, bot, now = Date.now()) {
     const running = session.freeLoot;
     if (running) {
         const item = world().items.spawns.find(spawn => Number(spawn.fetchId()) === running.itemId);
-        const interrupted = !item || running.until <= now || session.pvpDefense || session.pvpRevenge
+        // A bot that needs the item took the claim over: this one leaves it to it.
+        const outbid = !!item && item.freeLootClaim && item.freeLootClaim.botId !== Number(bot.fetchId());
+        const interrupted = !item || outbid || running.until <= now || session.pvpDefense || session.pvpRevenge
             || session.pvpAggressors?.size || bot.isDead?.()
             || invoke('GameServer/Bot/AI/PartyAwareness').npcsAttackingActor(bot, 900).length > 0;
         if (!interrupted) return true;
@@ -143,10 +172,10 @@ function tick(session, bot, now = Date.now()) {
     if (now < Number(session.freeLootScanAt || 0)) return false;
     session.freeLootScanAt = now + SCAN_MS;
     if (!world().items?.byCell?.size || !idle(session, bot, now)) return false;
-    const item = pick(session, bot, now);
-    if (!item) return false;
-    start(session, bot, item, now);
+    const choice = pick(session, bot, now);
+    if (!choice) return false;
+    start(session, bot, choice.item, now, choice.need);
     return true;
 }
 
-module.exports = { tick, free, interest, PROTECT_MS, GRACE_MS, RADIUS, SCAN_MS, CLAIM_MS };
+module.exports = { tick, free, interest, worth, pick, NEED, PROTECT_MS, GRACE_MS, RADIUS, SCAN_MS, CLAIM_MS };
