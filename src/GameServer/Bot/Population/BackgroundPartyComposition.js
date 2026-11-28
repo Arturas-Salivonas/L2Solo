@@ -200,9 +200,29 @@ function selectRecruits(members = [], candidates = [], options = {}) {
         Math.abs(levelOf(state) - levelOf(leader)) <= levelRange
     ));
     const recruits = [];
+    // Living Bots: the party mixes the bots learned at this spot and level (PartyMixLessons:
+    // options.mix, its reader). A known mix scores about 2 (its exp and Adena against the other
+    // mixes there, deaths off); an unknown one counts as that average, and one the reader
+    // explores with comes first, so a new mix gets tried.
+    const mix = options.mix || null;
+    const rolesSoFar = () => [...members, ...recruits].map(roleForState);
+    const mixScore = roles => mix?.score(roles) ?? null;
+    const rank = (state) => {
+        const score = mixScore([...rolesSoFar(), roleForState(state)]);
+        return score === null ? (mix?.explore ? 10 : 2) : score;
+    };
+    const byMix = (compare) => (mix ? (a, b) => (rank(b) - rank(a)) || compare(a, b) : compare);
+    // A support role the lessons say this spot does better without: the mix with a damage
+    // dealer in its place earned clearly more (not when exploring: then the usual mix stands).
+    const skipSupport = (role) => {
+        if (!mix || mix.explore) return false;
+        const withRole = mixScore([...rolesSoFar(), role]), without = mixScore([...rolesSoFar(), 'dps']);
+        return withRole !== null && without !== null && without - withRole > 0.3;
+    };
 
     SUPPORT_ROLES.forEach((role) => {
         if (members.length + recruits.length >= maxSize || coverage[role]) return;
+        if (skipSupport(role)) return;
         const recruit = bestCandidates(
             eligible.filter((state) => !used.has(Number(state.characterId)) && roleForState(state) === role
                 && sharesExperience([...members, ...recruits, state])),
@@ -220,7 +240,7 @@ function selectRecruits(members = [], candidates = [], options = {}) {
             eligible.filter((candidate) => !used.has(Number(candidate.characterId))
                 && sharesExperience([...members, ...recruits, candidate])),
             1,
-            compareCandidate(leader, coverage, [...members, ...recruits], memoryPreference)
+            byMix(compareCandidate(leader, coverage, [...members, ...recruits], memoryPreference))
         )[0];
         if (!state) break;
         recruits.push(state);
