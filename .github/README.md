@@ -74,7 +74,7 @@ Bots that feel like people: [guide, screenshots and one install](https://github.
 An automatic PvP event. [Guide and install](https://github.com/Arturas-Salivonas/L2Solo/blob/feat/last-hero/solo/guides/LAST_HERO.md).
 - **Every 2 hours** (or Start now): you and bot fighters, up to 100, land on random spots of the C4 Coliseum floor. No parties.
 - **Buff draft:** all buffs off, everyone gets Wind Walk, Haste and Acumen, then you pick 3 of 10 random buffs in a dialog; every bot gets 3 at random.
-- **Everyone for themselves** after 30 seconds. Bots are copies of real bots near your level (every class gets places), with their gear and skills.
+- **Everyone for themselves** after 60 seconds. Bots are copies of real bots near your level (every class gets places), with their gear and skills.
 - **The last one standing** wins 10kk Adena (you set the prize: Adena and items) and the C4 Hero aura. The winner's kills and the top 5 by kills are announced, and the crowd reacts in chat. No EXP loss, drops or karma; everyone goes back after.
 - **Alt+B > Last Hero** (with the Solo Helper) or `.lasthero` in chat. Settings in `[LastHero]`.
 
