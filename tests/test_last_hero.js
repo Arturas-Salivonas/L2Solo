@@ -129,7 +129,7 @@ const options = (values) => { global.options.default.LastHero = values; };
 
     // ---------- settings ----------
     options({});
-    assert.deepStrictEqual(Config.config(), { enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
+    assert.deepStrictEqual(Config.config(), { enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 60,
         fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: [], botBuffs: 'self', levelGap: 10, winnerChat: true,
         baseBuffs: [1204, 1086, 1085], draftChoices: 10, draftPicks: 3, lockBuffer: false },
         'defaults: bots cast only their own buffs');
@@ -161,7 +161,7 @@ const options = (values) => { global.options.default.LastHero = values; };
     await new Promise((resolve) => setImmediate(resolve));
     await new Promise((resolve) => setImmediate(resolve));
     const { run } = LastHero._state();
-    assert.ok(run && run.state === 'prepare', 'Start now goes straight to the 30 seconds of buffing');
+    assert.ok(run && run.state === 'prepare', 'Start now goes straight to the time for buffing');
     assert.strictEqual(run.fighters.length, 6, 'you and 5 bots');
     assert.strictEqual(player.arenaDuelId, LastHero.PLAYER_MARK, 'you carry the arena mark (area skills, no death penalty)');
     assert.deepStrictEqual(player.companions, [], 'your party is broken up');

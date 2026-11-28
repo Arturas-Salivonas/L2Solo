@@ -2,6 +2,9 @@
 
 An automatic PvP event for [L2Solo](https://github.com/pmbstyle/L2Solo). Every two hours, up to 100 fighters (you and the server's bots) are put on random spots of the Coliseum floor. Everyone fights for themselves. The last one standing wins **10,000,000 Adena** (you set the prize) and the **Hero aura**, and the whole server hears about it. It stays in Chronicle 4: the real C4 Coliseum arena, the C4 hero glow, the C4 announcement chat.
 
+![The fight at the Coliseum: purple names, buffs flying](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/feat/last-hero/solo/guides/last-hero-fight.jpg)
+
+
 ## How it works
 
 1. **Registration opens** 5 minutes before each event, with a server announcement. Join from **Alt+B > Last Hero** (with the [Solo Helper](https://github.com/Arturas-Salivonas/L2Solo/blob/mine/solo-buffer/solo/guides/SOLO_HELPER.md)) or type **`.lasthero`** in chat.
@@ -9,13 +12,25 @@ An automatic PvP event for [L2Solo](https://github.com/pmbstyle/L2Solo). Every t
 3. **Everyone is teleported** to a random spot on the Coliseum floor. Your party is broken up, and nobody can make one: it's everyone for themselves.
 4. **All buffs are cancelled,** yours and your servitor's: everyone starts clean. Then **everyone gets Wind Walk, Haste and Acumen** at their highest C4 level.
 5. **The buff draft:** a dialog shows you **10 random buffs** from the buffer classes: Prophet, chants, Overlord, dances, songs and the 3rd class prophecies. **Pick 3.** The third pick buffs you and closes the dialog; click a picked one again to put it back. None of the 10 would replace Wind Walk, Haste or Acumen, and no two of them replace each other. Every bot gets 3 random buffs of its own, so no two fights feel the same. Closed the dialog? Alt+B > Last Hero > Pick buffs opens it again. Not done when the fight starts? The rest are picked for you.
-6. **30 seconds before the fight.** Nobody can attack yet. Bots also cast their own class buffs, and you can cast yours. The Solo Helper buffer still works by default; `lockBuffer = true` locks it and its Full HP/MP/CP during the event, so the draft is all you get. Walk off the floor and you're put back.
+
+   ![The buff draft: pick 3 of 10](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/feat/last-hero/solo/guides/last-hero-draft.jpg)
+
+6. **60 seconds before the fight.** Nobody can attack yet. Bots also cast their own class buffs, and you can cast yours. The Solo Helper buffer still works by default; `lockBuffer = true` locks it and its Full HP/MP/CP during the event, so the draft is all you get. Walk off the floor and you're put back.
 7. **FIGHT!** Every fighter is flagged (purple), so you attack with a plain click. Bots pick the nearest fighter, or whoever just hit them, and fight with the server's own bot PvP brain: their skills, their gear, their shots.
+
+   ![The countdown in the announcements](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/feat/last-hero/solo/guides/last-hero-countdown.png)
+
 8. **When you fall, you're out.** You get your place and kills, stand up at the west gate a few seconds later, and can watch from there. Leaving the floor for 3 seconds also counts as out.
 9. **The last one standing wins.** If time runs out (10 minutes), the fighter with the most kills (then the most HP) wins.
 10. **The results are announced:** the winner with their kills, then the five fighters with the most kills, one per line. The Last Hero tab keeps that list until the next event.
 11. **The crowd reacts:** a couple of dozen lines in normal, shout and trade chat. Gz, gg, "rigged", "share the 10kk?" and the like, from the fallen fighters and the rest of the server.
+
+    ![The winner, the five most kills and the crowd](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/feat/last-hero/solo/guides/last-hero-winner.png)
+
 12. **Ten seconds later everyone goes back** where they came from, with full HP, MP and CP and the buffs they had before the event.
+
+![Alt+B > Last Hero: the hero, the most kills, the last results](https://raw.githubusercontent.com/Arturas-Salivonas/L2Solo/feat/last-hero/solo/guides/last-hero-tab.png)
+
 
 **Nothing is lost.** No EXP loss, no item drops, no karma, no PvP count. Outsiders can't touch fighters, and fighters can't touch outsiders.
 
@@ -174,7 +189,7 @@ prizeItems =            ; extra items for the winner, itemId:count, comma separa
 enabled = true          ; false turns the event off
 everyMinutes = 120      ; an event starts this long after the last one ended (0 = only with Start now)
 registerMinutes = 5     ; registration is open this long before an event
-prepareSeconds = 30     ; time to buff before the fight
+prepareSeconds = 60     ; time to pick and cast buffs before the fight
 fightMinutes = 10       ; then most kills (then most HP) wins
 fighters = 100          ; fighters in one event, you included (2-136)
 botBuffs = self         ; self = bots cast their own buffs, full = a full buff set each, none
