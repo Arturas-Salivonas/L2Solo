@@ -59,6 +59,9 @@ const DEFAULTS = {
     // gives a share to a struggling clanmate or friend. Hand-me-downs: unworn spare gear goes
     // to a clanmate or friend who would wear it.
     patronageEnabled: true,
+    // Party shopping trips (Population/PartyMarketBreak.ordinaryTrip): an ordinary hunting
+    // party holds its place up to 15 minutes for a member who goes to town to sell and restock.
+    partyShoppingTrips: true,
     handMeDownsEnabled: true,
     opportunisticRaidExpeditionMs: 45 * 60000,
     phasePolicyEnabled: true,

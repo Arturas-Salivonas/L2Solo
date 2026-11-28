@@ -76,6 +76,20 @@ function clanDuty(party) {
     const objective = party?.stats?.objective;
     return objective?.priority === 'required' && !!objective.clanGoalKey;
 }
+// Living Bots: an ordinary hunting party holds its place for a member who goes to town to
+// sell its bag and restock, as C4 friends wait at the spot for one who ports to town: the
+// return ticket a clan duty gives, one member at a time, up to its 15 minutes. Not a raid,
+// a war or a craft material hunt (those keep their own rules). A bag trip that cannot start
+// leaves the party as before (PopulationService.applyPartyStayTrips).
+// [BotPopulation] partyShoppingTrips.
+function ordinaryTrip(party) {
+    if (party?.status !== 'active' || clanDuty(party)
+        || invoke('GameServer/Bot/Population/PopulationConfig').partyShoppingTrips === false) return false;
+    const objective = party.stats?.objective;
+    return !objective?.clanGoalKey && !objective?.raidBoss && !objective?.opportunisticRaid
+        && !['raid', 'war'].includes(objective?.sourceKind) && !require('./CraftMaterialParty').isObjective(objective)
+        && !party.stats?.warOperation && !party.stats?.raidEncounter;
+}
 // A return ticket still held: before its 15 minutes run out. Past them the party no longer
 // waits for its member (pending drops it) and the member's next trip drops it
 // (GoalExecutor.beginMarketTravel). A ticket with no time (until missing, 0, not a number)
@@ -125,27 +139,30 @@ function meetingDeparture(party, member, now) {
 }
 // The trips a clan duty lets its member go on (its stay answered one,
 // ColdSimulationKernel.partyStay, one absence at a time): an unload of a bag at its
-// floor; a war lets none (no stay decision is taken at war).
+// floor; a war lets none (no stay decision is taken at war). An ordinary hunt lets any
+// bag its member must sell (ordinaryTrip).
 const FLOOR_REASONS = ['inventory_capacity', 'inventory_overweight'];
 // The unload goal of a member whose trip its stay answered. The native purchase/travel
 // gate still checks its quote and cash.
 function goal(party, member, now, need = undefined) {
     const bag = need === undefined ? bagNeed(member, now) : need;
-    return FLOOR_REASONS.includes(bag?.reason) ? { ...cleanupGoal(bag), status: 'active' } : null;
+    return bag && (FLOOR_REASONS.includes(bag.reason) || ordinaryTrip(party)) ? { ...cleanupGoal(bag), status: 'active' } : null;
 }
 // The allowed member's trip with its return ticket: the party holds its place until
 // it comes back (PopulationService.resumePartyMarketBreak) or the ticket expires.
 function departure(party, member, travel, now, given = undefined) {
     const need = given === undefined ? bagNeed(member, now) : given;
+    const ordinary = !clanDuty(party);
     const token = { partyId: party.partyId, characterId: member.characterId, until: now + RESERVATION_MS,
-        objective: { ...party.stats.objective }, startedAt: now, cleanupReason: need?.reason,
-        slots: need?.slots, limit: need?.limit };
-    return { ...travel, stats: { ...travel.stats, partyMarketReturn: token, clanPartyObjective: token.objective } };
+        objective: { ...party.stats?.objective }, startedAt: now, cleanupReason: need?.reason,
+        slots: need?.slots, limit: need?.limit, ...(ordinary ? { ordinary: true } : {}) };
+    // An ordinary hunt's member keeps its own party wish: the clan's objective is a duty's.
+    return { ...travel, stats: { ...travel.stats, partyMarketReturn: token, ...(ordinary ? {} : { clanPartyObjective: token.objective }) } };
 }
 // The party the ticket returns to still runs the errand its member left: a clan duty's
 // goal, else (an ordinary party's warehouse trip) its objective.
 function sameObjective(party, token) {
-    if (token?.cleanupReason === 'trade_meeting') return party?.partyId === token.partyId;
+    if (token?.cleanupReason === 'trade_meeting' || token?.ordinary === true) return party?.partyId === token.partyId;
     return token?.cleanupReason === 'craft_warehouse'
         ? String(party?.stats?.objective?.objectiveKey || '') === String(token.objective?.objectiveKey || '')
         : party?.stats?.objective?.clanGoalKey === token?.objective?.clanGoalKey;
@@ -188,5 +205,5 @@ function ready(state) {
         && !state.stats?.travel && !state.stats?.marketReturn
         && ['hunting', 'party_wait', 'grouped'].includes(state.activity);
 }
-module.exports = { bagNeed, bagFact, cleanupDecision, applyClear, cleanupFree, heldCleanup, withoutStartedTrip, clanDuty, held, pending,
+module.exports = { bagNeed, bagFact, cleanupDecision, applyClear, cleanupFree, heldCleanup, withoutStartedTrip, clanDuty, ordinaryTrip, held, pending,
     goal, departure, canMeet, meetingDeparture, sameObjective, traceCommitted, stats, ready, FLOOR_REASONS };

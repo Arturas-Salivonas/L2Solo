@@ -1940,7 +1940,7 @@ class ColdSimulationKernel {
     // A party step's member stays (party_stay, a member's own decision): the XP share's
     // exclusion of each member raised on its flip (party_outleveled, stats.partyOutleveled
     // its last value), then each member whose stay is woken decides (PartyStay.decide):
-    // a leave (its reason), a trip (a leave in an ordinary party; in a clan duty party
+    // a leave (its reason), a trip (with a return ticket in a clan duty party or an ordinary hunt, a leave otherwise; in a ticketed party
     // main starts it with a return ticket: trips). A clan duty lets one member go at a
     // time: a trip answered while another member's absence holds (its ticket live) or
     // another trip went this step is not taken, its bit stays woken
@@ -1959,7 +1959,10 @@ class ColdSimulationKernel {
         const decides = !meetingPending && !rescuing && !party.stats?.warOperation && !BackgroundPartyLifecycle.raidStarted(party)
             && !CraftMaterialPartyRoute.evacuating(party);
         const duty = PartyMarketBreak.clanDuty(party);
-        const absent = duty && PartyMarketBreak.pending(party, timestamp).length > 0;
+        // A trip with a return ticket: a clan duty's, or an ordinary hunt's (Living Bots:
+        // the party waits for its member: PartyMarketBreak.ordinaryTrip).
+        const ticket = duty || PartyMarketBreak.ordinaryTrip(party);
+        const absent = ticket && PartyMarketBreak.pending(party, timestamp).length > 0;
         // A required objective (not a material hunt's, whose quotas end it) goes on while
         // enough members' plans still need a party; a member whose need of it ended is done.
         const objective = party.stats?.objective;
@@ -1982,13 +1985,13 @@ class ColdSimulationKernel {
                     requiredObjective: required,
                     bridgeReason: this.equipmentBridgeReason,
                     soloSooner: () => !!this.soloSooner?.({ member, party, members: run.members, timestamp, shares }) });
-                if (answer === 'trip' && duty && (absent || trips.length)) {
+                if (answer === 'trip' && ticket && (absent || trips.length)) {
                     if (!record?.stayHeld) Situations.note('party:stay_trip:held');
                     if (record) record.stayHeld = { partyId: String(party.partyId), seq };
                 } else {
                     if (record) record.stayHeld = null;
                     stats = { ...stats, woken: Situations.decided(stats, 'party_stay', { caller: 'party_step', subject: id, answer: `${answer}:${reason}` }) };
-                    if (answer === 'leave' || answer === 'trip' && !duty) leaving.set(id, reason);
+                    if (answer === 'leave' || answer === 'trip' && !ticket) leaving.set(id, reason);
                     else if (answer === 'trip') trips.push({ characterId: id, reason });
                 }
             }

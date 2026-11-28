@@ -193,6 +193,20 @@ async function run() {
     const floor = { reason: 'inventory_capacity', slots: 81, limit: 80 };
     assert.strictEqual(Break.goal(clanParty, members[2], now, floor).status, 'active', 'a bag at its floor leaves clan duty');
     assert.strictEqual(Break.goal(clanParty, members[2], now, null), null, 'a refill waits for the clan\'s call');
+    // Living Bots: an ordinary hunt holds its member's place for any bag it must sell.
+    const hunt = { ...party, status: 'active' };
+    const count = { reason: 'inventory_slots', slots: 60, limit: 60 };
+    assert.strictEqual(Break.ordinaryTrip(hunt), true, 'an ordinary hunt gives a return ticket');
+    assert.strictEqual(Break.ordinaryTrip(clanParty), false, 'a clan duty keeps its own rule');
+    assert.strictEqual(Break.ordinaryTrip({ ...hunt, stats: { objective: { raidBoss: 25001 } } }), false, 'a raid does not wait');
+    assert.strictEqual(Break.goal(hunt, members[2], now, count).status, 'active', 'a counted bag goes to town from a hunt');
+    assert.strictEqual(Break.goal({ ...clanParty, status: 'active' }, members[2], now, count), null, 'but not from a clan duty');
+    const ticketed = Break.departure(hunt, members[2], { stats: {} }, now, count);
+    assert.strictEqual(ticketed.stats.partyMarketReturn.ordinary, true, 'its ticket says so');
+    assert.strictEqual(ticketed.stats.clanPartyObjective, undefined, 'and it takes no clan objective with it');
+    assert.strictEqual(Break.sameObjective({ ...hunt, stats: { objective: { spotId: 'elsewhere' } } }, ticketed.stats.partyMarketReturn), true,
+        'its party moved on to another spot: still its party');
+    assert.strictEqual(Break.sameObjective({ ...hunt, partyId: 'other' }, ticketed.stats.partyMarketReturn), false);
     await departureChecks();
     console.log('Bot party market break checks passed');
 }

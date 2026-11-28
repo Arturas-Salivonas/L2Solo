@@ -164,6 +164,24 @@ async function step(members, extra = {}, { round = () => ({}), project = state =
             { stats: duty });
         assert.deepStrictEqual(both.stayTrips, [{ characterId: 2, reason: 'bag_full' }], 'two full bags: one trip');
         assert(Situations.woken(both.states.find(state => state.characterId === 3).stats, 'party_stay'), 'the other waits woken');
+        // Living Bots: an ordinary hunt waits for its member too (PartyMarketBreak.ordinaryTrip):
+        // the bag trip goes with a return ticket, the member keeps its place, one at a time.
+        const full3 = Situations.raise({ ...member(3).stats }, 'bag_full', null, Situations.OPEN);
+        const hunt = await step([member(1), member(2, { stats: full }), member(3)]);
+        assert.deepStrictEqual(hunt.stayTrips, [{ characterId: 2, reason: 'bag_full' }], 'an ordinary hunt: the trip has a ticket');
+        assert.deepStrictEqual(hunt.party.memberIds, [1, 2, 3], 'and its member is not dropped by the step');
+        const pair = await step([member(1), member(2, { stats: full }), member(3, { stats: full3 })]);
+        assert.deepStrictEqual(pair.stayTrips, [{ characterId: 2, reason: 'bag_full' }], 'two full bags: one goes, the other waits');
+        assert(Situations.woken(pair.states.find(state => state.characterId === 3).stats, 'party_stay'));
+        const Config = invoke('GameServer/Bot/Population/PopulationConfig');
+        Config.partyShoppingTrips = false;
+        try {
+            const off = await step([member(1), member(2, { stats: full }), member(3)]);
+            assert.deepStrictEqual(off.stayTrips || [], [], 'switched off: no ticket');
+            assert.deepStrictEqual(off.party.memberIds, [1, 3], 'the member leaves as before');
+        } finally { Config.partyShoppingTrips = true; }
+        const raid = await step([member(1), member(2, { stats: full }), member(3)], { stats: { objective: { sourceKind: 'raid' } } });
+        assert.deepStrictEqual(raid.party.memberIds, [1, 3], 'a raid keeps its own rule: the member leaves');
     } finally { Disposition.inventoryCleanupNeed = () => null; Disposition.cleanupCounted = cleanupCounted; }
     // A required party's re-plan (the worker's, at its step): each changed plan rides its
     // member's own commit, the member whose need ended holds that fact and its stay woken
