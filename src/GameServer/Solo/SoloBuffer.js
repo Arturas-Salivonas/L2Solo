@@ -246,9 +246,25 @@ function restore(session, actor) {
 
 // Runs one action and returns what the page shows next: { group, message }.
 // group is set when the action belongs to a group page; message is one status line.
+// The Last Hero event (branch feat/last-hero), when installed, locks the buffer for its
+// fighters: they fight with the event's buffs only.
+let heroEvent;
+function lastHero() {
+    if (heroEvent !== undefined) return heroEvent;
+    try { heroEvent = invoke('GameServer/Events/LastHero/LastHero'); } catch (error) {
+        if (error?.code !== 'MODULE_NOT_FOUND') utils.infoWarn('SoloBuffer', 'Last Hero lock off: %s', error.message);
+        heroEvent = null;
+    }
+    return heroEvent;
+}
+const LOCKED_ACTIONS = new Set(['one', 'preset', 'mine', 'pet', 'restore']);
+
 function act(session, action = '', arg = '') {
     const actor = session.actor;
     const deadReason = () => (actor.isDead?.() ? 'You cannot be buffed while dead.' : '');
+    if (LOCKED_ACTIONS.has(String(action || '')) && lastHero()?.buffsLocked?.(actor)) {
+        return { message: 'Not during Last Hero: you fight with the event buffs.' };
+    }
     switch (String(action || '')) {
         case 'group':
             return { group: groupById(arg) ? arg : undefined };
