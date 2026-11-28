@@ -62,6 +62,8 @@ const DEFAULTS = {
     // Party shopping trips (Population/PartyMarketBreak.ordinaryTrip): an ordinary hunting
     // party holds its place up to 15 minutes for a member who goes to town to sell and restock.
     partyShoppingTrips: true,
+    // LFP shouts (Bot/AI/BotLfpShout): a bot that looks for a party says so in trade chat.
+    lfpShoutsEnabled: true,
     handMeDownsEnabled: true,
     opportunisticRaidExpeditionMs: 45 * 60000,
     phasePolicyEnabled: true,

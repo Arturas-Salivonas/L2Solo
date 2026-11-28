@@ -74,6 +74,9 @@ cache.subscribePublications(({ state, previousState }) => {
     invoke('GameServer/Bot/Economy/TownArrivals').committed(previousState, state);
     if (previousState.stats?.partyMarketReturn !== state.stats?.partyMarketReturn)
         invoke('GameServer/Bot/Population/PartyMarketBreak').traceCommitted(previousState, state);
+    // Living Bots: a newly opened party request is shouted in trade chat (BotLfpShout).
+    if (previousState.stats?.partyRequest !== state.stats?.partyRequest)
+        invoke('GameServer/Bot/AI/BotLfpShout').committed(previousState, state);
     if (!Trace.on()) return;
     invoke('GameServer/Bot/Population/PartyRequestPlanner').traceCommitted(previousState, state);
     invoke('GameServer/Clan/ClanPurchaseCredit').traceCommitted(previousState, state);
