@@ -1,19 +1,24 @@
 'use strict';
 
-// [LastHero] settings from config/local.ini. Every key is optional.
+// [LastHero] settings. Every key is optional: config/default.ini lists them all with their
+// defaults; put your own values in config/local.ini (it survives updates).
 //   enabled         = true      false turns the event off
-//   everyMinutes    = 120       an event starts this long after the last one ended (0 = only by hand)
+//   everyMinutes    = 120       an event starts this long after the last one ended (0 = only with Start now)
 //   registerMinutes = 5         registration is open this long before an event
 //   prepareSeconds  = 30        time to buff on the Coliseum floor before the fight
 //   fightMinutes    = 10        when time runs out, most kills (then most HP) wins
 //   fighters        = 100       fighters in one event, you included (2-136)
-//   prize           = 10000000  Adena for the winner
-//   botBuffs        = full      full = bots get a full buff set, self = their own buffs, none
-//   levelGap        = 10        bots are picked closest to your level, at most this far when there are enough
+//   prizeAdena      = 10000000  Adena for the winner (0 = none). The old key "prize" still works.
+//   prizeItems      =           extra items for the winner: itemId:count, comma separated (3470:1, 1539:5)
+//   botBuffs        = self      self = bots cast their own buffs, full = a full buff set, none
+//   levelGap        = 10        bots are picked near your level, at most this far when there are enough
+//   winnerChat      = true      false = no "gz" chatter after the winner
 
 const DEFAULTS = Object.freeze({ enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
-    fightMinutes: 10, fighters: 100, prize: 10000000, botBuffs: 'full', levelGap: 10 });
+    fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: Object.freeze([]), botBuffs: 'self',
+    levelGap: 10, winnerChat: true });
 const MAX_FIGHTERS = 136; // LastHeroArena.SPAWNS
+const MAX_ADENA = 2147483647;
 
 function flag(value, fallback) {
     if (value === undefined || value === null || value === '') return fallback;
@@ -21,9 +26,25 @@ function flag(value, fallback) {
 }
 
 function number(value, fallback, min, max) {
-    const parsed = Math.floor(Number(value));
+    const parsed = Math.floor(Number(String(value ?? '').replace(/[\s,_]/g, '')));
     if (value === undefined || value === null || value === '' || !Number.isFinite(parsed)) return fallback;
     return Math.max(min, Math.min(max, parsed));
+}
+
+// "3470:1, 1539:5" -> [[3470, 1], [1539, 5]]. A bad entry is skipped (and named once in the log).
+const warned = new Set();
+function items(value) {
+    const out = [];
+    for (const part of String(value || '').split(/[,;]/).map((entry) => entry.trim()).filter(Boolean)) {
+        const match = /^(\d+)\s*(?:[:x*]\s*(\d+))?$/i.exec(part);
+        const id = Number(match?.[1]), count = Number(match?.[2] ?? 1);
+        if (!match || id <= 0 || count <= 0 || count > MAX_ADENA) {
+            if (!warned.has(part)) { warned.add(part); utils.infoWarn('LastHero', 'prizeItems: "%s" is not itemId:count, skipped', part); }
+            continue;
+        }
+        out.push([id, count]);
+    }
+    return out;
 }
 
 function config() {
@@ -36,10 +57,12 @@ function config() {
         prepareSeconds: number(raw.prepareSeconds, DEFAULTS.prepareSeconds, 5, 300),
         fightMinutes: number(raw.fightMinutes, DEFAULTS.fightMinutes, 1, 60),
         fighters: number(raw.fighters, DEFAULTS.fighters, 2, MAX_FIGHTERS),
-        prize: number(raw.prize, DEFAULTS.prize, 0, 2147483647),
+        prizeAdena: number(raw.prizeAdena ?? raw.prize, DEFAULTS.prizeAdena, 0, MAX_ADENA),
+        prizeItems: items(raw.prizeItems),
         botBuffs: ['full', 'self', 'none'].includes(buffs) ? buffs : DEFAULTS.botBuffs,
-        levelGap: number(raw.levelGap, DEFAULTS.levelGap, 0, 80)
+        levelGap: number(raw.levelGap, DEFAULTS.levelGap, 0, 80),
+        winnerChat: flag(raw.winnerChat, DEFAULTS.winnerChat)
     };
 }
 
-module.exports = { DEFAULTS, MAX_FIGHTERS, config };
+module.exports = { DEFAULTS, MAX_FIGHTERS, config, items };

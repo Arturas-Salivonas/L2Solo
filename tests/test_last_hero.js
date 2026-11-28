@@ -15,6 +15,8 @@ const Fighters = invoke('GameServer/Events/LastHero/LastHeroFighters');
 const Store = invoke('GameServer/Events/LastHero/LastHeroStore');
 const LastHero = invoke('GameServer/Events/LastHero/LastHero');
 const Window = invoke('GameServer/Events/LastHero/LastHeroWindow');
+const Chatter = invoke('GameServer/Events/LastHero/LastHeroChatter');
+invoke('GameServer/DataCache').init(); // item names for the prize
 const ArenaCombatRules = invoke('GameServer/World/ArenaCombatRules');
 const Generics = invoke('GameServer/Actor/Generics');
 const PvpFlag = invoke('GameServer/Actor/PvpFlag');
@@ -32,11 +34,21 @@ Generics.teleportTo = (session, actor, coords) => { teleports.push([actor.fetchN
 Generics.revive = (session, actor) => { revives.push(actor.fetchName()); actor.revive(); };
 Generics.calculateStats = () => {};
 EffectTicker.refreshEffects = () => {};
+EffectTicker.clearAll = () => {};
+EffectTicker.scheduleExpiry = () => {};
+const EffectStore = invoke('GameServer/Effects/EffectStore');
+EffectStore.list = (actor) => [...(actor?.fakeEffects || [])];
+EffectStore.remove = (actor, key) => { actor.fakeEffects = (actor.fakeEffects || []).filter((effect) => effect.key !== key); };
+EffectStore.apply = (actor, effect) => { (actor.fakeEffects ||= []).push({ key: effect.key, id: effect.id }); return effect; };
+const Quests = invoke('GameServer/Quest/QuestService');
+const itemsGiven = [];
+Quests.giveItem = async (session, selfId, amount) => { itemsGiven.push([session.actor.fetchName(), selfId, amount]); };
 PvpFlag.mark = (session, actor) => actor.setPvpFlag(1);
 Companions.membersForLeader = (session) => session.companions || [];
 Companions.detachAll = (session) => { session.companions = []; return 1; };
 Response.userInfo = () => Buffer.from([0x04]);
-Response.charInfo = () => Buffer.from([0x03]);
+const charInfoFor = [];
+Response.charInfo = (actor) => { charInfoFor.push(actor?.fetchName?.()); return Buffer.from([0x03]); };
 Response.relationChanged = () => Buffer.from([0xce]);
 Response.itemsList = () => Buffer.from([0x1b]);
 Response.npcHtml = (id, html) => Object.assign(Buffer.from([0x0f]), { html });
@@ -83,6 +95,7 @@ function bot(level = 20) {
 }
 
 let bench = [];
+const realPick = Fighters.pick;
 Fighters.pick = (count) => bench.slice(0, count).map((entry) => entry.candidate);
 Fighters.spawn = async (candidate, point) => {
     const entry = bench.find((item) => item.candidate === candidate);
@@ -112,7 +125,15 @@ const options = (values) => { global.options.default.LastHero = values; };
     // ---------- settings ----------
     options({});
     assert.deepStrictEqual(Config.config(), { enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
-        fightMinutes: 10, fighters: 100, prize: 10000000, botBuffs: 'full', levelGap: 10 }, 'defaults');
+        fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: [], botBuffs: 'self', levelGap: 10, winnerChat: true },
+        'defaults: bots cast only their own buffs');
+    options({ prize: '5,000,000' });
+    assert.strictEqual(Config.config().prizeAdena, 5000000, 'the old key prize still works, with commas');
+    options({ prizeAdena: '25000000', prizeItems: '3470:2, 729, x:1' });
+    assert.strictEqual(Config.config().prizeAdena, 25000000, 'prizeAdena sets the Adena');
+    assert.deepStrictEqual(Config.config().prizeItems, [[3470, 2], [729, 1]], 'prizeItems: id:count, a bare id is 1, junk is skipped');
+    assert.strictEqual(LastHero.prizeText(Config.config()), '25,000,000 Adena, 2 Gold Bar, Scroll: Enchant Weapon (Grade A) and the Hero aura',
+        'the announcement names the whole prize');
     options({ fighters: '500', prepareSeconds: '1', botBuffs: 'SELF', everyMinutes: 'x' });
     const odd = Config.config();
     assert.strictEqual(odd.fighters, 136, 'no more fighters than spawn spots');
@@ -121,10 +142,11 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.strictEqual(odd.everyMinutes, 120, 'a bad value falls back');
 
     // ---------- a live event ----------
-    options({ fighters: '6', prepareSeconds: '30', prize: '10000000' });
+    options({ fighters: '6', prepareSeconds: '30', prizeAdena: '10000000', winnerChat: 'false' });
     bench = Array.from({ length: 10 }, () => bot());
     const me = actorFor(268480001, 'Arturas', { level: 32, point: { locX: 83400, locY: 147943, locZ: -3404 } });
     const player = sessionFor(me, 'admin');
+    me.fakeEffects = [{ key: 'buff:1068', id: 1068 }, { key: 'buff:1040', id: 1040 }];
     player.companions = [{ accountId: 'bot_friend' }];
     World.user = { sessions: [player], revision: 0 };
 
@@ -138,6 +160,8 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.strictEqual(player.arenaDuelId, LastHero.PLAYER_MARK, 'you carry the arena mark (area skills, no death penalty)');
     assert.deepStrictEqual(player.companions, [], 'your party is broken up');
     assert.ok(Arena.isInsideActor(me), 'you are teleported onto the floor');
+    assert.deepStrictEqual(me.fakeEffects, [], 'all your buffs are cancelled on the way in');
+    assert.ok(texts(player).includes('all buffs are cancelled'), 'and you are told');
     assert.ok(texts(player).includes('no parties') || texts(player).includes('No parties'), 'you are told the rules');
     assert.ok(LastHero.partyBlocked(player), 'no party invites while in it');
 
@@ -194,31 +218,38 @@ const options = (values) => { global.options.default.LastHero = values; };
 
     // The rest fall; the last bot standing wins.
     for (const actor of [b2, b3, b4]) { actor.kill(); LastHero.onDeath(null, actor, null); }
+    charInfoFor.length = 0;
     LastHero._tick();
+    assert.ok(![b1, b2, b3, b4].some((actor) => charInfoFor.includes(actor.fetchName())),
+        'a fallen bot is never drawn again at the end (it would stand up on the floor)');
+    assert.strictEqual(b2.fetchPvpFlag(), 0, 'its flag is gone all the same');
+    assert.ok(texts(player).includes('You go back where you were in 10 seconds'), 'you are told when you go back');
     assert.strictEqual(run.state, 'ending', 'one left: the fight is over');
     const store = Store.read();
     assert.strictEqual(store.hero.name, b5.fetchName(), 'the last one standing is the Last Hero');
     assert.strictEqual(LastHero.heroAura(b5), true, 'and glows');
     assert.strictEqual(LastHero.heroAura(me), false, 'you do not');
     assert.ok(texts(player).includes(`${b5.fetchName()} (Lv 20`) && texts(player).includes('10,000,000 Adena and the Hero aura'), 'the winner is announced');
-    assert.strictEqual(store.prizes[run.fighters.find((fighter) => fighter.actor === b5).sourceId], 10000000, 'a bot winner is owed its prize');
+    assert.deepStrictEqual(store.prizes[run.fighters.find((fighter) => fighter.actor === b5).sourceId], { adena: 10000000, items: [] },
+        'a bot winner is owed its prize');
     assert.deepStrictEqual(store.history[0].you, { name: 'Arturas', place: 5, kills: 1 }, 'your result is kept');
     assert.ok(store.nextAt > Date.now() + 119 * 60000, 'the next one is in two hours');
 
     const board = Window.boardBody(player);
     assert.ok(board.includes('Return now'), 'out: the window offers Return now');
-    assert.ok(board.includes(b5.fetchName()) && board.includes('You: #5, 1 kills'), 'the window shows the hero and your result');
+    assert.ok(board.includes(b5.fetchName()) && board.includes('#5, 1 kills'), 'the window shows the hero and your result');
 
     run.endsAt = Date.now() - 1;
     LastHero._tick();
     assert.strictEqual(LastHero._state().run, null, 'ten seconds later it is over');
     assert.deepStrictEqual(teleports.at(-1), ['Arturas', { locX: 83400, locY: 147943, locZ: -3404, head: 0 }], 'you go back where you were');
     assert.ok(!me.isDead(), 'alive');
+    assert.deepStrictEqual(me.fakeEffects.map((effect) => effect.id), [1068, 1040], 'with the buffs you came in with');
     assert.ok(removed.length >= 5, 'the bot copies are removed');
     assert.strictEqual(ArenaCombatRules.canInteract(me, outsider), true, 'and the normal rules are back');
 
     // ---------- you win ----------
-    options({ fighters: '3', prepareSeconds: '30', prize: '10000000' });
+    options({ fighters: '3', prepareSeconds: '30', prizeAdena: '10000000', prizeItems: '3470:2', winnerChat: 'false' });
     LastHero.startNow(player);
     await new Promise((resolve) => setImmediate(resolve));
     await new Promise((resolve) => setImmediate(resolve));
@@ -232,6 +263,8 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.strictEqual(Store.read().hero.name, 'Arturas', 'you are the Last Hero');
     assert.strictEqual(LastHero.heroAura(me), true, 'you glow');
     assert.strictEqual(me.backpack.fetchTotalAdena(), 10000000, 'and get 10,000,000 Adena');
+    assert.deepStrictEqual(itemsGiven.at(-1), ['Arturas', 3470, 2], 'and the prize items');
+    assert.ok(texts(player).includes('Gold Bar'), 'named in the announcement');
     assert.strictEqual(LastHero.heroAura(b5), false, 'the old hero stops glowing');
     second.endsAt = Date.now() - 1;
     LastHero._tick();
@@ -260,7 +293,7 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.strictEqual(LastHero._state().run, null, 'it ends on its own');
     const drawn = Store.read().hero;
     assert.ok(drawn && drawn.name.startsWith('Bot'), 'a bot wins it');
-    assert.ok(Store.read().prizes[drawn.id] >= 10000000, 'and is owed the prize');
+    assert.ok(Store.read().prizes[drawn.id]?.adena >= 10000000, 'and is owed the prize');
 
     // The prize lands when that bot is active.
     const hot = actorFor(drawn.id, drawn.name);
@@ -281,8 +314,51 @@ const options = (values) => { global.options.default.LastHero = values; };
     const page = Window.boardBody(player, { message: 'hello' });
     assert.ok(page.length < 9000, 'the board body leaves room for the Solo Helper tabs');
     assert.ok(page.includes('bypass _bbssolo hero start'), 'board Start now');
+    assert.ok(!page.includes('bgcolor'), 'no grey panels on the board');
     assert.strictEqual(Window.short(10000000), '10kk');
     assert.strictEqual(Window.short(1500000), '1.5kk');
+
+    // ---------- bots from every class ----------
+    {
+        const BotAvailability = invoke('GameServer/Bot/AI/BotAvailability');
+        const savedCatalog = BotAvailability.catalogForPlayer;
+        const cold = (id, classId, level) => ({ name: `C${id}`, level, phase: 'cold', state: { characterId: id, stats: { classId } } });
+        const catalog = [
+            ...Array.from({ length: 30 }, (_, i) => cold(1000 + i, 35, 24)),   // assassins, the most common
+            ...Array.from({ length: 20 }, (_, i) => cold(2000 + i, 19, 25)),   // elven knights
+            cold(3001, 39, 23), cold(3002, 29, 22), cold(3003, 50, 26),          // a dark wizard, an oracle, a shaman
+            cold(4001, 42, 70), cold(4002, 1, 5)                                 // too far, too low
+        ];
+        BotAvailability.catalogForPlayer = () => catalog;
+        try {
+            const picked = realPick(8, 25, { levelGap: 10, random: () => 0.5 });
+            const classes = picked.map((candidate) => candidate.state.stats.classId);
+            assert.strictEqual(picked.length, 8);
+            for (const classId of [35, 19, 39, 29, 50]) assert.ok(classes.includes(classId), `class ${classId} gets a place`);
+            assert.ok(!classes.includes(42) && !classes.includes(1), 'nobody from far outside your levels');
+        } finally {
+            BotAvailability.catalogForPlayer = savedCatalog;
+        }
+    }
+    {
+        let seed = 7;
+        const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+        const fallen = Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: `Fallen${i}` }));
+        const world = Array.from({ length: 30 }, (_, i) => ({ id: i + 100, name: `Far${i}` }));
+        const lines = Chatter.script({ winner: { name: 'Bogner', level: 20, kind: 'bot', sourceId: 9 }, fallen, world, prize: '10kk', random });
+        assert.ok(lines.length >= 24, `a couple of dozen lines (${lines.length})`);
+        assert.ok(lines.some((line) => line.text.includes('Bogner')), 'they name the winner');
+        for (const channel of [0, 1, 8]) assert.ok(lines.some((line) => line.channel === channel), `channel ${channel} is used`);
+        assert.ok(lines.some((line) => line.speaker.name === 'Bogner'), 'the bot winner answers');
+        assert.strictEqual(new Set(lines.map((line) => line.text)).size, lines.length - 0, 'no line twice');
+        const counts = new Map();
+        lines.forEach((line) => counts.set(line.speaker.name, (counts.get(line.speaker.name) || 0) + 1));
+        assert.ok([...counts.values()].every((n) => n <= 2), 'nobody talks more than twice');
+        const mine = Chatter.script({ winner: { name: 'Arturas', level: 32, kind: 'player' }, fallen, world, random });
+        assert.ok(!mine.some((line) => line.speaker.name === 'Arturas'), 'you are not made to speak');
+        const background = Chatter.script({ winner: { name: 'Bogner', level: 20, kind: 'bot' }, fallen: [], world, live: false, count: 10, random });
+        assert.ok(background.length === 10 && background.every((line) => line.channel !== 0), 'a background event: shout and trade only');
+    }
 
     // ---------- turned off ----------
     options({ enabled: 'false' });

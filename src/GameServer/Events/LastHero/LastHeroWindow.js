@@ -5,15 +5,21 @@
 //                              branch mine/solo-buffer) shows it as its Last Hero tab.
 //   chat(session, args)        the small chat window: ".lasthero" in chat, bypass "last-hero <action>".
 // Both run the same actions (LastHero.act): join, leave, start, home.
+//
+// Board style (as Solo/BoardStyle.js): the window is dark and see-through, so no bgcolor
+// panels (they draw as grey boxes) and a light grey for second lines. Every cell has a width
+// and align=left: the C4 client otherwise floats short text away from the left edge.
 
 const Html = require('../../World/Generics/HtmlKit');
 const LastHero = require('./LastHero');
 
 const WIDTH = 610;
-const BUTTON_WIDTH = 83; // the C4 client draws L2UI_ch3.Btn1 at this size (Solo/BoardStyle.js)
+const BUTTON_WIDTH = 83; // the C4 client draws L2UI_ch3.Btn1 at this size
 const BUTTON_CELL = 92;
 const EVENT_ICON = 'icon.skill0121';
 const ADENA_ICON = 'icon.etc_adena_i00';
+const SOFT = 'B5B5B5';
+const soft = (text) => Html.font(text, SOFT);
 
 const Response = () => invoke('GameServer/Network/Response');
 
@@ -23,13 +29,7 @@ function className(classId) {
     return row?.template?.class || 'Fighter';
 }
 
-// 10000000 -> "10kk", 1500000 -> "1.5kk", 250000 -> "250k"
-function short(amount) {
-    const value = Number(amount || 0);
-    if (value >= 1e6) return `${Number((value / 1e6).toFixed(1))}kk`;
-    if (value >= 1e3) return `${Number((value / 1e3).toFixed(1))}k`;
-    return String(value);
-}
+const short = (amount) => LastHero.shortAmount(amount);
 
 function ago(at) {
     const minutes = Math.max(0, Math.floor((Date.now() - Number(at || 0)) / 60000));
@@ -52,7 +52,7 @@ function actions(view) {
 function yourLine(view) {
     if (view.mine?.alive) return 'You are fighting.';
     if (view.mine) return `You are out: #${view.mine.place}, ${view.mine.kills} kills.`;
-    if (view.registered) return `You are registered (${view.registeredCount}).`;
+    if (view.registered) return `You are in the queue (${view.registeredCount} players).`;
     return '';
 }
 
@@ -61,65 +61,78 @@ function yourLine(view) {
 const B = (action) => `_bbssolo hero ${action}`;
 
 function heading(label) {
-    return `<br1><table width=${WIDTH}><tr><td>${Html.font(label, Html.COLOR.title)}</td></tr></table>`
+    return `<br><table width=${WIDTH}><tr><td width=6></td><td width=${WIDTH - 6} align=left>${Html.font(label, Html.COLOR.title)}</td></tr></table>`
         + `<img src="L2UI.SquareGray" width=${WIDTH} height=1><br1>`;
 }
 
-function statusBar(view, message) {
-    return `<table width=${WIDTH} bgcolor=222222><tr>`
-        + `<td width=6></td><td width=36 height=36><img src="${EVENT_ICON}" width=32 height=32></td>`
-        + `<td width=300>${Html.font('Last Hero', Html.COLOR.title)}<br1>${Html.esc(view.text)}</td>`
-        + `<td width=262 align=right>${message ? Html.font(message, Html.COLOR.link) : Html.font(yourLine(view), Html.COLOR.ok)}</td><td width=6></td>`
-        + '</tr></table>';
+function buttons(view) {
+    const list = actions(view);
+    if (!list.length) return '';
+    return `<table><tr>${list.map(([label, action]) => `<td width=${BUTTON_CELL} align=center>`
+        + `${Html.button(label, B(action), { width: BUTTON_WIDTH, hide: false })}</td>`).join('')}</tr></table>`;
 }
 
+// Icon, title and what is happening; your own line or the last message under it; the buttons right.
+function statusRow(view, message) {
+    const second = message ? Html.font(message, Html.COLOR.link) : yourLine(view) ? Html.font(yourLine(view), Html.COLOR.ok) : '';
+    return `<table width=${WIDTH}><tr>`
+        + `<td width=6></td><td width=38 height=44><img src="${EVENT_ICON}" width=32 height=32></td>`
+        + `<td width=370 align=left>${Html.font('Last Hero', Html.COLOR.title)}  ${Html.font(view.text, 'FFFFFF')}`
+        + `${second ? `<br1>${second}` : ''}</td>`
+        + `<td width=196 align=right>${buttons(view)}</td></tr></table>`;
+}
+
+// Four short facts in one row: no wrapping, one line each.
 function tiles(view) {
     const s = view.settings;
+    const prize = s.prizeAdena > 0 ? `${short(s.prizeAdena)} Adena` : s.prizeItems.length ? 'Item prize' : 'Hero aura';
     const list = [
-        ['icon.skill0121', `${s.fighters} fighters`, 'everyone for themselves'],
-        ['icon.skill1204', `${s.prepareSeconds} seconds`, 'to buff on the floor'],
-        [ADENA_ICON, `${short(s.prize)} Adena`, 'and the Hero aura'],
-        ['icon.skill1016', 'No penalty', 'you go back after']
+        ['icon.skill0121', `${s.fighters} fighters`, 'free for all'],
+        ['icon.skill1204', `${s.prepareSeconds} s to buff`, 'buffs reset first'],
+        [ADENA_ICON, prize, s.prizeAdena > 0 || s.prizeItems.length ? '+ Hero aura' : 'for the winner'],
+        ['icon.skill1016', 'No penalty', 'back after']
     ];
     const width = Math.floor(WIDTH / list.length);
-    const cells = list.map(([icon, value, label]) => `<td width=${width}><table><tr>`
-        + `<td width=36 height=36><img src="${icon}" width=32 height=32></td>`
-        + `<td width=${width - 40}>${Html.font(value, 'FFFFFF')}<br1>${Html.font(label)}</td></tr></table></td>`).join('');
+    const cells = list.map(([icon, value, label]) => `<td width=38 height=40><img src="${icon}" width=32 height=32></td>`
+        + `<td width=${width - 38} align=left>${Html.font(value, 'FFFFFF')}<br1>${soft(label)}</td>`).join('');
     return `<table width=${WIDTH}><tr>${cells}</tr></table>`;
 }
 
-function buttonRow(view) {
-    const list = actions(view);
-    if (!list.length) return '';
-    const cells = list.map(([label, action]) => `<td width=${BUTTON_CELL} align=center>`
-        + `${Html.button(label, B(action), { width: BUTTON_WIDTH, hide: false })}</td>`).join('');
-    return `<br1><table width=${list.length * BUTTON_CELL}><tr>${cells}</tr></table>`;
-}
-
-function heroCard(view) {
+function heroRow(view) {
     const hero = view.hero;
-    const body = hero
-        ? `${Html.font(hero.name, Html.COLOR.ok)}<br1>${Html.font(`Lv ${hero.level} ${className(hero.classId)} - won ${ago(hero.at)}, glows until the next winner`)}`
-        : Html.font('No Last Hero yet. Win one and you glow.');
-    return `<table width=${WIDTH} bgcolor=222222><tr><td width=6></td>`
-        + `<td width=36 height=36><img src="${EVENT_ICON}" width=32 height=32></td><td width=562>${body}</td><td width=6></td></tr></table>`;
+    if (!hero) {
+        return `<table width=${WIDTH}><tr><td width=6></td><td width=38 height=40><img src="${EVENT_ICON}" width=32 height=32></td>`
+            + `<td width=566 align=left>${soft('No Last Hero yet. Win one and you glow.')}</td></tr></table>`;
+    }
+    return `<table width=${WIDTH}><tr><td width=6></td><td width=38 height=40><img src="${EVENT_ICON}" width=32 height=32></td>`
+        + `<td width=386 align=left>${Html.font(hero.name, Html.COLOR.ok)}<br1>${soft(`Lv ${hero.level} ${className(hero.classId)}`)}</td>`
+        + `<td width=180 align=right>${soft(`won ${ago(hero.at)}`)}<br1>${soft('glows until the next winner')}</td></tr></table>`;
 }
 
 function historyTable(view) {
-    const rows = (view.history || []).slice(0, 5).map((entry) => {
-        const winner = entry.winner ? `${Html.esc(entry.winner.name)} ${Html.font(`Lv ${entry.winner.level} ${className(entry.winner.classId)}`)}` : Html.font('no winner');
-        const you = entry.you ? Html.font(entry.you.place === 1 ? 'You won!' : `You: #${entry.you.place}, ${entry.you.kills} kills`, entry.you.place === 1 ? Html.COLOR.ok : Html.COLOR.muted)
-            : Html.font(entry.mode === 'simulated' ? 'You did not join' : '');
-        return `<tr><td width=110 height=20>${Html.font(ago(entry.at))}</td><td width=300>${winner}</td><td width=200>${you}</td></tr>`;
+    const entries = (view.history || []).slice(0, 5);
+    if (!entries.length) {
+        return `<table width=${WIDTH}><tr><td width=6></td><td width=604 align=left height=22>${soft('No events yet.')}</td></tr></table>`;
+    }
+    const head = `<tr><td width=6></td><td width=110 align=left height=20>${soft('When')}</td>`
+        + `<td width=300 align=left>${soft('Winner')}</td><td width=194 align=left>${soft('You')}</td></tr>`;
+    const rows = entries.map((entry) => {
+        const winner = entry.winner
+            ? `${Html.font(entry.winner.name, 'FFFFFF')} ${soft(`Lv ${entry.winner.level} ${className(entry.winner.classId)}`)}` : soft('no winner');
+        const you = entry.you
+            ? (entry.you.place === 1 ? Html.font('You won!', Html.COLOR.ok) : Html.font(`#${entry.you.place}, ${entry.you.kills} kills`, 'FFFFFF'))
+            : soft(entry.mode === 'simulated' ? 'did not join' : '-');
+        return `<tr><td width=6></td><td width=110 align=left height=20>${soft(ago(entry.at))}</td>`
+            + `<td width=300 align=left>${winner}</td><td width=194 align=left>${you}</td></tr>`;
     }).join('');
-    return rows ? `<table width=${WIDTH}>${rows}</table>` : `<table width=${WIDTH}><tr><td height=20>${Html.font('No events yet.')}</td></tr></table>`;
+    return `<table width=${WIDTH}>${head}${rows}</table>`;
 }
 
 function boardBody(session, state = {}) {
     const view = LastHero.status(session);
-    return statusBar(view, state.message) + buttonRow(view)
+    return statusRow(view, state.message)
         + heading('How it works') + tiles(view)
-        + heading('The Hero') + heroCard(view)
+        + heading('The Hero') + heroRow(view)
         + heading('Last results') + historyTable(view);
 }
 
@@ -133,17 +146,17 @@ async function act(session, action = '') {
 function chatPage(session, message = '') {
     const view = LastHero.status(session);
     const links = actions(view).map(([label, action]) => Html.link(label, `last-hero ${action}`)).join('<br1>');
-    const hero = view.hero ? `${Html.font('Hero: ', Html.COLOR.title)}${Html.esc(view.hero.name)} ${Html.font(`Lv ${view.hero.level} ${className(view.hero.classId)}`)}` : Html.font('No Last Hero yet.');
-    const results = (view.history || []).slice(0, 3).map((entry) => `${Html.font(ago(entry.at))} ${Html.esc(entry.winner?.name || 'no winner')}`
-        + (entry.you ? Html.font(` (you #${entry.you.place})`) : '')).join('<br1>');
+    const hero = view.hero ? `${Html.font('Hero: ', Html.COLOR.title)}${Html.esc(view.hero.name)} ${soft(`Lv ${view.hero.level} ${className(view.hero.classId)}`)}` : soft('No Last Hero yet.');
+    const results = (view.history || []).slice(0, 3).map((entry) => `${soft(ago(entry.at))} ${Html.esc(entry.winner?.name || 'no winner')}`
+        + (entry.you ? soft(` (you #${entry.you.place})`) : '')).join('<br1>');
     const s = view.settings;
     const body = `${Html.font('Last Hero', Html.COLOR.title)}<br1>${Html.esc(view.text)}<br1>`
         + (yourLine(view) ? `${Html.font(yourLine(view), Html.COLOR.ok)}<br1>` : '')
         + (message ? `${Html.font(message, Html.COLOR.link)}<br1>` : '')
         + Html.line('L2UI.SquareGray')
         + (links ? `${links}<br1>${Html.line('L2UI.SquareGray')}` : '')
-        + Html.font(`${s.fighters} fighters, everyone for themselves, no parties. ${s.prepareSeconds} s to buff. `
-            + `The last one standing wins ${short(s.prize)} Adena and the Hero aura. No death penalty.`) + '<br1>'
+        + soft(`${s.fighters} fighters, everyone for themselves, no parties. Buffs are reset, then ${s.prepareSeconds} s to buff. `
+            + `The last one standing wins ${LastHero.prizeText(s)}. No death penalty.`) + '<br1>'
         + Html.line('L2UI.SquareGray') + hero + (results ? `<br1>${results}` : '');
     return `<html><body>${body}</body></html>`;
 }
