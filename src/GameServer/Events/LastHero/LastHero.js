@@ -6,7 +6,7 @@
 // an announcement. At the start you (if you joined) and bot fighters, up to 100 in all, are
 // put on random spots of the Coliseum floor. Parties are broken up and none can be made.
 // After prepareSeconds (30) to buff, everyone fights for themselves. The last one standing
-// wins prize Adena (10,000,000) and the Hero aura, and the server announces it. The aura
+// wins prizeAdena (10,000,000) and any prizeItems, plus the Hero aura, and the server announces it. The aura
 // stays until the next winner. Nobody loses anything: no EXP loss, no drops, no karma.
 // You can also start one by hand (Alt+B > Last Hero > Start now, or the .lasthero window).
 //
@@ -24,6 +24,7 @@
 const Arena = require('./LastHeroArena');
 const Fighters = require('./LastHeroFighters');
 const Store = require('./LastHeroStore');
+const Chatter = require('./LastHeroChatter');
 const { config } = require('./LastHeroConfig');
 
 const PLAYER_MARK = 'last-hero';
@@ -287,8 +288,10 @@ async function startLive(playerSessions, { manual = false } = {}) {
         }
         players.forEach((session, index) => enterPlayer(session, points[index]));
         if (run.fighters.length < 2) { abort('not enough fighters'); return false; }
-        utils.infoSuccess('LastHero', '%d bot fighters ready in %d ms (levels %s)', run.fighters.length - players.length,
-            now() - run.startedAt, [...new Set(run.fighters.map((fighter) => fighter.level))].sort((a, b) => a - b).join(' '));
+        const bots = run.fighters.filter((fighter) => fighter.kind === 'bot');
+        utils.infoSuccess('LastHero', '%d bot fighters ready in %d ms: %d classes, levels %s', bots.length, now() - run.startedAt,
+            new Set(bots.map((fighter) => fighter.classId)).size,
+            [...new Set(bots.map((fighter) => fighter.level))].sort((a, b) => a - b).join(' '));
 
         for (const fighter of run.fighters) if (fighter.kind === 'bot') Fighters.buff(fighter.session, fighter.actor, settings.botBuffs);
         run.state = 'prepare';
@@ -299,31 +302,66 @@ async function startLive(playerSessions, { manual = false } = {}) {
             try { runTick(); } catch (error) { invoke('FailureLog')?.note?.('last_hero.tick', error); }
         }, TICK_MS);
         run.timer.unref?.();
-        announce(`Last Hero: ${run.total} fighters on the floor. ${settings.prepareSeconds} seconds to buff, then everyone for themselves.`);
+        announce(`Last Hero: ${run.total} fighters on the floor, all buffs cancelled. ${settings.prepareSeconds} seconds to buff, then everyone for themselves.`);
         return true;
     } finally {
         starting = false;
     }
 }
 
+const summonOf = (actor) => { try { return invoke('GameServer/Npc/SummonControl').activeSummon(actor) || null; } catch { return null; } };
+const effectsOf = (actor) => { try { return actor ? structuredClone(invoke('GameServer/Effects/EffectStore').list(actor)) : []; } catch { return []; } };
+
+// Every effect off an actor (buffs, debuffs, toggles), as the Giran arena does before a duel
+// (ArenaDuelService.clearArenaEffects), then its stats and buff bar refreshed.
+function stripEffects(session, actor, { summon = false } = {}) {
+    if (!actor) return 0;
+    const EffectStore = invoke('GameServer/Effects/EffectStore');
+    const EffectTicker = invoke('GameServer/Effects/EffectTicker');
+    let effects = [];
+    try {
+        effects = EffectStore.list(actor);
+        EffectTicker.clearAll(actor);
+        effects.forEach((effect) => EffectStore.remove(actor, effect.key));
+        actor.activeBuffs = {};
+        const silent = effects.find((effect) => effect?.stats?.silentMoving);
+        if (silent) invoke('GameServer/Skills/ToggleSkills').cleanupState(session, actor, silent);
+        if (summon) {
+            invoke('GameServer/World/Generics/NpcBypasses/AdminFullBuff').refreshSummon(session, actor);
+        } else {
+            invoke(path.actor).calculateStats(session, actor);
+            actor.statusUpdateVitals?.(actor);
+            session.dataSendToMe?.(Response().userInfo(actor));
+            EffectTicker.refreshEffects?.(session, actor);
+        }
+    } catch (error) {
+        invoke('FailureLog')?.note?.('last_hero.strip_effects', error);
+    }
+    return effects.length;
+}
+
 function enterPlayer(session, point) {
     const actor = session.actor;
-    const EffectStore = invoke('GameServer/Effects/EffectStore');
+    const summon = summonOf(actor);
     const fighter = addFighter({
         kind: 'player', session, actor, name: actor.fetchName(), classId: actor.fetchClassId(), level: actor.fetchLevel(),
         sourceId: Number(actor.fetchId()), point,
         origin: { locX: actor.fetchLocX(), locY: actor.fetchLocY(), locZ: actor.fetchLocZ(), head: actor.fetchHead?.() || 0 },
-        effectsBefore: (() => { try { return structuredClone(EffectStore.list(actor)); } catch { return []; } })()
+        effectsBefore: effectsOf(actor), summon, summonEffectsBefore: effectsOf(summon)
     });
     const Companions = invoke('GameServer/Bot/AI/PartyCompanionService');
     if (Companions.membersForLeader(session).length) {
         Companions.detachAll(session, { event: 'last_hero', source: 'last_hero', message: 'Last Hero is everyone for themselves. See you after!' });
         tell(session, 'Last Hero allows no parties: your party was broken up.');
     }
+    // Everyone starts clean: the bot copies arrive with no effects, and yours come off. They
+    // come back when you leave the Coliseum (sendHome).
+    stripEffects(session, actor);
+    if (summon) stripEffects(session, summon, { summon: true });
     session.arenaDuelId = PLAYER_MARK;
     actor.setTarget?.(null);
     Generics().teleportTo(session, actor, point);
-    tell(session, `Last Hero: ${config().prepareSeconds} seconds to buff. No parties. The last one standing wins.`);
+    tell(session, `Last Hero: all buffs are cancelled. ${config().prepareSeconds} seconds to buff, no parties, the last one standing wins.`);
     return fighter;
 }
 
@@ -416,6 +454,14 @@ function clearFlag(fighter) {
     session.dataSendToOthers?.(Response().relationChanged(actor), actor);
 }
 
+// A fallen bot's flag ends without a word to the client: sending its look again (charInfo)
+// would stand its body back up on the floor.
+function quietFlag(fighter) {
+    clearTimeout(fighter.session?.pvpFlagTimer);
+    if (fighter.session) { fighter.session.pvpFlagTimer = undefined; fighter.session.pvpFlagUntil = 0; }
+    fighter.actor?.setPvpFlag?.(0);
+}
+
 function eliminate(fighter, by, how) {
     if (!run || !fighter.alive) return;
     fighter.place = standing().length;
@@ -425,6 +471,7 @@ function eliminate(fighter, by, how) {
     const left = standing().length;
 
     if (fighter.kind === 'bot') {
+        quietFlag(fighter);
         Fighters.stop(fighter);
         later(REMOVE_BODY_MS, () => { if (!fighter.removed) { fighter.removed = true; Fighters.remove(fighter.session); } });
     } else {
@@ -460,7 +507,8 @@ function finish(winner, reason) {
     run.endsAt = now() + END_HOLD_MS;
     for (const fighter of run.fighters) {
         if (fighter.kind === 'bot') Fighters.stop(fighter);
-        clearFlag(fighter);
+        if (fighter.alive || fighter.kind === 'player') clearFlag(fighter);
+        else quietFlag(fighter);
     }
     if (winner) {
         winner.place = 1;
@@ -469,16 +517,63 @@ function finish(winner, reason) {
     } else {
         announce('Last Hero ended with no one standing.');
     }
+    for (const fighter of run.fighters) {
+        if (fighter.kind === 'player' && !fighter.returned) tell(fighter.session, `You go back where you were in ${Math.round(END_HOLD_MS / 1000)} seconds.`);
+    }
     record(winner, reason);
+}
+
+function itemName(selfId) {
+    try {
+        const definition = require('../../Item/ItemTemplateIndex').find(invoke('GameServer/DataCache').items, selfId);
+        return definition?.template?.name || `item ${selfId}`;
+    } catch { return `item ${selfId}`; }
+}
+
+// "10,000,000 Adena, 5 Gold Bar and the Hero aura"
+function prizeText(settings = config()) {
+    const parts = [];
+    if (settings.prizeAdena > 0) parts.push(`${format(settings.prizeAdena)} Adena`);
+    for (const [id, count] of settings.prizeItems) parts.push(`${count > 1 ? `${format(count)} ` : ''}${itemName(id)}`);
+    return parts.length ? `${parts.join(', ')} and the Hero aura` : 'the Hero aura';
+}
+
+// The winner's prize in their own bag: the Adena, then each prize item (QuestService.giveItem:
+// a stack grows, an unstackable item comes one at a time).
+async function givePrize(session, adena, items) {
+    const got = [];
+    if (adena > 0) {
+        const { added } = await giveAdena(session, adena);
+        if (added > 0) got.push(`${format(added)} Adena`);
+    }
+    const Quests = invoke('GameServer/Quest/QuestService');
+    for (const [id, count] of items || []) {
+        const definition = require('../../Item/ItemTemplateIndex').find(invoke('GameServer/DataCache').items, id);
+        if (!definition) { utils.infoWarn('LastHero', 'prizeItems: no item %d in the datapack, skipped', id); continue; }
+        if (definition.etc?.stackable) await Quests.giveItem(session, id, count);
+        else for (let i = 0; i < Math.min(count, 100); i++) await Quests.giveItem(session, id, 1);
+        got.push(`${count > 1 ? `${format(count)} ` : ''}${definition.template?.name || id}`);
+    }
+    return got;
 }
 
 // The winner: announced, the Hero aura, the prize. Works for a live fighter or a drawn one.
 function crown(winner, reason) {
-    const prize = config().prize;
+    const settings = config();
     const what = `${winner.name} (Lv ${winner.level} ${className(winner.classId)})`;
     announce(reason === 'time'
-        ? `Last Hero: time is up! ${what} wins with ${winner.kills || 0} kills: ${format(prize)} Adena and the Hero aura!`
-        : `Last Hero: ${what} is the last one standing and wins ${format(prize)} Adena and the Hero aura!`);
+        ? `Last Hero: time is up! ${what} wins with ${winner.kills || 0} kills: ${prizeText(settings)}!`
+        : `Last Hero: ${what} is the last one standing and wins ${prizeText(settings)}!`);
+    if (settings.winnerChat) {
+        try {
+            Chatter.afterWin({ winner, live: run?.mode === 'live', prize: shortAmount(settings.prizeAdena),
+                fallen: (run?.fighters || []).filter((fighter) => fighter !== winner && fighter.kind === 'bot')
+                    .map((fighter) => ({ id: fighter.sourceId, name: fighter.name })),
+                count: run?.mode === 'live' ? 24 : 10 });
+        } catch (error) {
+            invoke('FailureLog')?.note?.('last_hero.chatter', error);
+        }
+    }
     const previous = Store.read().hero;
     Store.update((state) => {
         state.hero = { id: winner.sourceId, name: winner.name, classId: winner.classId, level: winner.level, at: now() };
@@ -486,14 +581,34 @@ function crown(winner, reason) {
     refreshAura(previous?.id);
     refreshAura(winner.sourceId);
     if (winner.actor) refreshAuraFor(winner.session, winner.actor);
-    if (prize <= 0) return;
+    if (settings.prizeAdena <= 0 && !settings.prizeItems.length) return;
     if (winner.kind === 'player' && winner.session?.actor === winner.actor) {
-        giveAdena(winner.session, prize).then(({ added }) => tell(winner.session, `You won ${format(added)} Adena.`))
+        givePrize(winner.session, settings.prizeAdena, settings.prizeItems)
+            .then((got) => { if (got.length) tell(winner.session, `You won ${got.join(', ')}.`); })
             .catch((error) => invoke('FailureLog')?.note?.('last_hero.prize', error));
     } else {
-        Store.update((state) => { state.prizes[winner.sourceId] = Number(state.prizes[winner.sourceId] || 0) + prize; });
+        Store.update((state) => {
+            const owed = owedPrize(state.prizes[winner.sourceId]);
+            owed.adena += settings.prizeAdena;
+            owed.items.push(...settings.prizeItems);
+            state.prizes[winner.sourceId] = owed;
+        });
         payBotPrizes();
     }
+}
+
+// A bot's owed prize: { adena, items }. Older files kept only a number of Adena.
+function owedPrize(value) {
+    if (value && typeof value === 'object') return { adena: Number(value.adena) || 0, items: Array.isArray(value.items) ? [...value.items] : [] };
+    return { adena: Number(value) || 0, items: [] };
+}
+
+// 10000000 -> "10kk", 1500000 -> "1.5kk", 250000 -> "250k"
+function shortAmount(amount) {
+    const value = Number(amount || 0);
+    if (value >= 1e6) return `${Number((value / 1e6).toFixed(1))}kk`;
+    if (value >= 1e3) return `${Number((value / 1e3).toFixed(1))}k`;
+    return String(value);
 }
 
 function refreshAuraFor(session, actor) {
@@ -546,17 +661,23 @@ function sendHome(fighter) {
     run?.byId?.delete(Number(actor.fetchId()));
     if (session.actor !== actor) return;
     const G = Generics();
-    const fell = fighter.how === 'fell';
     if (actor.isDead?.()) G.revive(session, actor, { delayMs: 0 });
-    if (fell) restoreEffects(session, actor, fighter.effectsBefore);
+    // The event's buffs stay in the Coliseum: the ones you came with come back, yours and your servitor's.
+    stripEffects(session, actor);
+    restoreEffects(session, actor, fighter.effectsBefore);
+    const summon = summonOf(actor);
+    if (summon && summon === fighter.summon) {
+        stripEffects(session, summon, { summon: true });
+        restoreEffects(session, summon, fighter.summonEffectsBefore, { summon: true });
+    }
     actor.fillupVitals?.();
     actor.statusUpdateVitals?.(actor);
     session.dataSendToMe?.(Response().userInfo(actor));
     G.teleportTo(session, actor, fighter.origin);
 }
 
-// A fall cost no buffs: the ones you came in with come back (as the Giran arena does).
-function restoreEffects(session, actor, effects = []) {
+// The buffs you came in with come back, with the time they had left (as the Giran arena does).
+function restoreEffects(session, actor, effects = [], { summon = false } = {}) {
     const EffectStore = invoke('GameServer/Effects/EffectStore');
     const EffectTicker = invoke('GameServer/Effects/EffectTicker');
     for (const effect of effects) {
@@ -569,8 +690,13 @@ function restoreEffects(session, actor, effects = []) {
             invoke('FailureLog')?.note?.('last_hero.restore_effect', error);
         }
     }
-    invoke(path.actor).calculateStats(session, actor);
-    EffectTicker.refreshEffects?.(session, actor);
+    try {
+        if (summon) { invoke('GameServer/World/Generics/NpcBypasses/AdminFullBuff').refreshSummon(session, actor); return; }
+        invoke(path.actor).calculateStats(session, actor);
+        EffectTicker.refreshEffects?.(session, actor);
+    } catch (error) {
+        invoke('FailureLog')?.note?.('last_hero.restore_refresh', error);
+    }
 }
 
 // Return now (Alt+B): a player who is out goes back without waiting for the end.
@@ -675,9 +801,11 @@ function payBotPrizes() {
         const session = sessions.find((entry) => !entry.arenaEphemeral && Number(entry.actor?.fetchId?.()) === Number(id));
         if (!session || session.paying) continue;
         session.paying = true;
-        giveAdena(session, Number(owed[id])).then(({ added }) => {
-            if (added > 0) Store.update((state) => { delete state.prizes[id]; });
-        }).catch((error) => invoke('FailureLog')?.note?.('last_hero.bot_prize', error))
+        const prize = owedPrize(owed[id]);
+        // Owed once: the debt is cleared before the bag is filled, so a second scan cannot pay it twice.
+        Store.update((state) => { delete state.prizes[id]; });
+        givePrize(session, prize.adena, prize.items)
+            .catch((error) => invoke('FailureLog')?.note?.('last_hero.bot_prize', error))
             .finally(() => { session.paying = false; });
     }
 }
@@ -724,7 +852,7 @@ function act(session, action) {
 module.exports = {
     PLAYER_MARK, start, stopScheduler, schedulerTick, startLive, startSimulated, startNow, join, leaveQueue, returnHome,
     involves, canInteract, suppressConsequences, isParticipant, partyBlocked, heroAura, onDeath, restartPoint,
-    fighterOf, status, act, giveAdena, payBotPrizes, announcementPacket, clock,
+    fighterOf, status, act, giveAdena, givePrize, payBotPrizes, prizeText, shortAmount, stripEffects, announcementPacket, clock,
     _state: () => ({ run, registration, starting }),
     _reset() {
         if (run) { clearInterval(run.timer); for (const timer of run.timers || []) clearTimeout(timer); }

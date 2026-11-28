@@ -1,23 +1,25 @@
 # Last Hero for L2Solo: a 100-fighter free-for-all at the Coliseum
 
-An automatic PvP event for [L2Solo](https://github.com/pmbstyle/L2Solo). Every two hours, up to 100 fighters (you and the server's bots) are put on random spots of the Coliseum floor. Everyone fights for themselves. The last one standing wins **10,000,000 Adena** and the **Hero aura**, and the whole server hears about it. It stays in Chronicle 4: the real C4 Coliseum arena, the C4 hero glow, the C4 announcement chat.
+An automatic PvP event for [L2Solo](https://github.com/pmbstyle/L2Solo). Every two hours, up to 100 fighters (you and the server's bots) are put on random spots of the Coliseum floor. Everyone fights for themselves. The last one standing wins **10,000,000 Adena** (you set the prize) and the **Hero aura**, and the whole server hears about it. It stays in Chronicle 4: the real C4 Coliseum arena, the C4 hero glow, the C4 announcement chat.
 
 ## How it works
 
 1. **Registration opens** 5 minutes before each event, with a server announcement. Join from **Alt+B > Last Hero** (with the [Solo Helper](https://github.com/Arturas-Salivonas/L2Solo/blob/mine/solo-buffer/solo/guides/SOLO_HELPER.md)) or type **`.lasthero`** in chat.
 2. **Don't want to wait?** Press **Start now**: it starts straight away with you in it.
 3. **Everyone is teleported** to a random spot on the Coliseum floor. Your party is broken up, and nobody can make one: it's everyone for themselves.
-4. **30 seconds to buff.** Nobody can attack yet. Walk off the floor and you're put back.
-5. **FIGHT!** Every fighter is flagged (purple), so you attack with a plain click. Bots pick the nearest fighter, or whoever just hit them, and fight with the server's own bot PvP brain: their skills, their gear, their shots.
-6. **When you fall, you're out.** You get your place and kills, stand up at the west gate a few seconds later, and can watch from there. Leaving the floor for 3 seconds also counts as out.
-7. **The last one standing wins.** If time runs out (10 minutes), the fighter with the most kills (then the most HP) wins.
-8. **Ten seconds later everyone goes back** where they came from, with full HP, MP and CP. If you fell, your buffs from before the event come back too.
+4. **All buffs are cancelled,** yours and your servitor's: everyone starts clean.
+5. **30 seconds to buff.** Nobody can attack yet. Bots cast their own class buffs, you cast yours (or use the Solo Helper buffer). Walk off the floor and you're put back.
+6. **FIGHT!** Every fighter is flagged (purple), so you attack with a plain click. Bots pick the nearest fighter, or whoever just hit them, and fight with the server's own bot PvP brain: their skills, their gear, their shots.
+7. **When you fall, you're out.** You get your place and kills, stand up at the west gate a few seconds later, and can watch from there. Leaving the floor for 3 seconds also counts as out.
+8. **The last one standing wins.** If time runs out (10 minutes), the fighter with the most kills (then the most HP) wins.
+9. **The crowd reacts:** a couple of dozen lines in normal, shout and trade chat. Gz, gg, "rigged", "share the 10kk?" and the like, from the fallen fighters and the rest of the server.
+10. **Ten seconds later everyone goes back** where they came from, with full HP, MP and CP and the buffs they had before the event.
 
 **Nothing is lost.** No EXP loss, no item drops, no karma, no PvP count. Outsiders can't touch fighters, and fighters can't touch outsiders.
 
 **The Hero aura** is the C4 hero glow. The winner keeps it until the next event has a new winner, across restarts. It's only the glow: no hero skills or hero chat.
 
-**The bots** are copies of real bots from your world: same name, class, level, gear and skills. They're picked closest to your level (within 10 levels when there are enough). Nothing that happens to a copy touches the real bot. A bot winner gets its 10kk the next time it's active near you, and the real bot glows.
+**The bots** are copies of real bots from your world: same name, class, level, gear and skills, and nothing extra (no buff set, no bonus stats). They're picked near your level (within 10 levels when there are enough), and the classes take turns so every class and race near your level gets places: mages, healers, buffers, summoners, dwarves as well as fighters. Nothing that happens to a copy touches the real bot. A bot winner gets its 10kk the next time it's active near you, and the real bot glows.
 
 **When you don't join,** the event still runs, in the background. The server announces the start, the countdown of fighters and the winner. The winner is drawn by level (stronger bots win more often) and gets the aura and the prize all the same. So when you meet a glowing bot, it really won.
 
@@ -149,22 +151,36 @@ If `--check` complains, your L2Solo is newer or older than the patch: use option
 
 ## Settings (optional)
 
-All of these go in `config/local.ini`. Restart the server after a change.
+Every setting is listed with its default under `[LastHero]` in `config/default.ini`. Put the ones you change in `config/local.ini` under `[LastHero]` (it survives updates). Restart the server after a change.
+
+**The prize** is the first thing most servers change:
 
 ```
 [LastHero]
+prizeAdena = 50000000            ; Adena for the winner, 0 = none
+prizeItems = 3470:1, 1539:20     ; extra items: itemId:count, comma separated
+```
+
+The example gives 50kk, a Gold Bar and 20 Greater Healing Potions. The announcement names the whole prize. Item ids are the C4 datapack's (`data/Items`). An id the server doesn't know is skipped with a warning in the console.
+
+All the settings:
+
+```
+[LastHero]
+prizeAdena = 10000000   ; Adena for the winner (the old name prize still works)
+prizeItems =            ; extra items for the winner, itemId:count, comma separated
 enabled = true          ; false turns the event off
 everyMinutes = 120      ; an event starts this long after the last one ended (0 = only with Start now)
 registerMinutes = 5     ; registration is open this long before an event
 prepareSeconds = 30     ; time to buff before the fight
 fightMinutes = 10       ; then most kills (then most HP) wins
 fighters = 100          ; fighters in one event, you included (2-136)
-prize = 10000000        ; Adena for the winner
-botBuffs = full         ; full = bots get a full buff set, self = only their own buffs, none
-levelGap = 10           ; bots are picked closest to your level, at most this far when there are enough
+botBuffs = self         ; self = bots cast their own buffs, full = a full buff set each, none
+levelGap = 10           ; bots are picked near your level, at most this far when there are enough
+winnerChat = true       ; false = no gz chatter after the winner
 ```
 
-The state lives in `tmp/solo/last-hero.json`: the current hero, when the next event is, the last 10 results and any prize a bot is still owed.
+The state lives in `tmp/solo/last-hero.json`: the current hero, when the next event is, the last 10 results and any prize a bot is still owed (paid the next time that bot is active near you).
 
 ## Good to know
 

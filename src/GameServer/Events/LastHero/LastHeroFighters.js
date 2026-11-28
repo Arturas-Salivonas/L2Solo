@@ -30,8 +30,10 @@ function cloneJson(value, fallback = {}) {
 // ---------- picking bots ----------
 
 // Bots that can enter: every bot the arena would offer (BotAvailability.catalogForPlayer),
-// not a town service, level 10 or more, picked closest to level. levelGap keeps them within
-// that many levels while there are enough of them; the rest come from the next closest.
+// not a town service, level 10 or more. They come from the levels near yours: within levelGap
+// while there are enough of them, else the closest count. Inside that window the classes take
+// turns (each class's closest bot first), so mages, healers, buffers, dwarves and every race
+// get their places instead of the most common fighter classes filling the floor.
 function pick(count, level, { playerSession = null, levelGap = 10, random = Math.random } = {}) {
     if (count <= 0) return [];
     const BotAvailability = invoke('GameServer/Bot/AI/BotAvailability');
@@ -47,8 +49,24 @@ function pick(count, level, { playerSession = null, levelGap = 10, random = Math
     }).map((candidate) => ({ candidate, gap: Math.abs(Number(candidate.level) - level), roll: random() }));
     pool.sort((a, b) => a.gap - b.gap || a.roll - b.roll);
     const near = pool.filter((entry) => entry.gap <= levelGap);
-    const chosen = near.length >= count ? near.slice(0, count) : pool.slice(0, count);
+    const window = near.length >= count ? near
+        : pool.filter((entry) => entry.gap <= (pool[Math.min(count, pool.length) - 1]?.gap ?? 0));
+    const byClass = new Map();
+    for (const entry of window) {
+        const id = classOf(entry.candidate);
+        if (!byClass.has(id)) byClass.set(id, []);
+        byClass.get(id).push(entry);
+    }
+    const queues = [...byClass.values()].sort((a, b) => a[0].roll - b[0].roll);
+    const chosen = [];
+    while (chosen.length < count && queues.some((queue) => queue.length)) {
+        for (const queue of queues) if (queue.length && chosen.length < count) chosen.push(queue.shift());
+    }
     return chosen.map((entry) => entry.candidate);
+}
+
+function classOf(candidate) {
+    return Number(candidate?.subject?.fetchClassId?.() ?? candidate?.state?.stats?.classId ?? candidate?.state?.classId ?? -1);
 }
 
 function sourceIdOf(candidate) {
@@ -157,10 +175,16 @@ async function spawn(candidate, point) {
 function remove(session) {
     const actor = session?.actor;
     if (!actor) return;
+    // A copy's PvP flag timer would send its look again after it is gone (PvpFlag.mark): a
+    // removed fighter standing on the floor. Stop the timer and mark the copy as leaving.
+    clearTimeout(session.pvpFlagTimer);
+    session.pvpFlagTimer = undefined;
+    session.characterLeaving = true;
     try {
         invoke('GameServer/Effects/EffectTicker').clearAll(actor);
         actor.attack?.destructor?.();
         session.dataSendToOthers?.(Response().deleteOb(actor.fetchId()), actor);
+        actor.setIsOnline?.(false);
         actor.destructor();
     } catch (error) {
         FailureLog.note('last_hero.remove', error);
@@ -243,4 +267,4 @@ function social(fighter, action) {
     fighter.session?.dataSendToMeAndOthers?.(Response().socialAction(fighter.actor.fetchId(), action), fighter.actor);
 }
 
-module.exports = { MIN_BOT_LEVEL, pick, sourceIdOf, snapshot, spawn, remove, buff, chooseTarget, fight, stop, say, social };
+module.exports = { MIN_BOT_LEVEL, pick, classOf, sourceIdOf, snapshot, spawn, remove, buff, chooseTarget, fight, stop, say, social };
