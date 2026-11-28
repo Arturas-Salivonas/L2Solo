@@ -25,6 +25,7 @@ const Arena = require('./LastHeroArena');
 const Fighters = require('./LastHeroFighters');
 const Store = require('./LastHeroStore');
 const Chatter = require('./LastHeroChatter');
+const Buffs = require('./LastHeroBuffs');
 const { config } = require('./LastHeroConfig');
 
 const PLAYER_MARK = 'last-hero';
@@ -293,7 +294,14 @@ async function startLive(playerSessions, { manual = false } = {}) {
             new Set(bots.map((fighter) => fighter.classId)).size,
             [...new Set(bots.map((fighter) => fighter.level))].sort((a, b) => a - b).join(' '));
 
-        for (const fighter of run.fighters) if (fighter.kind === 'bot') Fighters.buff(fighter.session, fighter.actor, settings.botBuffs);
+        // Bots: their own buffs (botBuffs), then the same base as you and a random draft of their own.
+        const base = Buffs.base(settings.baseBuffs), draftPool = Buffs.pool(base), expiresAt = eventBuffExpiry(settings);
+        for (const fighter of run.fighters) {
+            if (fighter.kind !== 'bot') continue;
+            Fighters.buff(fighter.session, fighter.actor, settings.botBuffs);
+            Buffs.apply(fighter.session, fighter.actor, [...base, ...Buffs.draw(draftPool, settings.draftPicks)], expiresAt);
+            fighter.actor.fillupVitals?.();
+        }
         run.state = 'prepare';
         run.total = run.fighters.length;
         run.prepareMs = settings.prepareSeconds * 1000;
@@ -360,9 +368,70 @@ function enterPlayer(session, point) {
     if (summon) stripEffects(session, summon, { summon: true });
     session.arenaDuelId = PLAYER_MARK;
     actor.setTarget?.(null);
-    Generics().teleportTo(session, actor, point);
-    tell(session, `Last Hero: all buffs are cancelled. ${config().prepareSeconds} seconds to buff, no parties, the last one standing wins.`);
+    // Then everyone's base buffs, and your draft: a few of a random handful, in a dialog.
+    const settings = config();
+    const base = Buffs.base(settings.baseBuffs);
+    Buffs.apply(session, actor, base, eventBuffExpiry(settings), { refresh: true });
+    fighter.draft = settings.draftPicks > 0
+        ? { choices: Buffs.draw(Buffs.pool(base), settings.draftChoices), picked: [], done: false, needed: settings.draftPicks }
+        : null;
+    if (fighter.draft) fighter.draft.needed = Math.min(fighter.draft.needed, fighter.draft.choices.length);
+    Generics().teleportTo(session, actor, point, { onArrival: () => openDraft(fighter) });
+    tell(session, `Last Hero: all buffs are cancelled. Everyone gets ${base.map((buff) => buff.name).join(', ')}`
+        + (fighter.draft ? `, and you pick ${fighter.draft.needed} more.` : '.')
+        + ` ${settings.prepareSeconds} seconds, then the last one standing wins.`);
     return fighter;
+}
+
+// Event buffs last the whole event; they come off on the way home all the same.
+const eventBuffExpiry = (settings) => now() + (settings.prepareSeconds + settings.fightMinutes * 60 + 120) * 1000;
+
+// ---------- the buff draft ----------
+
+function openDraft(fighter) {
+    if (!run || !fighter.draft || fighter.draft.done || fighter.session.actor !== fighter.actor) return;
+    invoke('GameServer/Events/LastHero/LastHeroWindow').showDraft(fighter.session);
+}
+
+// What the draft dialog shows: { choices, picked, needed, done, secondsLeft } or null.
+function draftView(session) {
+    const fighter = run?.byActor?.get(session?.actor);
+    if (!fighter?.draft) return null;
+    return { ...fighter.draft, secondsLeft: Math.max(0, Math.ceil((Number(run.prepareEndsAt || 0) - now()) / 1000)) };
+}
+
+// A click in the draft dialog. The last pick buffs you; the dialog's link closes it.
+// Returns { done, message }.
+function draftPick(session, index) {
+    const fighter = run?.byActor?.get(session?.actor);
+    const draft = fighter?.draft;
+    if (!draft) return { done: true, message: '' };
+    if (draft.done) return { done: true, message: 'Your Last Hero buffs are already picked.' };
+    const choice = Number(index);
+    if (!Number.isInteger(choice) || choice < 0 || choice >= draft.choices.length) return { done: false, message: '' };
+    if (draft.picked.includes(choice)) draft.picked = draft.picked.filter((picked) => picked !== choice); // a second click puts it back
+    else draft.picked.push(choice);
+    if (draft.picked.length < draft.needed) return { done: false, message: '' };
+    return { done: true, message: finishDraft(fighter) };
+}
+
+// The picks (topped up at random when time ran out) go on, once.
+function finishDraft(fighter, { auto = false } = {}) {
+    const draft = fighter.draft;
+    if (!draft || draft.done) return '';
+    const rest = draft.choices.map((_, index) => index).filter((index) => !draft.picked.includes(index));
+    while (draft.picked.length < draft.needed && rest.length) draft.picked.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
+    draft.done = true;
+    const buffs = draft.picked.map((index) => draft.choices[index]);
+    const got = Buffs.apply(fighter.session, fighter.actor, buffs, eventBuffExpiry(config()), { refresh: true });
+    const text = `${auto ? 'Time is up, picked for you' : 'Buffed'}: ${got.map((buff) => `${buff.name} ${buff.level}`).join(', ')}.`;
+    tell(fighter.session, `Last Hero: ${text}`);
+    return text;
+}
+
+// The Solo Helper asks this before its buffer or Full HP/MP/CP: no outside help in the event.
+function buffsLocked(actor) {
+    return !!fighterOf(actor) && config().lockBuffer;
 }
 
 function runTick() {
@@ -401,6 +470,7 @@ function beginFight(at) {
     const PvpFlag = invoke('GameServer/Actor/PvpFlag');
     // Purple names: a flagged character is attacked with a plain click, no Ctrl.
     for (const fighter of standing()) PvpFlag.mark(fighter.session, fighter.actor, config().fightMinutes * 60000 + 60000);
+    for (const fighter of standing()) if (fighter.draft && !fighter.draft.done) finishDraft(fighter, { auto: true });
     announce('Last Hero: FIGHT!');
 }
 
@@ -863,7 +933,8 @@ function status(session) {
         phase, text, settings,
         registered: !!registration?.players?.has(me),
         registeredCount: registration?.players?.size || 0,
-        mine: mine ? { alive: mine.alive, place: mine.place, kills: mine.kills, returned: !!mine.returned } : null,
+        mine: mine ? { alive: mine.alive, place: mine.place, kills: mine.kills, returned: !!mine.returned,
+            draftPending: !!mine.draft && !mine.draft.done && mine.alive } : null,
         standing: run?.mode === 'live' ? standing().length : null,
         hero: store.hero, history: store.history
     };
@@ -876,6 +947,8 @@ function act(session, action) {
         case 'leave': return leaveQueue(session);
         case 'start': return startNow(session);
         case 'home': return returnHome(session);
+        case 'buffs':
+            return invoke('GameServer/Events/LastHero/LastHeroWindow').showDraft(session) ? 'Pick your buffs in the dialog.' : 'Your buffs are already picked.';
         default: return '';
     }
 }
@@ -884,6 +957,7 @@ module.exports = {
     PLAYER_MARK, start, stopScheduler, schedulerTick, startLive, startSimulated, startNow, join, leaveQueue, returnHome,
     involves, canInteract, suppressConsequences, isParticipant, partyBlocked, heroAura, onDeath, restartPoint,
     fighterOf, status, act, giveAdena, givePrize, payBotPrizes, prizeText, shortAmount, stripEffects, announcementPacket, clock,
+    draftView, draftPick, finishDraft, buffsLocked,
     _state: () => ({ run, registration, starting }),
     _reset() {
         if (run) { clearInterval(run.timer); for (const timer of run.timers || []) clearTimeout(timer); }

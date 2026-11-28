@@ -16,6 +16,7 @@ const Store = invoke('GameServer/Events/LastHero/LastHeroStore');
 const LastHero = invoke('GameServer/Events/LastHero/LastHero');
 const Window = invoke('GameServer/Events/LastHero/LastHeroWindow');
 const Chatter = invoke('GameServer/Events/LastHero/LastHeroChatter');
+const Buffs = invoke('GameServer/Events/LastHero/LastHeroBuffs');
 invoke('GameServer/DataCache').init(); // item names for the prize
 const ArenaCombatRules = invoke('GameServer/World/ArenaCombatRules');
 const Generics = invoke('GameServer/Actor/Generics');
@@ -30,7 +31,9 @@ const BotManager = invoke('GameServer/Bot/BotManager');
 // ---------- stand-ins: no world, no database, no client ----------
 const teleports = [];
 const revives = [];
-Generics.teleportTo = (session, actor, coords) => { teleports.push([actor.fetchName(), { ...coords }]); actor.moveTo(coords); return true; };
+Generics.teleportTo = (session, actor, coords, options = {}) => {
+    teleports.push([actor.fetchName(), { ...coords }]); actor.moveTo(coords); options.onArrival?.(coords); return true;
+};
 Generics.revive = (session, actor) => { revives.push(actor.fetchName()); actor.revive(); };
 Generics.calculateStats = () => {};
 EffectTicker.refreshEffects = () => {};
@@ -52,6 +55,8 @@ Response.charInfo = (actor) => { charInfoFor.push(actor?.fetchName?.()); return 
 Response.relationChanged = () => Buffer.from([0xce]);
 Response.itemsList = () => Buffer.from([0x1b]);
 Response.npcHtml = (id, html) => Object.assign(Buffer.from([0x0f]), { html });
+Response.abnormalStatusUpdate = { fromActor: () => Buffer.from([0x7f]) };
+Response.shortBuffStatusUpdate = { fromActor: () => Buffer.from([0xf4]) };
 const adenaWrites = [];
 Database.updateItemAmount = (...args) => { adenaWrites.push(args); return Promise.resolve(); };
 Database.setItem = (characterId, row) => { adenaWrites.push([characterId, row.selfId, row.amount]); return Promise.resolve({ insertId: 777 }); };
@@ -125,7 +130,8 @@ const options = (values) => { global.options.default.LastHero = values; };
     // ---------- settings ----------
     options({});
     assert.deepStrictEqual(Config.config(), { enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
-        fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: [], botBuffs: 'self', levelGap: 10, winnerChat: true },
+        fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: [], botBuffs: 'self', levelGap: 10, winnerChat: true,
+        baseBuffs: [1204, 1086, 1085], draftChoices: 10, draftPicks: 3, lockBuffer: true },
         'defaults: bots cast only their own buffs');
     options({ prize: '5,000,000' });
     assert.strictEqual(Config.config().prizeAdena, 5000000, 'the old key prize still works, with commas');
@@ -160,7 +166,35 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.strictEqual(player.arenaDuelId, LastHero.PLAYER_MARK, 'you carry the arena mark (area skills, no death penalty)');
     assert.deepStrictEqual(player.companions, [], 'your party is broken up');
     assert.ok(Arena.isInsideActor(me), 'you are teleported onto the floor');
-    assert.deepStrictEqual(me.fakeEffects, [], 'all your buffs are cancelled on the way in');
+    assert.deepStrictEqual(me.fakeEffects.map((effect) => effect.id), [1204, 1086, 1085],
+        'your buffs are cancelled, then everyone gets Wind Walk, Haste and Acumen');
+    const someBot = run.fighters.find((fighter) => fighter.kind === 'bot').actor;
+    assert.strictEqual(someBot.fakeEffects.length, 6, 'a bot gets the same base and 3 random buffs');
+    assert.deepStrictEqual(someBot.fakeEffects.slice(0, 3).map((effect) => effect.id), [1204, 1086, 1085]);
+    assert.strictEqual(LastHero.buffsLocked(me), true, 'the Solo Helper buffer is locked for you');
+
+    // The draft: 10 random buffs, pick 3, the last pick closes the dialog and buffs you.
+    const dialog = player.sent.filter((packet) => packet[0] === 0x0f && packet.html?.includes('pick 3 buffs')).at(-1);
+    assert.ok(dialog, 'the draft dialog opens when you land');
+    const view = LastHero.draftView(player);
+    assert.strictEqual(view.choices.length, 10, '10 buffs to choose from');
+    const banned = new Set([1204, 1086, 1085, 1282, 1251, 1002, 1004, 268, 275, 276, 366, 277]);
+    assert.ok(view.choices.every((buff) => !banned.has(buff.selfId)), 'no base buff and no alternative to one');
+    assert.strictEqual(new Set(view.choices.map(Buffs.slot)).size, 10, 'no two choices replace each other');
+    assert.ok(dialog.html.includes('bypass last-hero draft 9') && !dialog.html.includes('bypass -h'), 'first picks keep the dialog open');
+    assert.ok(Window.chat(player, ['draft', '0']), 'a pick redraws the dialog');
+    Window.chat(player, ['draft', '0']);
+    assert.deepStrictEqual(LastHero.draftView(player).picked, [], 'a second click puts it back');
+    Window.chat(player, ['draft', '4']);
+    const two = Window.chat(player, ['draft', '7']);
+    assert.ok(two.includes('bypass -h last-hero draft 0') && two.includes('bypass last-hero draft 4'),
+        'with one pick left, the others close the dialog; a picked one stays a plain click');
+    assert.strictEqual(Window.chat(player, ['draft', '9']), null, 'the last pick sends no dialog back');
+    const chosen = [4, 7, 9].map((index) => view.choices[index].selfId);
+    assert.deepStrictEqual(me.fakeEffects.map((effect) => effect.id).slice(3), chosen, 'you are buffed with your 3 picks');
+    assert.ok(texts(player).includes('Buffed:'), 'and told');
+    assert.strictEqual(Window.chat(player, ['draft', '1']), null, 'a late click changes nothing');
+    assert.strictEqual(me.fakeEffects.length, 6);
     assert.ok(texts(player).includes('all buffs are cancelled'), 'and you are told');
     assert.ok(texts(player).includes('no parties') || texts(player).includes('No parties'), 'you are told the rules');
     assert.ok(LastHero.partyBlocked(player), 'no party invites while in it');
@@ -253,7 +287,8 @@ const options = (values) => { global.options.default.LastHero = values; };
     assert.strictEqual(LastHero._state().run, null, 'ten seconds later it is over');
     assert.deepStrictEqual(teleports.at(-1), ['Arturas', { locX: 83400, locY: 147943, locZ: -3404, head: 0 }], 'you go back where you were');
     assert.ok(!me.isDead(), 'alive');
-    assert.deepStrictEqual(me.fakeEffects.map((effect) => effect.id), [1068, 1040], 'with the buffs you came in with');
+    assert.deepStrictEqual(me.fakeEffects.map((effect) => effect.id), [1068, 1040], 'with the buffs you came in with, not the event ones');
+    assert.strictEqual(LastHero.buffsLocked(me), false, 'and the buffer is yours again');
     assert.ok(removed.length >= 5, 'the bot copies are removed');
     assert.strictEqual(ArenaCombatRules.canInteract(me, outsider), true, 'and the normal rules are back');
 
@@ -263,8 +298,11 @@ const options = (values) => { global.options.default.LastHero = values; };
     await new Promise((resolve) => setImmediate(resolve));
     await new Promise((resolve) => setImmediate(resolve));
     const second = LastHero._state().run;
+    assert.ok(Window.boardBody(player).includes('Pick buffs'), 'the window can reopen the draft');
     second.prepareEndsAt = Date.now() - 1;
     LastHero._tick();
+    assert.ok(texts(player).includes('Time is up, picked for you'), 'no picks by the fight: picked for you');
+    assert.strictEqual(LastHero.draftView(player).picked.length, 3);
     for (const fighter of second.fighters.filter((entry) => entry.kind === 'bot')) { fighter.actor.kill(); LastHero.onDeath(null, fighter.actor, me); }
     LastHero._tick();
     await new Promise((resolve) => setImmediate(resolve));
