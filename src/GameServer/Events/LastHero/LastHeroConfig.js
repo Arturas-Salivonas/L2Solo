@@ -13,10 +13,15 @@
 //   botBuffs        = self      self = bots cast their own buffs, full = a full buff set, none
 //   levelGap        = 10        bots are picked near your level, at most this far when there are enough
 //   winnerChat      = true      false = no "gz" chatter after the winner
+//   baseBuffs       = 1204, 1086, 1085   everyone's buffs on the floor (Wind Walk, Haste, Acumen), highest level
+//   draftChoices    = 10        random buffs offered to you on the floor
+//   draftPicks      = 3         how many of them you pick (bots get this many at random); 0 = no draft
+//   lockBuffer      = false     true = no Solo Helper buffer or Full HP/MP/CP while you are in Last Hero
 
 const DEFAULTS = Object.freeze({ enabled: true, everyMinutes: 120, registerMinutes: 5, prepareSeconds: 30,
     fightMinutes: 10, fighters: 100, prizeAdena: 10000000, prizeItems: Object.freeze([]), botBuffs: 'self',
-    levelGap: 10, winnerChat: true });
+    levelGap: 10, winnerChat: true, baseBuffs: Object.freeze([1204, 1086, 1085]), draftChoices: 10, draftPicks: 3,
+    lockBuffer: false });
 const MAX_FIGHTERS = 136; // LastHeroArena.SPAWNS
 const MAX_ADENA = 2147483647;
 
@@ -29,6 +34,12 @@ function number(value, fallback, min, max) {
     const parsed = Math.floor(Number(String(value ?? '').replace(/[\s,_]/g, '')));
     if (value === undefined || value === null || value === '' || !Number.isFinite(parsed)) return fallback;
     return Math.max(min, Math.min(max, parsed));
+}
+
+// "1204, 1086" -> [1204, 1086]; junk is skipped. An empty value keeps the default.
+function ids(value, fallback) {
+    if (value === undefined || value === null || String(value).trim() === '') return [...fallback];
+    return String(value).split(/[,;\s]+/).map(Number).filter((id) => Number.isInteger(id) && id > 0);
 }
 
 // "3470:1, 1539:5" -> [[3470, 1], [1539, 5]]. A bad entry is skipped (and named once in the log).
@@ -61,7 +72,11 @@ function config() {
         prizeItems: items(raw.prizeItems),
         botBuffs: ['full', 'self', 'none'].includes(buffs) ? buffs : DEFAULTS.botBuffs,
         levelGap: number(raw.levelGap, DEFAULTS.levelGap, 0, 80),
-        winnerChat: flag(raw.winnerChat, DEFAULTS.winnerChat)
+        winnerChat: flag(raw.winnerChat, DEFAULTS.winnerChat),
+        baseBuffs: ids(raw.baseBuffs, DEFAULTS.baseBuffs),
+        draftChoices: number(raw.draftChoices, DEFAULTS.draftChoices, 1, 20),
+        draftPicks: number(raw.draftPicks, DEFAULTS.draftPicks, 0, 10),
+        lockBuffer: flag(raw.lockBuffer, DEFAULTS.lockBuffer)
     };
 }
 

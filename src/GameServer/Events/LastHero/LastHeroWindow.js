@@ -43,6 +43,7 @@ function ago(at) {
 function actions(view) {
     const out = [];
     if (view.phase === 'off') return out;
+    if (view.mine?.draftPending) out.push(['Pick buffs', 'buffs']);
     if (view.mine && !view.mine.alive && !view.mine.returned) out.push(['Return now', 'home']);
     if (view.phase === 'registration') out.push(view.registered ? ['Leave queue', 'leave'] : ['Join', 'join']);
     if (view.phase === 'idle' || view.phase === 'registration') out.push(['Start now', 'start']);
@@ -172,10 +173,54 @@ function chatPage(session, message = '') {
     return `<html><body>${body}</body></html>`;
 }
 
+// ---------- the buff draft dialog (270 px) ----------
+
+// Pick N of the offered buffs. "bypass -h" closes the dialog in the client, so only the click
+// that completes the picks carries it; the others keep the dialog open and redraw it.
+function draftPage(view) {
+    const remaining = view.needed - view.picked.length;
+    const cell = (buff, index) => {
+        const picked = view.picked.includes(index);
+        const hide = !picked && remaining === 1;
+        const action = `${hide ? 'bypass -h' : 'bypass'} last-hero draft ${index}`;
+        const icon = `icon.skill${String(buff.selfId).padStart(4, '0')}`;
+        return `<td width=34 height=36><button action="${action}" width=32 height=32 back="${icon}" fore="${icon}"></td>`
+            + `<td width=101 align=left><a action="${action}">${Html.font(buff.name, picked ? Html.COLOR.ok : 'FFFFFF')}</a>`
+            + `<br1>${picked ? Html.font('picked', Html.COLOR.ok) : soft(`Lv ${buff.level}`)}</td>`;
+    };
+    const rows = [];
+    for (let i = 0; i < view.choices.length; i += 2) {
+        rows.push(`<tr>${cell(view.choices[i], i)}${view.choices[i + 1] ? cell(view.choices[i + 1], i + 1) : '<td width=34></td><td width=101></td>'}</tr>`);
+    }
+    return '<html><body>'
+        + `${Html.font(`Last Hero - pick ${view.needed} buffs`, Html.COLOR.title)}<br1>`
+        + `${Html.font(`${view.picked.length} of ${view.needed} picked`, Html.COLOR.ok)}  ${soft(`${view.secondsLeft} s left`)}<br1>`
+        + Html.line('L2UI.SquareGray')
+        + `<table width=270>${rows.join('')}</table>`
+        + Html.line('L2UI.SquareGray')
+        + soft('Click a picked one again to put it back.')
+        + '</body></html>';
+}
+
+function showDraft(session) {
+    const view = LastHero.draftView(session);
+    if (!view || view.done || !session?.actor) return null;
+    const html = draftPage(view);
+    session.dataSendToMe(Response().npcHtml(session.actor.fetchId(), html));
+    return html;
+}
+
 // ".lasthero" and bypass "last-hero <action>".
 function chat(session, args = []) {
     if (!session?.actor) return null;
-    const message = LastHero.act(session, String(args[0] || '').toLowerCase());
+    const action = String(args[0] || '').toLowerCase();
+    if (action === 'close') return null;
+    if (action === 'draft') {
+        // The completing click already closed the dialog: nothing is sent back, only the buffs.
+        const { done } = LastHero.draftPick(session, args[1]);
+        return done ? null : showDraft(session);
+    }
+    const message = LastHero.act(session, action);
     const html = chatPage(session, message);
     session.dataSendToMe(Response().npcHtml(session.actor.fetchId(), html));
     return html;
@@ -188,4 +233,4 @@ function command(session, text) {
     return true;
 }
 
-module.exports = { WIDTH, boardBody, act, chat, chatPage, command, actions, short };
+module.exports = { WIDTH, boardBody, act, chat, chatPage, command, actions, short, draftPage, showDraft };
