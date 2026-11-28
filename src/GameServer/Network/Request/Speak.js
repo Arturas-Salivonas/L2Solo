@@ -143,6 +143,7 @@ function dispatchLocalCommand(session, data) {
         invoke('GameServer/World/Generics/NpcBypasses/NativeItems').open(session, itemsCommand[1] ?? null);
         return true;
     }
+    if (invoke('GameServer/Events/LastHero/LastHeroWindow').command?.(session, data.text)) return true;
 
     if (data.text === '.admin') {
         invoke(path.actor).adminPanel(session, session.actor);

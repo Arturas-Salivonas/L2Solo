@@ -308,6 +308,7 @@ async function main() {
     mocks['GameServer/Actor/Generics/CalculateStats'] = () => {};
     mocks['GameServer/Skills/ChargeLifecycle'] = { clear() {} };
     mocks['GameServer/World/ArenaDuelService'] = { onPlayerDeath: () => false };
+    mocks['GameServer/Events/LastHero/LastHero'] = { involves: () => false, onDeath: () => false, restartPoint: () => null };
     // A bot's death price only; the player's death here never reads it.
     mocks['GameServer/Bot/Economy/EconomyContext'] = {};
     mocks['GameServer/Bot/Economy/EconomicValuation'] = {};
