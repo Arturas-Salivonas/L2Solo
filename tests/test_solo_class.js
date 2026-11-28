@@ -180,6 +180,14 @@ const boardPackets = (session) => session.packets.filter((packet) => packet[0] =
         assert.strictEqual(html.includes('value="Last Hero"'), installed, installed ? 'Last Hero is a tab' : 'no Last Hero tab without the event');
         assert.strictEqual(SoloHelper.command(session, '.lasthero'), installed, '.lasthero opens the tab only with the event');
         if (installed) {
+            const LastHero = invoke('GameServer/Events/LastHero/LastHero');
+            const SoloBuffer = invoke('GameServer/Solo/SoloBuffer');
+            const saved = LastHero.buffsLocked;
+            LastHero.buffsLocked = () => true;
+            try {
+                for (const action of ['one', 'preset', 'mine', 'pet', 'restore'])
+                    assert.match(SoloBuffer.act(session, action, '1068').message, /Not during Last Hero/, `${action} is locked in the event`);
+            } finally { LastHero.buffsLocked = saved; }
             const tab = await SoloHelper.handleBoard(session, ['hero']);
             assert.ok(tab.includes('How it works') && tab.length < ShowBoard.MAX_LENGTH, 'the Last Hero tab fits one board page');
         }
