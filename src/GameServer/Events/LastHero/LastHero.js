@@ -302,6 +302,13 @@ async function startLive(playerSessions, { manual = false } = {}) {
             Buffs.apply(fighter.session, fighter.actor, [...base, ...Buffs.draw(draftPool, settings.draftPicks)], expiresAt);
             fighter.actor.fillupVitals?.();
         }
+        const botFighters = run.fighters.filter((fighter) => fighter.kind === 'bot');
+        if (botFighters.length) {
+            const EffectStore = invoke('GameServer/Effects/EffectStore');
+            const total = botFighters.reduce((sum, fighter) => sum + EffectStore.list(fighter.actor).length, 0);
+            utils.infoSuccess('LastHero', 'bot buffs: %s per bot on average (base %d + draft %d + their own)',
+                (total / botFighters.length).toFixed(1), base.length, settings.draftPicks);
+        }
         run.state = 'prepare';
         run.total = run.fighters.length;
         run.prepareMs = settings.prepareSeconds * 1000;
